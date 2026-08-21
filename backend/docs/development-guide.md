@@ -21,7 +21,8 @@
 11. [Ví dụ hoàn chỉnh — Feature Destination](#11-ví-dụ-hoàn-chỉnh--feature-destination)
 12. [Checklist trước khi tạo Pull Request](#12-checklist-trước-khi-tạo-pull-request)
 13. [Git Workflow](#13-git-workflow)
-14. [Các vấn đề cần thống nhất](#14-các-vấn-đề-cần-thống-nhất)
+14. [Các vấn đề khác](#14-các-vấn-đề-khác)
+15. [Phân công công việc chính thức (5 Thành viên)](#15-phân-công-công-việc-chính-thức-5-thành-viên)
 
 ---
 
@@ -1291,6 +1292,120 @@ images: { orderBy: { displayOrder: 'asc' } }
 
 ---
 
+## 15. Phân công công việc chính thức (5 Thành viên)
+
+> Phân chia module full-stack theo 3 cột: **Backend API**, **Giao diện Client (User)** và **Giao diện Admin (Quản trị)**.
+
+```
+                            HỆ THỐNG TRAVEL PLATFORM
+                            ├── 🌐 Giao diện Client (Người dùng)
+                            └── 🛡️ Giao diện Admin Dashboard (Quản trị)
+```
+
+---
+
+### 👑 1. Bạn – Nhóm trưởng: 🔐 Auth, User & Admin Shell
+
+* **Backend:**
+  - `auth`: Register, Login, Refresh Token (Cookie HttpOnly + Secure), Logout, Google OAuth 2.0.
+  - `user`: Profile cá nhân, Đổi mật khẩu, Upload avatar.
+  - `admin-user`: API danh sách người dùng, Khóa/Mở khóa tài khoản (`isActive`), Phân quyền `ADMIN`/`USER`.
+* **Frontend Core & Client:**
+  - Setup Frontend Core: Axios Instance + Interceptors (tự động đính kèm Token & bắt lỗi 401 tự động gọi Refresh Token), `AuthContext`, `ProtectedRoute`.
+  - Màn hình Đăng ký, Đăng nhập (Page / Modal), Đăng nhập Google.
+  - Trang Quản lý tài khoản cá nhân (Profile, Avatar, Đổi mật khẩu).
+* **Frontend Admin:**
+  - **Shared Admin Layout (Khung sườn dùng chung):** `AdminLayout`, `AdminSidebar`, `AdminHeader`, `AdminRoute` (chỉ role `ADMIN` mới vào được). *Tất cả các trang Admin của thành viên khác sẽ render bên trong Layout này.*
+  - **Trang Quản lý Người dùng (`UserManager`):** Bảng danh sách User, Tìm kiếm/Lọc role, Khóa/Mở tài khoản.
+
+---
+
+### 📍 2. Minh: 🏞️ Destination & Category
+
+* **Backend:**
+  - `destination`: CRUD địa điểm, Lọc đa tiêu chí (giá vé, rating, danh mục, từ khóa search), Phân trang.
+  - `category`: CRUD danh mục du lịch.
+  - `upload`: Tích hợp upload nhiều ảnh địa điểm lên Cloudinary.
+  - API Admin: Thêm/Sửa địa điểm (kèm tọa độ & album ảnh), Xóa mềm địa điểm (`isActive = false`), Thêm/Sửa/Xóa danh mục.
+* **Frontend Client:**
+  - **Trang chủ (Home):** Hero banner, Danh mục nổi bật, Top địa điểm đánh giá cao.
+  - **Trang Khám phá / Tìm kiếm (Explore):** Bộ lọc đa năng (theo danh mục, khoảng giá, rating), tìm kiếm từ khóa, phân trang.
+  - **Trang Chi tiết Địa điểm (Destination Detail):** Gallery ảnh (Primary + Album), địa chỉ, giá vé, giờ mở cửa, nút chỉ đường.
+* **Frontend Admin (nhúng trong AdminLayout):**
+  - **Trang Quản lý Địa điểm (`DestinationManager`):** Bảng danh sách, Form Thêm/Sửa địa điểm (Upload ảnh + chọn tọa độ), Ẩn/Hiện địa điểm.
+  - **Trang Quản lý Danh mục (`CategoryManager`):** Bảng và Form Thêm/Sửa/Xóa danh mục.
+
+---
+
+### 🗺️ 3. TV3: 📅 Trip Planner & Itinerary
+
+* **Backend:**
+  - `trip`: CRUD Chuyến đi (ngày đi/về, ngân sách, số người, thành phố đến).
+  - `trip-day` & `itinerary`: CRUD chi tiết từng ngày, sắp xếp thứ tự điểm tham quan (`sequenceOrder`), tính tổng chi phí dự tính, lưu thời gian bắt đầu/kết thúc.
+  - `share-trip`: Tạo `shareToken`, API xem lịch trình công khai (`isPublic = true`).
+  - *Cung cấp API tạo Trip chuẩn để TV5 (AI) gọi sang khi người dùng bấm "Lưu thành chuyến đi".*
+* **Frontend Client:**
+  - **Trang Chuyến đi của tôi (My Trips):** Danh sách chuyến đi (Đang lên kế hoạch, Sắp tới, Lịch sử).
+  - **Trang Lập & Quản lý Lịch trình (Trip Planner/Detail):**
+    - Giao diện Timeline trực quan theo từng ngày (Day 1, Day 2...).
+    - Kéo-thả (Drag & Drop) để thay đổi thứ tự các điểm đến trong ngày.
+    - Modal tìm và thêm địa điểm vào ngày cụ thể.
+  - **Trang Xem & Chia sẻ Chuyến đi (Public Shared Trip):** Dành cho bạn bè xem qua link chia sẻ.
+* **Frontend Admin:**
+  - *Không cần quản lý Admin cho Trip trong phiên bản này (Trip là dữ liệu cá nhân của User).*
+
+---
+
+### ⭐ 4. TV4: 💬 Review, Favorite & Moderation
+
+* **Backend:**
+  - `review`: CRUD Đánh giá (1-5 sao + nhận xét), Upload ảnh đánh giá (`ReviewImage`), Ràng buộc 1 user chỉ review 1 lần/destination.
+  - Tự động tính toán & cập nhật điểm trung bình `rating` của bảng `destinations` khi có review mới.
+  - `favorite`: Toggle Lưu/Bỏ lưu địa điểm yêu thích (Wishlist).
+  - `admin-review`: API lấy tất cả review trên hệ thống, Ẩn review vi phạm/spam (`isVisible = false`), Xóa review.
+* **Frontend Client:**
+  - **Component Đánh giá:** Đặt trong trang Chi tiết Địa điểm, form chọn sao, viết bình luận, upload ảnh, xem danh sách review kèm ảnh của cộng đồng.
+  - **Nút Yêu thích (Favorite Heart Icon):** Đặt trên Card địa điểm và Trang chi tiết.
+  - **Trang Yêu thích (Wishlist / Saved Destinations):** Danh sách các địa điểm user đã lưu.
+* **Frontend Admin (nhúng trong AdminLayout):**
+  - **Trang Quản trị Đánh giá (`ReviewManager`):** Bảng danh sách toàn bộ review hệ thống, Tìm kiếm/Lọc theo rating/destination, Nút Ẩn/Hiện đánh giá vi phạm, Nút Xóa review spam.
+
+---
+
+### 🤖 5. TV5: 🧠 AI Recommendation, Interactive Map & Dashboard
+
+* **Backend:**
+  - `ai`: Tích hợp OpenAI / Google Gemini API sinh lịch trình du lịch thông minh dựa trên thông tin khảo sát (`TravelPreference`).
+  - `map / routing`: Tích hợp OSRM / Map API tính toán khoảng cách và thời gian di chuyển giữa các tọa độ.
+  - `travel-preference`: CRUD lưu và cập nhật sở thích du lịch người dùng.
+  - `admin-analytics`: Xây dựng `analytics.service.ts` và `analytics.repository.ts` riêng (chỉ đọc dữ liệu thống kê từ DB):
+    - `GET /api/v1/admin/analytics/overview` (Tổng User, Destination, Trip, Review).
+    - `GET /api/v1/admin/analytics/growth` (Tăng trưởng User & Trip theo tháng).
+    - `GET /api/v1/admin/analytics/top-destinations` (Top địa điểm hot nhất).
+* **Frontend Client:**
+  - **Trang Khảo sát & AI Planner:** Form chọn ngân sách, phong cách du lịch, thời gian du lịch → Nút "AI Lập Lịch Trình".
+  - **Màn hình Kết quả AI:** Hiển thị lịch trình do AI gợi ý + Nút **"Lưu thành chuyến đi thật"** (gọi API của TV3 để lưu vào DB).
+  - **Bản đồ tương tác (Interactive Map):** Sử dụng **Leaflet + OpenStreetMap** để hiển thị marker vị trí các địa điểm và vẽ tuyến đường OSRM.
+* **Frontend Admin (nhúng trong AdminLayout):**
+  - **Trang Dashboard Tổng quan (`DashboardHome`):**
+    - Các thẻ KPI cards: Tổng Users, Tổng Địa điểm, Chuyến đi tạo bằng AI, Tổng Reviews.
+    - Biểu đồ tăng trưởng (Line / Bar Charts): Lượng User & Trip mới theo thời gian.
+    - Bảng Top địa điểm được yêu thích nhất / Đánh giá cao nhất.
+
+---
+
+### 🛠️ Quy chuẩn Công nghệ thống nhất cho Nhóm:
+1. **Frontend Map & Routing:**
+   - Hiển thị bản đồ: **Leaflet** + **React-Leaflet** (Nguồn tile: **OpenStreetMap**).
+   - Tính lộ trình & Khoảng cách: **OSRM API** (`http://router.project-osrm.org/route/v1/...`).
+2. **Giao diện Admin:**
+   - Nhóm trưởng dựng `AdminLayout` chuẩn (Sidebar, Header, Content Area).
+   - Minh (`DestinationManager`), TV4 (`ReviewManager`), TV5 (`DashboardHome`), Nhóm trưởng (`UserManager`) chỉ cần code component nội dung và gắn vào route tương ứng trong `AdminLayout`.
+3. **Luồng AI sang Trip:**
+   - TV5 sinh lịch trình dạng JSON → User duyệt → Bấm nút "Lưu" → Gọi `POST /api/v1/trips` của TV3 để ghi vào Database.
+
+---
+
 *Tài liệu được tạo dựa trên codebase thực tế — phiên bản Backend Core hoàn chỉnh.*
-*Cập nhật lần cuối: 2026-08-21 — Đã chốt tất cả quyết định kiến trúc.*
+*Cập nhật lần cuối: 2026-08-21 — Đã chốt toàn bộ kiến trúc & phân công công việc.*
 
