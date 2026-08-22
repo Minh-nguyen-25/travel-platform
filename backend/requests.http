@@ -1,0 +1,119 @@
+### ==============================================================================
+### TRAVEL PLATFORM API - QUICK TEST (Dùng với VS Code REST Client / Thunder Client)
+### ==============================================================================
+
+@baseUrl = http://localhost:3000/api/v1
+@token = your_jwt_access_token_here
+
+### ------------------------------------------------------------------------------
+### 1. HEALTH CHECK (Kiểm tra server sống hay chết)
+### ------------------------------------------------------------------------------
+GET {{baseUrl}}/health
+Content-Type: application/json
+
+### ------------------------------------------------------------------------------
+### 2. AUTHENTICATION (Ví dụ mẫu - TV Auth triển khai)
+### ------------------------------------------------------------------------------
+
+### Đăng ký tài khoản mới
+# POST {{baseUrl}}/auth/register
+# Content-Type: application/json
+
+# {
+#   "email": "traveler@example.com",
+#   "password": "Password@123",
+#   "fullName": "Nguyễn Văn Du Lịch"
+# }
+
+### Đăng nhập
+# POST {{baseUrl}}/auth/login
+# Content-Type: application/json
+
+# {
+#   "email": "traveler@example.com",
+#   "password": "Password@123"
+# }
+
+### Lấy thông tin cá nhân (Cần Token)
+# GET {{baseUrl}}/users/profile
+# Authorization: Bearer {{token}}
+
+### ------------------------------------------------------------------------------
+### 3. DESTINATIONS (Ví dụ mẫu - Minh triển khai)
+### ------------------------------------------------------------------------------
+
+### Lấy danh sách địa điểm (Public, có phân trang & tìm kiếm)
+# GET {{baseUrl}}/destinations?page=1&limit=10&search=Hà Nội
+
+### Xem chi tiết địa điểm (Public)
+# GET {{baseUrl}}/destinations/1
+
+### Tạo địa điểm mới (Chỉ Admin)
+# POST {{baseUrl}}/destinations
+# Authorization: Bearer {{token}}
+# Content-Type: application/json
+
+# {
+#   "name": "Hồ Hoàn Kiếm",
+#   "address": "Hoàn Kiếm, Hà Nội",
+#   "latitude": 21.0285,
+#   "longitude": 105.8542,
+#   "ticketPrice": 0,
+#   "categoryIds": [1, 3]
+# }
+
+### ------------------------------------------------------------------------------
+### 4. REVIEWS & FAVORITES (Ví dụ mẫu - TV4 triển khai)
+### ------------------------------------------------------------------------------
+
+### Thêm đánh giá địa điểm (Cần đăng nhập)
+# POST {{baseUrl}}/destinations/1/reviews
+# Authorization: Bearer {{token}}
+# Content-Type: application/json
+
+# {
+#   "rating": 5,
+#   "comment": "Địa điểm rất đẹp và thoáng mát!"
+# }
+
+### Toggle yêu thích địa điểm (Cần đăng nhập)
+# POST {{baseUrl}}/destinations/1/favorites
+# Authorization: Bearer {{token}}
+
+### ------------------------------------------------------------------------------
+### 5. TRIPS & ITINERARY (Ví dụ mẫu - TV3 triển khai)
+### ------------------------------------------------------------------------------
+
+### Tạo chuyến đi mới (Cần đăng nhập)
+# POST {{baseUrl}}/trips
+# Authorization: Bearer {{token}}
+# Content-Type: application/json
+
+# {
+#   "name": "Khám phá Hà Nội 3N2Đ",
+#   "destinationCity": "Hà Nội",
+#   "startDate": "2026-09-01",
+#   "endDate": "2026-09-03",
+#   "budget": 3000000,
+#   "numberOfPeople": 2
+# }
+
+### ------------------------------------------------------------------------------
+### 6. AI & ANALYTICS (Ví dụ mẫu - TV5 triển khai)
+### ------------------------------------------------------------------------------
+
+### Yêu cầu AI gợi ý lịch trình
+# POST {{baseUrl}}/ai/generate-itinerary
+# Authorization: Bearer {{token}}
+# Content-Type: application/json
+
+# {
+#   "destinationCity": "Đà Nẵng",
+#   "days": 3,
+#   "budgetLevel": "MEDIUM",
+#   "travelStyle": "Khám phá & Ẩm thực"
+# }
+
+### Admin Analytics Overview (Chỉ Admin)
+# GET {{baseUrl}}/admin/analytics/overview
+# Authorization: Bearer {{token}}
