@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   CSS Custom Properties — Design Foundation
+   Tất cả thành viên dùng các biến này để giữ design nhất quán
+   ============================================================ */
+:root {
+  /* Typography */
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  /* Layout */
+  --container-max-width: 1280px;
+  --sidebar-width: 256px;
+  --header-height: 64px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-default: 200ms ease;
+  --transition-slow: 300ms ease;
+}
+
+/* ============================================================
+   Base Styles
+   ============================================================ */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900;
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold text-gray-900 leading-tight;
+  }
+
+  a {
+    @apply text-primary-600 hover:text-primary-700 transition-colors;
+    text-decoration: none;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* ============================================================
+   Component Utilities
+   Dùng @layer components cho các pattern dùng chung
+   ============================================================ */
+@layer components {
+  /* Container */
+  .container {
+    width: 100%;
+    max-width: var(--container-max-width);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  @screen sm {
+    .container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @screen lg {
+    .container {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
+  /* Section padding */
+  .section {
+    @apply py-12 md:py-16 lg:py-20;
+  }
+
+  /* Card base */
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-100;
+  }
+
+  /* Form group */
+  .form-group {
+    @apply flex flex-col gap-1.5;
+  }
+
+  /* Label */
+  .label {
+    @apply text-sm font-medium text-gray-700;
+  }
+
+  /* Focus ring chung */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+}
+
+/* ============================================================
+   Scrollbar Styling (Webkit)
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
