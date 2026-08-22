@@ -1,0 +1,3 @@
+# Thư mục này dùng để chứa Repository classes cho từng feature
+# Mỗi thành viên tạo file tương ứng feature của mình
+# Ví dụ: destination.repository.ts, review.repository.ts, trip.repository.ts
