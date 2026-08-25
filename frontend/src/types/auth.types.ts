@@ -96,5 +96,5 @@ export interface AuthContextType {
   /**
    * Giả lập đăng nhập nhanh cho môi trường Dev (khi Backend Auth chưa có).
    */
-  mockLogin: (role?: UserRole) => void;
+  mockLogin: (role?: UserRole) => Promise<void>;
 }

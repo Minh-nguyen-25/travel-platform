@@ -43,6 +43,19 @@ export default function LoginPage() {
     }
   };
 
+  const handleDevLogin = async (role: 'USER' | 'ADMIN') => {
+    setError('');
+    setIsLoading(true);
+    try {
+      await mockLogin(role);
+      navigate(role === 'ADMIN' ? ROUTES.ADMIN_DASHBOARD : ROUTES.TRIPS);
+    } catch {
+      setError('Không thể đăng nhập tài khoản mẫu. Hãy kiểm tra backend và dữ liệu seed.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
@@ -119,33 +132,29 @@ export default function LoginPage() {
             </div>
 
             {/* Dev Mode Quick Login */}
-            <div className="mt-6 pt-4 border-t border-dashed border-gray-200">
+            {import.meta.env.DEV && <div className="mt-6 pt-4 border-t border-dashed border-gray-200">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider text-center mb-2.5">
                 🛠️ Chế độ Dev (Test Giao Diện)
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    mockLogin('ADMIN');
-                    navigate(ROUTES.ADMIN_DASHBOARD);
-                  }}
+                  onClick={() => void handleDevLogin('ADMIN')}
+                  disabled={isLoading}
                   className="px-3 py-2 text-xs font-medium rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-colors text-center"
                 >
                   ⚡ Vào vai Admin
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    mockLogin('USER');
-                    navigate(ROUTES.PROFILE);
-                  }}
+                  onClick={() => void handleDevLogin('USER')}
+                  disabled={isLoading}
                   className="px-3 py-2 text-xs font-medium rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors text-center"
                 >
                   ⚡ Vào vai User
                 </button>
               </div>
-            </div>
+            </div>}
           </div>
 
           <p className="text-center text-sm text-gray-500 mt-6">

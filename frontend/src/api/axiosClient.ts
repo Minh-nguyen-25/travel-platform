@@ -1,6 +1,8 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { getToken, removeToken, setToken } from '@/utils/storage.utils';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+
 /**
  * Axios Client dùng chung cho toàn bộ Frontend.
  *
@@ -14,7 +16,7 @@ import { getToken, removeToken, setToken } from '@/utils/storage.utils';
 // Tạo Instance
 // ================================================================
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL as string,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -102,7 +104,7 @@ axiosClient.interceptors.response.use(
     try {
       // Gọi refresh — Refresh Token HttpOnly Cookie được gửi tự động
       const response = await axios.post<{ data: { accessToken: string } }>(
-        `${import.meta.env.VITE_API_URL as string}/auth/refresh`,
+        `${API_BASE_URL}/auth/refresh`,
         {},
         { withCredentials: true },
       );

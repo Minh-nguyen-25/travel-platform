@@ -7,6 +7,8 @@ import type { AuthContextType, LoginRequest, User } from '@/types/auth.types';
 // ================================================================
 // Context
 // ================================================================
+// Context và Provider cùng file để giữ API hiện tại của feature Auth.
+// eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 // ================================================================
@@ -144,24 +146,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   // ================================================================
-  // mockLogin — Giả lập đăng nhập nhanh cho môi trường Dev
+  // mockLogin — Đăng nhập nhanh bằng tài khoản seed trong môi trường Dev
   // ================================================================
-  const mockLogin = useCallback((role: 'USER' | 'ADMIN' = 'ADMIN') => {
-    const mockUser: User = {
-      id: 1,
-      email: role === 'ADMIN' ? 'admin@travelplatform.vn' : 'user@travelplatform.vn',
-      fullName: role === 'ADMIN' ? 'Quản Trị Viên' : 'Nguyễn Văn A',
-      avatarUrl: null,
-      role,
-      isActive: true,
-      authProvider: 'LOCAL',
-      createdAt: new Date().toISOString(),
-    };
-    const fakeToken = 'mock_jwt_token_for_dev_mode';
-    setToken(fakeToken);
-    setAccessToken(fakeToken);
-    setUser(mockUser);
-  }, []);
+  const mockLogin = useCallback(async (role: 'USER' | 'ADMIN' = 'ADMIN') => {
+    await login(role === 'ADMIN'
+      ? { email: 'admin@travel.com', password: 'Admin@123' }
+      : { email: 'user@travel.com', password: 'User@123' });
+  }, [login]);
 
   // ================================================================
   // Context value

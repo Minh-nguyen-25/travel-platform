@@ -4,6 +4,11 @@
 
 @baseUrl = http://localhost:3000/api/v1
 @token = your_jwt_access_token_here
+@tripId = 1
+@dayId = 1
+@itineraryId = 1
+@destinationId = 1
+@shareToken = paste_64_character_share_token_here
 
 ### ------------------------------------------------------------------------------
 ### 1. HEALTH CHECK (Kiểm tra server sống hay chết)
@@ -81,22 +86,158 @@ Content-Type: application/json
 # Authorization: Bearer {{token}}
 
 ### ------------------------------------------------------------------------------
-### 5. TRIPS & ITINERARY (Ví dụ mẫu - TV3 triển khai)
+### 5. TRIPS, ITINERARY & SHARE
 ### ------------------------------------------------------------------------------
 
-### Tạo chuyến đi mới (Cần đăng nhập)
-# POST {{baseUrl}}/trips
-# Authorization: Bearer {{token}}
-# Content-Type: application/json
+### Lưu ý
+# - Tất cả API bên dưới cần Bearer token, ngoại trừ API xem lịch trình chia sẻ.
+# - Các trường Decimal (budget, chi phí, khoảng cách, tọa độ, giá vé, rating) trong response là string.
+# - Cần có Destination {{destinationId}} đang hoạt động trước khi tạo Itinerary.
 
-# {
-#   "name": "Khám phá Hà Nội 3N2Đ",
-#   "destinationCity": "Hà Nội",
-#   "startDate": "2026-09-01",
-#   "endDate": "2026-09-03",
-#   "budget": 3000000,
-#   "numberOfPeople": 2
-# }
+### Danh sách chuyến đi của tôi
+GET {{baseUrl}}/trips?page=1&limit=10
+Authorization: Bearer {{token}}
+
+### Tạo một Trip hoàn chỉnh; Trip + Days + Itineraries được lưu nguyên tử
+POST {{baseUrl}}/trips
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Khám phá Hà Nội 3N2Đ",
+  "destinationCity": "Hà Nội",
+  "startDate": "2026-09-01",
+  "endDate": "2026-09-03",
+  "budget": 3000000,
+  "numberOfPeople": 2,
+  "description": "Lịch trình tham quan trung tâm Hà Nội",
+  "tripDays": [
+    {
+      "date": "2026-09-01",
+      "note": "Ngày đầu tiên",
+      "itineraries": [
+        {
+          "destinationId": {{destinationId}},
+          "startTime": "08:00",
+          "endTime": "10:30",
+          "estimatedCost": 150000,
+          "travelMode": "WALKING"
+        }
+      ]
+    }
+  ]
+}
+
+### Chi tiết Trip
+GET {{baseUrl}}/trips/{{tripId}}
+Authorization: Bearer {{token}}
+
+### Cập nhật Trip
+PATCH {{baseUrl}}/trips/{{tripId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Khám phá Hà Nội - đã cập nhật",
+  "budget": 3500000
+}
+
+### Danh sách Trip Day
+GET {{baseUrl}}/trips/{{tripId}}/days
+Authorization: Bearer {{token}}
+
+### Tạo Trip Day; dayNumber được suy ra từ ngày bắt đầu của Trip
+POST {{baseUrl}}/trips/{{tripId}}/days
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "date": "2026-09-02",
+  "note": "Ngày thứ hai"
+}
+
+### Chi tiết Trip Day
+GET {{baseUrl}}/trips/{{tripId}}/days/{{dayId}}
+Authorization: Bearer {{token}}
+
+### Cập nhật Trip Day
+PATCH {{baseUrl}}/trips/{{tripId}}/days/{{dayId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "note": "Khởi hành sớm hơn dự kiến"
+}
+
+### Danh sách Itinerary của một ngày
+GET {{baseUrl}}/trips/{{tripId}}/days/{{dayId}}/itineraries
+Authorization: Bearer {{token}}
+
+### Thêm Itinerary; sequenceOrder được nối vào cuối tự động
+POST {{baseUrl}}/trips/{{tripId}}/days/{{dayId}}/itineraries
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "destinationId": {{destinationId}},
+  "startTime": "14:00",
+  "endTime": "16:00",
+  "estimatedCost": 200000,
+  "travelDistanceKm": 3.5,
+  "travelDurationMinutes": 20,
+  "travelMode": "DRIVING",
+  "note": "Điểm tham quan buổi chiều"
+}
+
+### Chi tiết Itinerary
+GET {{baseUrl}}/trips/{{tripId}}/days/{{dayId}}/itineraries/{{itineraryId}}
+Authorization: Bearer {{token}}
+
+### Cập nhật Itinerary
+PATCH {{baseUrl}}/trips/{{tripId}}/days/{{dayId}}/itineraries/{{itineraryId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "startTime": "14:30",
+  "estimatedCost": 220000
+}
+
+### Sắp xếp Itinerary; phải gửi đúng toàn bộ ID hiện có của ngày
+PUT {{baseUrl}}/trips/{{tripId}}/days/{{dayId}}/itineraries/order
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "itineraryIds": [2, 1]
+}
+
+### Tổng chi phí dự tính theo ngày và toàn Trip
+GET {{baseUrl}}/trips/{{tripId}}/cost-summary
+Authorization: Bearer {{token}}
+
+### Bật chia sẻ; gọi lặp lại trả cùng token đang hoạt động
+POST {{baseUrl}}/trips/{{tripId}}/share
+Authorization: Bearer {{token}}
+
+### Xem lịch trình công khai - không cần Authorization
+GET {{baseUrl}}/trips/shared/{{shareToken}}
+
+### Thu hồi chia sẻ và vô hiệu hóa token cũ
+DELETE {{baseUrl}}/trips/{{tripId}}/share
+Authorization: Bearer {{token}}
+
+### Xóa Itinerary (các sequenceOrder còn lại được tự động đánh lại)
+DELETE {{baseUrl}}/trips/{{tripId}}/days/{{dayId}}/itineraries/{{itineraryId}}
+Authorization: Bearer {{token}}
+
+### Xóa Trip Day (cascade Itinerary)
+DELETE {{baseUrl}}/trips/{{tripId}}/days/{{dayId}}
+Authorization: Bearer {{token}}
+
+### Xóa Trip (cascade toàn bộ lịch trình)
+DELETE {{baseUrl}}/trips/{{tripId}}
+Authorization: Bearer {{token}}
 
 ### ------------------------------------------------------------------------------
 ### 6. AI & ANALYTICS (Ví dụ mẫu - TV5 triển khai)

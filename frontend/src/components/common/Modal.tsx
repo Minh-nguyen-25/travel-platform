@@ -1,42 +1,23 @@
-import { useEffect, useCallback } from 'react';
+import { useCallback, useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import type { ReactNode } from 'react';
 
 interface ModalProps {
-  /** Kiểm soát hiển thị Modal */
   isOpen: boolean;
-  /** Callback đóng Modal */
   onClose: () => void;
-  /** Tiêu đề Modal */
   title?: string;
-  /** Nội dung bên trong */
   children: ReactNode;
-  /** Kích thước Modal */
-  size?: 'sm' | 'md' | 'lg' | 'xl';
-  /** Có đóng khi click backdrop không */
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   closeOnBackdrop?: boolean;
 }
 
 const sizeClasses = {
-  sm:  'max-w-sm',
-  md:  'max-w-md',
-  lg:  'max-w-lg',
-  xl:  'max-w-2xl',
+  sm: 'max-w-sm',
+  md: 'max-w-md',
+  lg: 'max-w-lg',
+  xl: 'max-w-2xl',
+  '2xl': 'max-w-5xl',
 };
 
-/**
- * Modal dùng chung.
- *
- * ```tsx
- * <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Xác nhận xóa" size="sm">
- *   <p>Bạn có chắc muốn xóa không?</p>
- *   <div className="flex justify-end gap-2 mt-4">
- *     <Button variant="secondary" onClick={() => setIsOpen(false)}>Hủy</Button>
- *     <Button variant="danger" onClick={handleDelete}>Xóa</Button>
- *   </div>
- * </Modal>
- * ```
- */
 export default function Modal({
   isOpen,
   onClose,
@@ -45,25 +26,20 @@ export default function Modal({
   size = 'md',
   closeOnBackdrop = true,
 }: ModalProps) {
-  // Đóng khi bấm Escape
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    },
-    [onClose],
-  );
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.key === 'Escape') onClose();
+  }, [onClose]);
 
   useEffect(() => {
-    if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-      // Khóa scroll body khi modal mở
-      document.body.style.overflow = 'hidden';
-    }
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
+      document.body.style.overflow = previousOverflow;
     };
-  }, [isOpen, handleKeyDown]);
+  }, [handleKeyDown, isOpen]);
 
   if (!isOpen) return null;
 
@@ -74,41 +50,29 @@ export default function Modal({
       aria-modal="true"
       aria-labelledby={title ? 'modal-title' : undefined}
     >
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+      <button
+        type="button"
+        className="absolute inset-0 cursor-default bg-gray-900/55 backdrop-blur-sm"
         onClick={closeOnBackdrop ? onClose : undefined}
-        aria-hidden="true"
+        aria-label="Đóng hộp thoại"
       />
-
-      {/* Modal box */}
-      <div
-        className={`
-          relative z-10 w-full ${sizeClasses[size]}
-          bg-white rounded-xl shadow-xl
-          animate-in fade-in zoom-in-95 duration-200
-        `}
-      >
-        {/* Header */}
+      <div className={`trip-modal-enter relative z-10 max-h-[calc(100vh-2rem)] w-full overflow-hidden rounded-2xl bg-white shadow-xl ${sizeClasses[size]}`}>
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-            <h2 id="modal-title" className="text-lg font-semibold text-gray-900">
-              {title}
-            </h2>
+          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+            <h2 id="modal-title" className="text-lg font-bold text-gray-900">{title}</h2>
             <button
+              type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
               aria-label="Đóng"
             >
-              <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
             </button>
           </div>
         )}
-
-        {/* Body */}
-        <div className="px-6 py-5">{children}</div>
+        <div className="max-h-[calc(100vh-7rem)] overflow-y-auto px-6 py-5">{children}</div>
       </div>
     </div>,
     document.body,
