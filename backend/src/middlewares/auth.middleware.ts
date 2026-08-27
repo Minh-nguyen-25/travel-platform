@@ -19,6 +19,7 @@ export const authenticate = async (
   const token = authHeader.split(' ')[1];
 
   try {
+    // verifyAccessToken asserts type==='access' and algorithm===HS256 internally
     const payload = verifyAccessToken(token);
 
     const user = await prisma.user.findUnique({
