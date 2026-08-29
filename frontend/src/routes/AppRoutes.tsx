@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 // Layouts
 import MainLayout from '@/layouts/MainLayout';
 import AdminLayout from '@/layouts/AdminLayout';
+import AuthLayout from '@/layouts/AuthLayout';
 
 // Route Guards
 import ProtectedRoute from './ProtectedRoute';
@@ -39,8 +40,9 @@ import ReviewsAdminPage from '@/pages/admin/ReviewsAdminPage';
  * ============================================================
  *
  * 1. Thành viên ĐƯỢC PHÉP thêm Route chức năng của mình vào đúng nhóm bên dưới.
- * 2. TUYỆT ĐỐI KHÔNG thay đổi cấu trúc bọc layout (MainLayout, AdminLayout, ProtectedRoute, AdminRoute).
+ * 2. TUYỆT ĐỐI KHÔNG thay đổi cấu trúc bọc layout (MainLayout, AdminLayout, AuthLayout, ProtectedRoute, AdminRoute).
  *
+ * - Auth route: Bọc bên trong <Route element={<AuthLayout />}>
  * - Public route: Thêm <Route path="..." element={<MyPage />} /> bên trong <Route element={<MainLayout />}>
  * - Protected user route: Thêm bên trong <Route element={<ProtectedRoute />}><Route element={<MainLayout />}>
  * - Admin route: Thêm bên trong <Route element={<AdminRoute />}><Route path="admin" element={<AdminLayout />}>
@@ -50,10 +52,12 @@ export default function AppRoutes() {
   return (
     <Routes>
       {/* ======================================================
-          AUTH ROUTES — Split-screen Desktop Layout (Không bọc MainLayout)
+          AUTH ROUTES — Split-screen Desktop Layout (Bọc trong AuthLayout)
           ====================================================== */}
-      <Route path="login" element={<LoginPage />} />
-      <Route path="register" element={<RegisterPage />} />
+      <Route element={<AuthLayout />}>
+        <Route path="login" element={<LoginPage />} />
+        <Route path="register" element={<RegisterPage />} />
+      </Route>
 
       {/* ======================================================
           PUBLIC ROUTES — Ai cũng vào được (trong MainLayout)
