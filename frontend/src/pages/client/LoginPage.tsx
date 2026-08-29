@@ -16,7 +16,7 @@ import Input from '@/components/common/Input';
  *   - Thêm nút Đăng nhập bằng Google (gọi GET /api/v1/auth/google)
  */
 export default function LoginPage() {
-  const { login, mockLogin } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -127,22 +127,22 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    mockLogin('ADMIN');
-                    navigate(ROUTES.ADMIN_DASHBOARD);
+                    setEmail('admin@travelplatform.vn');
+                    setPassword('Password1');
                   }}
                   className="px-3 py-2 text-xs font-medium rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-colors text-center"
                 >
-                  ⚡ Vào vai Admin
+                  ⚡ Điền Admin
                 </button>
                 <button
                   type="button"
                   onClick={() => {
-                    mockLogin('USER');
-                    navigate(ROUTES.PROFILE);
+                    setEmail('test@example.com');
+                    setPassword('Password1');
                   }}
                   className="px-3 py-2 text-xs font-medium rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors text-center"
                 >
-                  ⚡ Vào vai User
+                  ⚡ Điền User
                 </button>
               </div>
             </div>
