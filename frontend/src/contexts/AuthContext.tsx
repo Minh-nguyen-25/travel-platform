@@ -103,23 +103,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // ================================================================
   // login — Đăng nhập bằng email/password
   // ================================================================
-  const login = useCallback(async (data: LoginRequest): Promise<void> => {
+  const login = useCallback(async (data: LoginRequest): Promise<User> => {
     const response = await authApi.login(data);
     const { accessToken: token, user: loggedInUser } = response.data.data;
 
     setToken(token);
     setUser(loggedInUser);
+    return loggedInUser;
   }, []);
 
   // ================================================================
   // register — Đăng ký tài khoản người dùng mới
   // ================================================================
-  const register = useCallback(async (data: RegisterRequest): Promise<void> => {
+  const register = useCallback(async (data: RegisterRequest): Promise<User> => {
     const response = await authApi.register(data);
     const { accessToken: token, user: newUser } = response.data.data;
 
     setToken(token);
     setUser(newUser);
+    return newUser;
   }, []);
 
   // ================================================================

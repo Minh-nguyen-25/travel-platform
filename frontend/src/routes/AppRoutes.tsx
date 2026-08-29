@@ -50,14 +50,18 @@ export default function AppRoutes() {
   return (
     <Routes>
       {/* ======================================================
+          AUTH ROUTES — Split-screen Desktop Layout (Không bọc MainLayout)
+          ====================================================== */}
+      <Route path="login" element={<LoginPage />} />
+      <Route path="register" element={<RegisterPage />} />
+
+      {/* ======================================================
           PUBLIC ROUTES — Ai cũng vào được (trong MainLayout)
           ====================================================== */}
       <Route element={<MainLayout />}>
         <Route index element={<HomePage />} />
         <Route path="destinations" element={<DestinationsPage />} />
         <Route path="destinations/:id" element={<DestinationDetailPage />} />
-        <Route path="login" element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
         <Route path="shared-trip/:token" element={<SharedTripPage />} />
       </Route>
 

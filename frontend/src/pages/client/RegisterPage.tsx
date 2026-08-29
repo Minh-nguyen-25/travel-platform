@@ -1,29 +1,472 @@
-import { Link } from 'react-router-dom';
-import { ROUTES } from '@/constants';
+import { useState, useMemo, type FormEvent } from 'react';
+import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import axios from 'axios';
+import { useAuth } from '@/hooks/useAuth';
+import { ROUTES, USER_ROLES } from '@/constants';
+import Loading from '@/components/common/Loading';
+import haLongHeroImg from '@/assets/images/ha-long-auth.webp';
 
 /**
- * TODO: Nhóm trưởng (TV Auth) triển khai RegisterPage
+ * RegisterPage — Trang đăng ký Desktop theo thiết kế TravelGo.
  *
- * Bao gồm:
- * - Form đăng ký (fullName, email, password, confirmPassword)
- * - Validate phía client
- * - Gọi POST /api/v1/auth/register
- * - Sau khi đăng ký thành công → tự động đăng nhập hoặc redirect login
+ * Giao diện split-screen 50/50:
+ * - Bên trái: Hình ảnh Vịnh Hạ Long hùng vĩ, logo TravelGo trắng, quote của Thánh Augustine.
+ * - Bên phải: Nút "Trang chủ", form đăng ký thẻ trắng trung tâm, bảng màu Teal (#0f766e),
+ *   danh sách điều kiện mật khẩu real-time và checkbox điều khoản bắt buộc.
  */
 export default function RegisterPage() {
+  const { user, isAuthenticated, isAuthLoading, register } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [agreeTerms, setAgreeTerms] = useState(false);
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const [error, setError] = useState('');
+  const [termsError, setTermsError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Lấy đường dẫn chuyển hướng sau khi đăng ký thành công
+  const from = (location.state as { from?: { pathname: string } | string })?.from
+    ? typeof (location.state as { from: unknown }).from === 'string'
+      ? (location.state as { from: string }).from
+      : (location.state as { from: { pathname: string } }).from.pathname
+    : ROUTES.HOME;
+
+  // Kiểm tra 4 điều kiện mật khẩu real-time
+  const passwordRules = useMemo(() => {
+    return {
+      hasMinLength: password.length >= 8,
+      hasUpperCase: /[A-Z]/.test(password),
+      hasLowerCase: /[a-z]/.test(password),
+      hasDigit: /[0-9]/.test(password),
+    };
+  }, [password]);
+
+  const isPasswordValid =
+    passwordRules.hasMinLength &&
+    passwordRules.hasUpperCase &&
+    passwordRules.hasLowerCase &&
+    passwordRules.hasDigit;
+
+  // Nếu đang khôi phục session, hiển thị loading trung tính (tránh flash form)
+  if (isAuthLoading) {
+    return <Loading fullPage message="Đang kiểm tra đăng nhập..." />;
+  }
+
+  // Nếu đã đăng nhập, tự động chuyển hướng người dùng tránh ở lại trang auth
+  if (isAuthenticated && user) {
+    const target = user.role === USER_ROLES.ADMIN ? ROUTES.ADMIN : from;
+    return <Navigate to={target} replace />;
+  }
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    if (!agreeTerms) {
+      setTermsError('Bạn phải đồng ý với Điều khoản & Chính sách để tiếp tục');
+      return;
+    }
+    setTermsError('');
+
+    if (password !== confirmPassword) {
+      setError('Mật khẩu xác nhận không khớp');
+      return;
+    }
+
+    if (!isPasswordValid) {
+      setError('Mật khẩu chưa đáp ứng đầy đủ các yêu cầu bảo mật');
+      return;
+    }
+
+    setError('');
+    setIsSubmitting(true);
+
+    // Chuẩn hóa email khi submit, không can thiệp lúc người dùng đang gõ
+    const normalizedEmail = email.trim().toLowerCase();
+    const trimmedFullName = fullName.trim();
+
+    try {
+      const newUser = await register({
+        fullName: trimmedFullName,
+        email: normalizedEmail,
+        password,
+      });
+
+      // Đăng ký thành công → tự động đăng nhập và redirect ngay lập tức
+      if (newUser.role === USER_ROLES.ADMIN) {
+        navigate(ROUTES.ADMIN, { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const status = err.response?.status;
+        const message = (err.response?.data as { message?: string } | undefined)?.message;
+
+        if (status === 409 || message?.includes('đã được sử dụng')) {
+          setError('Email đã được sử dụng. Vui lòng sử dụng email khác.');
+        } else if (message) {
+          setError(message);
+        } else {
+          setError('Đăng ký không thành công. Vui lòng thử lại sau.');
+        }
+      } else {
+        setError('Đã có lỗi xảy ra. Vui lòng thử lại sau.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Đăng ký tài khoản</h1>
-          <p className="text-gray-500 text-sm mb-6">Đang phát triển — Feature owner: Nhóm trưởng</p>
+    <div className="min-h-screen w-full flex bg-slate-50 overflow-x-hidden">
+      {/* ======================================================
+          BÊN TRÁI: Hero Image Panel (Ẩn dưới màn hình lg: 1024px)
+          ====================================================== */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-gray-900 select-none overflow-hidden">
+        {/* Background Image */}
+        <img
+          src={haLongHeroImg}
+          alt="Vịnh Hạ Long non nước hùng vĩ"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+
+        {/* Dark Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/30" />
+
+        {/* Top-Left: Logo TravelGo trắng */}
+        <div className="absolute top-10 left-10 z-10 flex items-center gap-3 text-white">
+          <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/20">
+            <svg
+              className="w-5 h-5 text-white transform -rotate-45 translate-x-0.5"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+            </svg>
+          </div>
+          <div>
+            <span className="text-2xl font-bold tracking-tight">TravelGo</span>
+            <span className="block text-[10px] tracking-widest text-teal-200 uppercase font-medium">Hành trình Việt</span>
+          </div>
         </div>
-        <p className="text-center text-sm text-gray-500 mt-6">
-          Đã có tài khoản?{' '}
-          <Link to={ROUTES.LOGIN} className="font-medium text-primary-600 hover:text-primary-700">
-            Đăng nhập
+
+        {/* Bottom-Left: Quotation */}
+        <div className="absolute bottom-12 left-10 right-10 z-10 text-white max-w-lg">
+          <blockquote className="text-xl lg:text-2xl font-bold leading-snug">
+            &ldquo;Thế giới là một cuốn sách, và ai không đi du lịch thì chỉ đọc được một trang.&rdquo;
+          </blockquote>
+          <p className="mt-3 text-sm text-gray-300 font-medium tracking-wide">
+            — Thánh Augustine
+          </p>
+        </div>
+      </div>
+
+      {/* ======================================================
+          BÊN PHẢI: Form đăng ký (Cuộn dọc độc lập overflow-y-auto)
+          ====================================================== */}
+      <div className="w-full lg:w-1/2 min-h-screen flex flex-col justify-between p-6 sm:p-8 lg:p-12 overflow-y-auto">
+        {/* Top Header: Link về Trang chủ */}
+        <div className="flex justify-end w-full">
+          <Link
+            to={ROUTES.HOME}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:text-teal-700 hover:bg-teal-50/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Trang chủ
           </Link>
-        </p>
+        </div>
+
+        {/* Main Center Form */}
+        <div className="my-auto py-8 flex flex-col items-center justify-center w-full">
+          <div className="w-full max-w-[460px] bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8">
+            {/* Header */}
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+                Bắt đầu hành trình của bạn
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Tạo tài khoản để khám phá Việt Nam cùng TravelGo.
+              </p>
+            </div>
+
+            {/* Error Alert Banner */}
+            {error && (
+              <div
+                role="alert"
+                aria-live="polite"
+                className="mb-5 p-3.5 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm flex items-start gap-2.5 transition-all"
+              >
+                <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <span className="leading-relaxed">{error}</span>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
+              {/* Họ và tên */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="register-fullname" className="text-sm font-medium text-gray-700">
+                  Họ và tên <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="register-fullname"
+                  type="text"
+                  name="fullName"
+                  autoComplete="name"
+                  placeholder="Nguyễn Văn A"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={isSubmitting}
+                  required
+                  className="w-full h-11 px-3.5 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder:text-gray-400 transition-colors focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              {/* Email */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="register-email" className="text-sm font-medium text-gray-700">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="register-email"
+                  type="email"
+                  name="email"
+                  autoComplete="email"
+                  placeholder="email@viethanh-trinh.vn"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isSubmitting}
+                  required
+                  className="w-full h-11 px-3.5 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder:text-gray-400 transition-colors focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              {/* Mật khẩu */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="register-password" className="text-sm font-medium text-gray-700">
+                  Mật khẩu <span className="text-red-500">*</span>
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    id="register-password"
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    autoComplete="new-password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isSubmitting}
+                    required
+                    className="w-full h-11 pl-3.5 pr-11 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder:text-gray-400 transition-colors focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                    tabIndex={0}
+                    className="absolute right-3 p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
+                  >
+                    {showPassword ? (
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+
+                {/* Real-time Password Rules Checklist (Matching Figma Reference) */}
+                <div className="mt-2 space-y-1.5 p-3 rounded-lg bg-gray-50/80 border border-gray-100 text-xs">
+                  {/* 1. Tối thiểu 8 ký tự */}
+                  <div className={`flex items-center gap-2 transition-colors ${
+                    passwordRules.hasMinLength ? 'text-teal-700 font-medium' : 'text-gray-500'
+                  }`}>
+                    {passwordRules.hasMinLength ? (
+                      <svg className="w-3.5 h-3.5 text-teal-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <span className="w-3.5 h-3.5 rounded-full border border-gray-300 flex-shrink-0 inline-block" />
+                    )}
+                    <span>Tối thiểu 8 ký tự</span>
+                  </div>
+
+                  {/* 2. Có ít nhất 1 chữ hoa */}
+                  <div className={`flex items-center gap-2 transition-colors ${
+                    passwordRules.hasUpperCase ? 'text-teal-700 font-medium' : 'text-gray-500'
+                  }`}>
+                    {passwordRules.hasUpperCase ? (
+                      <svg className="w-3.5 h-3.5 text-teal-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <span className="w-3.5 h-3.5 rounded-full border border-gray-300 flex-shrink-0 inline-block" />
+                    )}
+                    <span>Có ít nhất 1 chữ hoa</span>
+                  </div>
+
+                  {/* 3. Có ít nhất 1 chữ thường */}
+                  <div className={`flex items-center gap-2 transition-colors ${
+                    passwordRules.hasLowerCase ? 'text-teal-700 font-medium' : 'text-gray-500'
+                  }`}>
+                    {passwordRules.hasLowerCase ? (
+                      <svg className="w-3.5 h-3.5 text-teal-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <span className="w-3.5 h-3.5 rounded-full border border-gray-300 flex-shrink-0 inline-block" />
+                    )}
+                    <span>Có ít nhất 1 chữ thường</span>
+                  </div>
+
+                  {/* 4. Có ít nhất 1 chữ số */}
+                  <div className={`flex items-center gap-2 transition-colors ${
+                    passwordRules.hasDigit ? 'text-teal-700 font-medium' : 'text-gray-500'
+                  }`}>
+                    {passwordRules.hasDigit ? (
+                      <svg className="w-3.5 h-3.5 text-teal-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <span className="w-3.5 h-3.5 rounded-full border border-gray-300 flex-shrink-0 inline-block" />
+                    )}
+                    <span>Có ít nhất 1 chữ số</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Xác nhận mật khẩu */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="register-confirm-password" className="text-sm font-medium text-gray-700">
+                  Xác nhận mật khẩu <span className="text-red-500">*</span>
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    id="register-confirm-password"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    name="confirmPassword"
+                    autoComplete="new-password"
+                    placeholder="Nhập lại mật khẩu"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={isSubmitting}
+                    required
+                    className={`w-full h-11 pl-3.5 pr-11 py-2 text-sm text-gray-900 bg-white border rounded-lg placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-2 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed ${
+                      confirmPassword && password !== confirmPassword
+                        ? 'border-red-400 focus:border-red-500 focus:ring-red-400/20'
+                        : 'border-gray-300 focus:border-teal-600 focus:ring-teal-600/20'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    aria-label={showConfirmPassword ? 'Ẩn mật khẩu xác nhận' : 'Hiện mật khẩu xác nhận'}
+                    tabIndex={0}
+                    className="absolute right-3 p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
+                  >
+                    {showConfirmPassword ? (
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                {confirmPassword && password !== confirmPassword && (
+                  <p className="text-xs text-red-500 mt-0.5">Mật khẩu xác nhận không khớp</p>
+                )}
+              </div>
+
+              {/* Điều khoản & Chính sách */}
+              <div className="pt-1">
+                <label htmlFor="register-terms" className="flex items-start gap-2.5 cursor-pointer select-none">
+                  <input
+                    id="register-terms"
+                    type="checkbox"
+                    checked={agreeTerms}
+                    onChange={(e) => {
+                      setAgreeTerms(e.target.checked);
+                      if (e.target.checked) setTermsError('');
+                    }}
+                    disabled={isSubmitting}
+                    className="w-4 h-4 mt-0.5 rounded border-gray-300 text-teal-700 focus:ring-teal-600 focus:ring-offset-0 focus:ring-2 cursor-pointer accent-teal-700"
+                  />
+                  <span className="text-xs text-gray-600 leading-normal">
+                    Tôi đồng ý với{' '}
+                    <span className="font-medium text-teal-700 hover:underline">Điều khoản dịch vụ</span>{' '}
+                    và{' '}
+                    <span className="font-medium text-teal-700 hover:underline">Chính sách bảo mật</span>
+                  </span>
+                </label>
+                {termsError && (
+                  <p className="text-xs text-red-500 mt-1 pl-6 flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <span>{termsError}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isSubmitting || !fullName || !email || !password || !confirmPassword || !isPasswordValid}
+                className="w-full h-11 mt-2 inline-flex items-center justify-center font-medium rounded-lg text-white bg-teal-700 hover:bg-teal-800 active:bg-teal-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <span>Đang tạo tài khoản...</span>
+                  </div>
+                ) : (
+                  'Tạo tài khoản'
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* Footer Navigation */}
+          <p className="text-center text-sm text-gray-500 mt-6">
+            Đã có tài khoản?{' '}
+            <Link
+              to={ROUTES.LOGIN}
+              state={{ from }}
+              className="font-semibold text-teal-700 hover:text-teal-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded px-1"
+            >
+              Đăng nhập
+            </Link>
+          </p>
+        </div>
+
+        {/* Bottom copyright/spacer */}
+        <div className="text-center text-xs text-gray-400 py-2">
+          &copy; {new Date().getFullYear()} TravelGo. Nền tảng du lịch thông minh.
+        </div>
       </div>
     </div>
   );
