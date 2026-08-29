@@ -86,11 +86,11 @@ export interface AuthContextType {
    */
   isAuthLoading: boolean;
 
-  /** Đăng nhập bằng email/password */
-  login: (data: LoginRequest) => Promise<void>;
+  /** Đăng nhập bằng email/password — trả về User vừa đăng nhập để caller redirect an toàn */
+  login: (data: LoginRequest) => Promise<User>;
 
-  /** Đăng ký tài khoản mới */
-  register: (data: RegisterRequest) => Promise<void>;
+  /** Đăng ký tài khoản mới — trả về User vừa tạo để caller redirect an toàn */
+  register: (data: RegisterRequest) => Promise<User>;
 
   /** Đăng xuất — gọi POST /auth/logout và clear state */
   logout: () => Promise<void>;
