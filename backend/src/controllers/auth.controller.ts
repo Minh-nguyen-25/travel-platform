@@ -4,6 +4,7 @@ import { sendSuccess } from '../utils/response.utils';
 import { HTTP_STATUS } from '../constants';
 import env from '../config/env';
 import * as authService from '../services/auth.service';
+import * as userRepo from '../repositories/user.repository';
 
 // ─── Cookie name ──────────────────────────────────────────────────────────────
 const REFRESH_COOKIE = 'refreshToken';
@@ -88,4 +89,32 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
   await authService.logout(token);
   clearRefreshCookie(res);
   sendSuccess(res, null, 'Đăng xuất thành công');
+};
+
+/**
+ * GET /auth/me
+ * Returns the authenticated user's safe public information.
+ * Requires: Authorization: Bearer <accessToken>
+ *
+ * The authenticate middleware has already:
+ *   1. Verified the access token (type, algorithm, expiry, signature)
+ *   2. Confirmed the user exists and isActive=true
+ *   3. Set req.user (Omit<User,'passwordHash'>)
+ *
+ * We re-fetch from the DB (via userRepo.findById) to guarantee the response
+ * reflects the current DB state, not a stale token snapshot.
+ * passwordHash is excluded at the repository layer (Prisma omit).
+ */
+export const getMe = async (req: Request, res: Response): Promise<void> => {
+  // req.user is guaranteed non-null here — authenticate runs before this handler.
+  const userId = req.user!.id;
+
+  const user = await userRepo.findById(userId);
+
+  // Guard: user was deleted or deactivated between authenticate and this call.
+  if (!user || !user.isActive) {
+    throw new AppError('Tài khoản không tồn tại hoặc đã bị khóa', HTTP_STATUS.UNAUTHORIZED);
+  }
+
+  sendSuccess(res, { user }, 'Lấy thông tin người dùng thành công');
 };

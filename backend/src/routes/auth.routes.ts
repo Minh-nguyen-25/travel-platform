@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { validate } from '../middlewares/validate.middleware';
+import { authenticate } from '../middlewares/auth.middleware';
 import { requestOriginGuard } from '../middlewares/origin.middleware';
 import { registerSchema, loginSchema } from '../validators/auth.validator';
 import * as authController from '../controllers/auth.controller';
@@ -23,6 +24,9 @@ const authLimiter = rateLimit({
 });
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
+
+// GET /api/v1/auth/me — returns the authenticated user's safe public profile
+router.get('/me', authenticate, authController.getMe);
 
 // POST /api/v1/auth/register
 router.post(
