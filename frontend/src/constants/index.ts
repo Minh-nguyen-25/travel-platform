@@ -42,12 +42,6 @@ export const USER_ROLES = {
 
 export type UserRole = (typeof USER_ROLES)[keyof typeof USER_ROLES];
 
-// ================================================================
-// LOCAL STORAGE KEYS
-// ================================================================
-export const STORAGE_KEYS = {
-  ACCESS_TOKEN: 'travel_access_token',
-} as const;
 
 // ================================================================
 // PAGINATION DEFAULTS
