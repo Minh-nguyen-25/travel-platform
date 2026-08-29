@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import app from './app';
+import { cloudinaryConfigurationStatus } from './config/cloudinary';
 import prisma from './config/db';
 
 const PORT = process.env.PORT || 3000;
@@ -10,6 +11,15 @@ const start = async () => {
     // Nếu DB chết → phát hiện ngay, không phải đợi query đầu tiên
     await prisma.$connect();
     console.log('✅ Kết nối Database thành công');
+
+    if (cloudinaryConfigurationStatus.configured) {
+      console.log(`✅ Cloudinary đã cấu hình qua ${cloudinaryConfigurationStatus.source}`);
+    } else {
+      console.warn(
+        `⚠️  Cloudinary chưa được cấu hình (${cloudinaryConfigurationStatus.invalidKeys.join(', ')}). `
+        + 'Chức năng upload ảnh sẽ tạm thời không hoạt động.'
+      );
+    }
 
     app.listen(PORT, () => {
       console.log(`🚀 Server đang chạy tại http://localhost:${PORT}`);

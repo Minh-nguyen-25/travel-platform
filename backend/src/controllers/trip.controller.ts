@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { HTTP_STATUS } from '../constants';
 import { AppError } from '../utils/app-error';
+import { verifyAiDraftProof } from '../utils/ai-draft.utils';
 import { sendPaginated, sendSuccess } from '../utils/response.utils';
 import { tripService } from '../services/trip.service';
 import {
@@ -34,7 +35,26 @@ export const getTrips = async (req: Request, res: Response): Promise<void> => {
 
 export const createTrip = async (req: Request, res: Response): Promise<void> => {
   const userId = getAuthenticatedUserId(req);
-  const trip = await tripService.createTrip(userId, req.body as CreateTripInput);
+  const {
+    aiRawData,
+    aiProofToken,
+    ...input
+  } = req.body as CreateTripInput & {
+    aiRawData?: string;
+    aiProofToken?: string;
+  };
+  const isVerifiedAiDraft = Boolean(
+    aiRawData &&
+      aiProofToken &&
+      verifyAiDraftProof(aiProofToken, userId, input, aiRawData)
+  );
+  if ((aiRawData || aiProofToken) && !isVerifiedAiDraft) {
+    throw new AppError('Bản nháp AI không hợp lệ hoặc đã hết hạn', HTTP_STATUS.FORBIDDEN);
+  }
+  const trip = await tripService.createTrip(userId, input, {
+    isAiGenerated: isVerifiedAiDraft,
+    aiRawData: isVerifiedAiDraft ? aiRawData ?? null : null,
+  });
 
   sendSuccess(res, trip, 'Tạo chuyến đi thành công', HTTP_STATUS.CREATED);
 };

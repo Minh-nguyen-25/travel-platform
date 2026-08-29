@@ -47,6 +47,7 @@ export type UserRole = (typeof USER_ROLES)[keyof typeof USER_ROLES];
 // ================================================================
 export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'travel_access_token',
+  OAUTH_RETURN_TO: 'travel_oauth_return_to',
 } as const;
 
 // ================================================================

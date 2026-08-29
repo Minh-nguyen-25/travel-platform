@@ -145,8 +145,17 @@ export const createTripSchema = z
   .object({
     ...tripFields,
     tripDays: z.array(completeTripDaySchema).optional(),
+    aiRawData: z.string().min(1).max(80_000).optional(),
+    aiProofToken: z.string().min(1).max(2_048).optional(),
   })
   .strict()
+  .refine(
+    (data) => Boolean(data.aiProofToken) === Boolean(data.aiRawData),
+    {
+      message: 'aiProofToken và aiRawData phải được gửi cùng nhau',
+      path: ['aiRawData'],
+    }
+  )
   .refine((data) => data.endDate >= data.startDate, {
     message: 'Ngày kết thúc phải bằng hoặc sau ngày bắt đầu',
     path: ['endDate'],

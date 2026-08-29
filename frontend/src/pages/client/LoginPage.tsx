@@ -1,169 +1,169 @@
-import { useState, type FormEvent } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { ROUTES } from '@/constants';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import AuthPageShell from '@/components/auth/AuthPageShell';
+import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
+import PasswordInput from '@/components/auth/PasswordInput';
 import Button from '@/components/common/Button';
 import Input from '@/components/common/Input';
+import Loading from '@/components/common/Loading';
+import { ROUTES, STORAGE_KEYS } from '@/constants';
+import { useAuth } from '@/hooks/useAuth';
+import { authService } from '@/services/auth.service';
+import { getApiErrorMessage } from '@/utils/trip.utils';
 
-/**
- * LoginPage — Trang đăng nhập.
- *
- * Đây là form cơ bản để hệ thống Auth hoạt động ngay khi Backend Auth được implement.
- * TODO (TV phụ trách Auth — Nhóm trưởng):
- *   - Implement POST /api/v1/auth/login trong Backend
- *   - Sau khi Backend hoàn thiện, trang này sẽ hoạt động tự động
- *   - Có thể nâng cấp UI chi tiết hơn (animation, forgot password, v.v.)
- *   - Thêm nút Đăng nhập bằng Google (gọi GET /api/v1/auth/google)
- */
+interface ReturnLocation {
+  pathname?: string;
+  search?: string;
+  hash?: string;
+}
+
+const safeReturnPath = (value: string | null | undefined): string =>
+  value?.startsWith('/') && !value.startsWith('//') ? value : ROUTES.HOME;
+
 export default function LoginPage() {
-  const { login, mockLogin } = useAuth();
+  const { completeGoogleLogin, isAuthenticated, isLoading: isAuthLoading, login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const oauthHandled = useRef(false);
+
+  const from = useMemo(() => {
+    const previous = (location.state as { from?: ReturnLocation } | null)?.from;
+    return safeReturnPath(
+      previous?.pathname
+        ? `${previous.pathname}${previous.search ?? ''}${previous.hash ?? ''}`
+        : ROUTES.HOME,
+    );
+  }, [location.state]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(
+    new URLSearchParams(location.search).get('oauth') === 'failed'
+      ? 'Đăng nhập Google không thành công hoặc phiên xác thực đã hết hạn.'
+      : '',
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOAuthLoading, setIsOAuthLoading] = useState(() =>
+    new URLSearchParams(window.location.hash.slice(1)).has('accessToken'),
+  );
 
-  // Redirect về trang trước sau khi login thành công
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? ROUTES.HOME;
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.hash.slice(1)).get('accessToken');
+    if (!token || oauthHandled.current) return;
+    oauthHandled.current = true;
+    window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+    const finishGoogleLogin = async () => {
+      setError('');
+      try {
+        await completeGoogleLogin(token);
+        const savedPath = safeReturnPath(sessionStorage.getItem(STORAGE_KEYS.OAUTH_RETURN_TO));
+        sessionStorage.removeItem(STORAGE_KEYS.OAUTH_RETURN_TO);
+        navigate(savedPath, { replace: true });
+      } catch (oauthError) {
+        setError(getApiErrorMessage(oauthError, 'Không thể hoàn tất đăng nhập Google. Vui lòng thử lại.'));
+        setIsOAuthLoading(false);
+      }
+    };
+
+    void finishGoogleLogin();
+  }, [completeGoogleLogin, navigate]);
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
     setError('');
-    setIsLoading(true);
-
+    setIsSubmitting(true);
     try {
-      await login({ email, password });
+      await login({ email: email.trim().toLowerCase(), password });
       navigate(from, { replace: true });
-    } catch {
-      setError('Email hoặc mật khẩu không chính xác');
+    } catch (loginError) {
+      setError(getApiErrorMessage(loginError, 'Email hoặc mật khẩu không chính xác.'));
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const handleDevLogin = async (role: 'USER' | 'ADMIN') => {
-    setError('');
-    setIsLoading(true);
-    try {
-      await mockLogin(role);
-      navigate(role === 'ADMIN' ? ROUTES.ADMIN_DASHBOARD : ROUTES.TRIPS);
-    } catch {
-      setError('Không thể đăng nhập tài khoản mẫu. Hãy kiểm tra backend và dữ liệu seed.');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleGoogleLogin = () => {
+    sessionStorage.setItem(STORAGE_KEYS.OAUTH_RETURN_TO, from);
+    window.location.assign(authService.googleLoginUrl);
   };
+
+  if (isOAuthLoading) {
+    return <Loading fullPage size="lg" message="Đang hoàn tất đăng nhập Google..." />;
+  }
+
+  if (!isAuthLoading && isAuthenticated) return <Navigate to={from} replace />;
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm">
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Đăng nhập</h1>
-            <p className="text-sm text-gray-500">Chào mừng bạn trở lại!</p>
-          </div>
-
-          {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
-            <Input
-              id="email"
-              label="Email"
-              type="email"
-              placeholder="example@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-
-            <Input
-              id="password"
-              label="Mật khẩu"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-
-            <Button
-              type="submit"
-              className="w-full"
-              isLoading={isLoading}
-              disabled={!email || !password}
-            >
-              Đăng nhập
-            </Button>
-          </form>
-
-            {/* Google OAuth placeholder */}
-            <div className="mt-4">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
-                </div>
-                <div className="relative flex justify-center text-xs text-gray-400">
-                  <span className="bg-white px-3">hoặc</span>
-                </div>
-              </div>
-
-              {/* TODO (TV Auth): Replace href với Google OAuth flow */}
-              <a
-                href={`${import.meta.env.VITE_API_URL}/auth/google`}
-                className="mt-3 w-full flex items-center justify-center gap-2 h-10 px-4 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                </svg>
-                Đăng nhập bằng Google
-              </a>
-            </div>
-
-            {/* Dev Mode Quick Login */}
-            {import.meta.env.DEV && <div className="mt-6 pt-4 border-t border-dashed border-gray-200">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider text-center mb-2.5">
-                🛠️ Chế độ Dev (Test Giao Diện)
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => void handleDevLogin('ADMIN')}
-                  disabled={isLoading}
-                  className="px-3 py-2 text-xs font-medium rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-colors text-center"
-                >
-                  ⚡ Vào vai Admin
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleDevLogin('USER')}
-                  disabled={isLoading}
-                  className="px-3 py-2 text-xs font-medium rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors text-center"
-                >
-                  ⚡ Vào vai User
-                </button>
-              </div>
-            </div>}
-          </div>
-
-          <p className="text-center text-sm text-gray-500 mt-6">
-            Chưa có tài khoản?{' '}
-            <Link to={ROUTES.REGISTER} className="font-medium text-primary-600 hover:text-primary-700">
-              Đăng ký ngay
-            </Link>
-          </p>
+    <AuthPageShell
+      eyebrow="Chào mừng trở lại"
+      title="Đăng nhập"
+      description="Tiếp tục hành trình và mở lại những kế hoạch bạn đang ấp ủ."
+      footer={(
+        <>
+          Chưa có tài khoản?{' '}
+          <Link to={ROUTES.REGISTER} className="font-bold text-primary-600 hover:text-primary-700">
+            Đăng ký miễn phí
+          </Link>
+        </>
+      )}
+    >
+      {error && (
+        <div role="alert" className="mb-5 flex gap-3 rounded-xl border border-red-200 bg-red-50 p-3.5 text-sm text-red-700">
+          <svg className="mt-0.5 h-5 w-5 flex-none" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-9-3a1 1 0 1 1 2 0v3a1 1 0 1 1-2 0V7Zm1 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+          </svg>
+          <span>{error}</span>
         </div>
+      )}
+
+      <GoogleAuthButton onClick={handleGoogleLogin} disabled={isSubmitting || isAuthLoading} />
+
+      <div className="my-6 flex items-center gap-4 text-xs font-semibold uppercase tracking-wider text-gray-400">
+        <span className="h-px flex-1 bg-gray-200" />
+        hoặc dùng email
+        <span className="h-px flex-1 bg-gray-200" />
       </div>
-    );
-  }
+
+      <form onSubmit={(event) => void handleSubmit(event)} className="space-y-5">
+        <Input
+          id="login-email"
+          label="Email"
+          type="email"
+          placeholder="ban@example.com"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          autoComplete="email"
+          required
+          className="h-12 rounded-xl"
+          leftAddon={(
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 4h16v16H4z" strokeLinejoin="round" />
+              <path d="m4 6 8 6 8-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        />
+        <PasswordInput
+          id="login-password"
+          label="Mật khẩu"
+          placeholder="Nhập mật khẩu"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          autoComplete="current-password"
+          required
+          className="h-12 rounded-xl"
+        />
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full rounded-xl font-bold shadow-lg shadow-primary-200"
+          isLoading={isSubmitting}
+          disabled={isAuthLoading || !email.trim() || !password}
+        >
+          Đăng nhập
+        </Button>
+      </form>
+    </AuthPageShell>
+  );
+}

@@ -1,145 +1,150 @@
-import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/constants';
+import { useAuth } from '@/hooks/useAuth';
+
+interface AdminSidebarProps {
+  mobileOpen: boolean;
+  collapsed: boolean;
+  onCloseMobile: () => void;
+  onToggleCollapsed: () => void;
+}
 
 interface NavItem {
   to: string;
   label: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
 }
 
+const iconClass = 'h-5 w-5';
 const navItems: NavItem[] = [
   {
     to: ROUTES.ADMIN_DASHBOARD,
-    label: 'Dashboard',
-    icon: (
-      <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-      </svg>
-    ),
+    label: 'Tổng quan',
+    icon: <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="3" width="7" height="7" rx="2" /><rect x="3" y="14" width="7" height="7" rx="2" /><rect x="14" y="14" width="7" height="7" rx="2" /></svg>,
   },
   {
     to: ROUTES.ADMIN_USERS,
     label: 'Người dùng',
-    icon: (
-      <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-      </svg>
-    ),
+    icon: <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" strokeLinecap="round" /></svg>,
   },
   {
     to: ROUTES.ADMIN_DESTINATIONS,
     label: 'Địa điểm',
-    icon: (
-      <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-      </svg>
-    ),
+    icon: <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>,
   },
   {
     to: ROUTES.ADMIN_CATEGORIES,
     label: 'Danh mục',
-    icon: (
-      <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" />
-      </svg>
-    ),
+    icon: <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 17.5h7M17.5 14v7" strokeLinecap="round" /></svg>,
   },
   {
     to: ROUTES.ADMIN_REVIEWS,
     label: 'Đánh giá',
-    icon: (
-      <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-      </svg>
-    ),
+    icon: <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3 2.8 5.67 6.2.9-4.5 4.38 1.06 6.18L12 17.2l-5.56 2.93 1.06-6.18L3 9.57l6.2-.9L12 3Z" strokeLinejoin="round" /></svg>,
   },
 ];
 
-/**
- * AdminSidebar — Menu điều hướng cho Admin Dashboard.
- * Sử dụng trong AdminLayout.
- */
-export default function AdminSidebar() {
-  const { logout } = useAuth();
+export default function AdminSidebar({
+  mobileOpen,
+  collapsed,
+  onCloseMobile,
+  onToggleCollapsed,
+}: AdminSidebarProps) {
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
-  const [collapsed, setCollapsed] = useState(false);
 
   const handleLogout = async () => {
     await logout();
-    navigate(ROUTES.LOGIN);
+    navigate(ROUTES.LOGIN, { replace: true });
   };
 
-  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
-      isActive
-        ? 'bg-primary-600 text-white shadow-sm'
-        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-    }`;
-
   return (
-    <aside
-      className={`
-        flex flex-col bg-white border-r border-gray-100 h-screen
-        transition-all duration-200 flex-shrink-0
-        ${collapsed ? 'w-16' : 'w-64'}
-      `}
-    >
-      {/* Logo + Toggle */}
-      <div className={`h-16 flex items-center border-b border-gray-100 flex-shrink-0 ${collapsed ? 'justify-center px-0' : 'justify-between px-4'}`}>
-        {!collapsed && (
-          <span className="font-bold text-primary-600 text-base">Admin Panel</span>
-        )}
+    <>
+      {mobileOpen && (
         <button
-          onClick={() => setCollapsed((c) => !c)}
-          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-          aria-label={collapsed ? 'Mở rộng sidebar' : 'Thu nhỏ sidebar'}
-        >
-          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-            {collapsed ? (
-              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-            ) : (
-              <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-            )}
-          </svg>
-        </button>
-      </div>
+          type="button"
+          onClick={onCloseMobile}
+          className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-sm lg:hidden"
+          aria-label="Đóng menu quản trị"
+        />
+      )}
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2 flex flex-col gap-1">
-        {navItems.map((item) => (
-          <NavLink key={item.to} to={item.to} className={navLinkClass} title={collapsed ? item.label : undefined}>
-            <span className="flex-shrink-0">{item.icon}</span>
-            {!collapsed && <span>{item.label}</span>}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-none flex-col bg-slate-950 text-slate-300 shadow-2xl transition-all duration-300 lg:relative lg:z-auto lg:translate-x-0 lg:shadow-none ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        } ${collapsed ? 'lg:w-[84px]' : 'lg:w-72'}`}
+      >
+        <div className={`flex h-[72px] flex-none items-center border-b border-white/10 ${collapsed ? 'lg:justify-center lg:px-3' : 'justify-between px-5'}`}>
+          <NavLink to={ROUTES.ADMIN_DASHBOARD} className="flex min-w-0 items-center gap-3 text-white hover:text-white" onClick={onCloseMobile}>
+            <span className="flex h-10 w-10 flex-none items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 shadow-lg shadow-blue-950/40">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M12 21s7-5.35 7-12a7 7 0 1 0-14 0c0 6.65 7 12 7 12Z" /><circle cx="12" cy="9" r="2" /></svg>
+            </span>
+            <span className={`min-w-0 ${collapsed ? 'lg:hidden' : ''}`}>
+              <span className="block truncate text-sm font-black tracking-tight">TravelPlatform</span>
+              <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-blue-300">Admin Console</span>
+            </span>
           </NavLink>
-        ))}
-      </nav>
+          <button type="button" onClick={onCloseMobile} className="rounded-xl p-2 text-slate-400 hover:bg-white/10 hover:text-white lg:hidden" aria-label="Đóng menu">
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 6 12 12M18 6 6 18" strokeLinecap="round" /></svg>
+          </button>
+        </div>
 
-      {/* Back to site + Logout */}
-      <div className="p-2 border-t border-gray-100 flex flex-col gap-1">
-        <NavLink
-          to={ROUTES.HOME}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-          title={collapsed ? 'Về trang chủ' : undefined}
-        >
-          <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-          </svg>
-          {!collapsed && <span>Về trang chủ</span>}
-        </NavLink>
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-6">
+          <p className={`mb-3 px-3 text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-500 ${collapsed ? 'lg:text-center lg:text-[0]' : ''}`}>
+            {collapsed ? <span className="hidden lg:inline">•••</span> : 'Quản lý hệ thống'}
+          </p>
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={onCloseMobile}
+              title={collapsed ? item.label : undefined}
+              className={({ isActive }) => `group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${
+                isActive
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/30'
+                  : 'text-slate-400 hover:bg-white/[0.07] hover:text-white'
+              } ${collapsed ? 'lg:justify-center' : ''}`}
+            >
+              <span className="flex-none">{item.icon}</span>
+              <span className={collapsed ? 'lg:hidden' : ''}>{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="border-t border-white/10 p-3">
+          <div className={`mb-2 flex items-center gap-3 rounded-xl bg-white/[0.05] p-3 ${collapsed ? 'lg:justify-center lg:p-2' : ''}`}>
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="" className="h-9 w-9 flex-none rounded-xl object-cover" />
+            ) : (
+              <span className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-blue-500/20 text-sm font-black text-blue-300">
+                {user?.fullName.charAt(0).toUpperCase() ?? 'A'}
+              </span>
+            )}
+            <div className={`min-w-0 ${collapsed ? 'lg:hidden' : ''}`}>
+              <p className="truncate text-xs font-bold text-white">{user?.fullName}</p>
+              <p className="truncate text-[10px] text-slate-500">Quản trị viên</p>
+            </div>
+          </div>
+          <NavLink to={ROUTES.HOME} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-400 hover:bg-white/[0.07] hover:text-white ${collapsed ? 'lg:justify-center' : ''}`} title="Về trang chính">
+            <svg className="h-5 w-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m3 11 9-8 9 8M5 10v10h14V10M9 20v-6h6v6" strokeLinejoin="round" /></svg>
+            <span className={collapsed ? 'lg:hidden' : ''}>Về trang chính</span>
+          </NavLink>
+          <button type="button" onClick={() => void handleLogout()} className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 ${collapsed ? 'lg:justify-center' : ''}`} title="Đăng xuất">
+            <svg className="h-5 w-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 17l5-5-5-5M15 12H3M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <span className={collapsed ? 'lg:hidden' : ''}>Đăng xuất</span>
+          </button>
+        </div>
 
         <button
-          onClick={() => void handleLogout()}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors w-full"
-          title={collapsed ? 'Đăng xuất' : undefined}
+          type="button"
+          onClick={onToggleCollapsed}
+          className="absolute -right-3 top-24 hidden h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-md transition hover:text-primary-600 lg:flex"
+          aria-label={collapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
         >
-          <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
-          </svg>
-          {!collapsed && <span>Đăng xuất</span>}
+          <svg className={`h-4 w-4 transition-transform ${collapsed ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.7 5.3a1 1 0 0 1 0 1.4L9.4 10l3.3 3.3a1 1 0 0 1-1.4 1.4l-4-4a1 1 0 0 1 0-1.4l4-4a1 1 0 0 1 1.4 0Z" clipRule="evenodd" /></svg>
         </button>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

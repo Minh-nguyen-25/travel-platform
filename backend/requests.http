@@ -8,6 +8,11 @@
 @dayId = 1
 @itineraryId = 1
 @destinationId = 1
+@categoryId = 1
+@imageId = 1
+@reviewId = 1
+@reviewImageId = 1
+@userId = 2
 @shareToken = paste_64_character_share_token_here
 
 ### ------------------------------------------------------------------------------
@@ -82,7 +87,7 @@ Content-Type: application/json
 # }
 
 ### Toggle yêu thích địa điểm (Cần đăng nhập)
-# POST {{baseUrl}}/destinations/1/favorites
+# POST {{baseUrl}}/destinations/1/favorite
 # Authorization: Bearer {{token}}
 
 ### ------------------------------------------------------------------------------
@@ -240,21 +245,395 @@ DELETE {{baseUrl}}/trips/{{tripId}}
 Authorization: Bearer {{token}}
 
 ### ------------------------------------------------------------------------------
-### 6. AI & ANALYTICS (Ví dụ mẫu - TV5 triển khai)
+### 6. TRAVEL PREFERENCES (Cần đăng nhập; mỗi user có một hồ sơ)
 ### ------------------------------------------------------------------------------
 
-### Yêu cầu AI gợi ý lịch trình
-# POST {{baseUrl}}/ai/generate-itinerary
-# Authorization: Bearer {{token}}
-# Content-Type: application/json
+### Lấy sở thích hiện tại
+GET {{baseUrl}}/travel-preferences
+Authorization: Bearer {{token}}
 
-# {
-#   "destinationCity": "Đà Nẵng",
-#   "days": 3,
-#   "budgetLevel": "MEDIUM",
-#   "travelStyle": "Khám phá & Ẩm thực"
-# }
+### Tạo hồ sơ sở thích
+POST {{baseUrl}}/travel-preferences
+Authorization: Bearer {{token}}
+Content-Type: application/json
 
-### Admin Analytics Overview (Chỉ Admin)
-# GET {{baseUrl}}/admin/analytics/overview
-# Authorization: Bearer {{token}}
+{
+  "budgetLevel": "MEDIUM",
+  "travelStyle": "Khám phá và ẩm thực",
+  "preferredActivities": ["Tham quan", "Ăn uống"],
+  "preferredCategories": ["Văn hóa", "Thiên nhiên"]
+}
+
+### Cập nhật một phần
+PATCH {{baseUrl}}/travel-preferences
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "budgetLevel": "HIGH",
+  "preferredActivities": ["Tham quan", "Nghỉ dưỡng"]
+}
+
+### Cập nhật qua PUT; endpoint hiện dùng cùng semantics với PATCH
+PUT {{baseUrl}}/travel-preferences
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "travelStyle": "Nghỉ dưỡng"
+}
+
+### Xóa hồ sơ sở thích
+DELETE {{baseUrl}}/travel-preferences
+Authorization: Bearer {{token}}
+
+### ------------------------------------------------------------------------------
+### 7. MAPS & ROUTING (OSRM; profile: driving, walking hoặc cycling)
+### ------------------------------------------------------------------------------
+
+### Khoảng cách và thời gian giữa hai tọa độ
+POST {{baseUrl}}/maps/distance
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "origin": { "latitude": 21.0285, "longitude": 105.8542 },
+  "destination": { "latitude": 21.0368, "longitude": 105.8346 },
+  "profile": "driving"
+}
+
+### Tuyến đường qua nhiều tọa độ
+POST {{baseUrl}}/maps/route
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "coordinates": [
+    { "latitude": 21.0285, "longitude": 105.8542 },
+    { "latitude": 21.0368, "longitude": 105.8346 },
+    { "latitude": 21.0338, "longitude": 105.8499 }
+  ],
+  "profile": "walking",
+  "alternatives": true,
+  "steps": true,
+  "overview": "full",
+  "geometries": "geojson"
+}
+
+### Ma trận khoảng cách và thời gian; index bắt đầu từ 0
+POST {{baseUrl}}/maps/matrix
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "coordinates": [
+    { "latitude": 21.0285, "longitude": 105.8542 },
+    { "latitude": 21.0368, "longitude": 105.8346 },
+    { "latitude": 21.0338, "longitude": 105.8499 }
+  ],
+  "profile": "driving",
+  "sources": [0],
+  "destinations": [1, 2]
+}
+
+### ------------------------------------------------------------------------------
+### 8. AI ITINERARY (OpenAI hoặc Gemini; cần đăng nhập)
+### ------------------------------------------------------------------------------
+
+### Sinh lịch trình; startDate được truyền thì response có thêm tripDraft
+# Gửi nguyên data.tripDraft sang POST /trips; server xác minh aiProofToken rồi tự đánh dấu chuyến đi do AI tạo.
+POST {{baseUrl}}/ai/generate-itinerary
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "destinationCity": "Hà Nội",
+  "days": 3,
+  "startDate": "2026-09-01",
+  "budgetLevel": "MEDIUM",
+  "budget": 3000000,
+  "numberOfPeople": 2,
+  "travelStyle": "Khám phá và ẩm thực",
+  "preferredActivities": ["Tham quan", "Ăn uống"],
+  "preferredCategories": ["Văn hóa", "Ẩm thực"],
+  "travelMode": "WALKING",
+  "additionalRequests": "Ưu tiên địa điểm phù hợp gia đình",
+  "locale": "vi-VN"
+}
+
+### ------------------------------------------------------------------------------
+### 9. ADMIN ANALYTICS (Chỉ Admin)
+### ------------------------------------------------------------------------------
+
+### Tổng quan; periodDays 1..90, hai limit 1..20
+GET {{baseUrl}}/admin/analytics/overview?periodDays=30&popularDestinationLimit=5&topCityLimit=5
+Authorization: Bearer {{token}}
+
+### ------------------------------------------------------------------------------
+### 10. DESTINATIONS & CATEGORIES
+### ------------------------------------------------------------------------------
+
+### Public: lọc nhiều tiêu chí + phân trang
+GET {{baseUrl}}/destinations?page=1&limit=12&search=Hà Nội&categoryIds=1,3&categoryMatch=any&minPrice=0&maxPrice=100000&minRating=4&sortBy=rating&sortOrder=desc
+
+### Public: chi tiết địa điểm đang hoạt động
+GET {{baseUrl}}/destinations/{{destinationId}}
+
+### Public: danh sách danh mục
+GET {{baseUrl}}/categories?page=1&limit=50&sortBy=name&sortOrder=asc
+
+### Admin: danh sách có thể lọc cả địa điểm đã xóa mềm
+GET {{baseUrl}}/admin/destinations?page=1&limit=20&isActive=false
+Authorization: Bearer {{token}}
+
+### Admin: tạo địa điểm (JSON, chưa kèm ảnh)
+POST {{baseUrl}}/admin/destinations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Hồ Xuân Hương",
+  "description": "Hồ nước ở trung tâm thành phố Đà Lạt",
+  "address": "Phường Xuân Hương, Đà Lạt, Lâm Đồng",
+  "phoneNumber": null,
+  "latitude": 11.9404,
+  "longitude": 108.4583,
+  "ticketPrice": 0,
+  "openingHoursNote": "Mở cửa cả ngày",
+  "visitDuration": 90,
+  "categoryIds": [1, 5]
+}
+
+### Admin: cập nhật metadata hoặc khôi phục bằng isActive=true
+PATCH {{baseUrl}}/admin/destinations/{{destinationId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "ticketPrice": 20000,
+  "categoryIds": [1, 3],
+  "isActive": true
+}
+
+### Admin: xóa mềm địa điểm
+DELETE {{baseUrl}}/admin/destinations/{{destinationId}}
+Authorization: Bearer {{token}}
+
+### Admin: upload tối đa 5 ảnh/lần (đổi đường dẫn file trước khi chạy)
+POST {{baseUrl}}/admin/destinations/{{destinationId}}/images
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=TravelPlatformBoundary
+
+--TravelPlatformBoundary
+Content-Disposition: form-data; name="primaryImageIndex"
+
+0
+--TravelPlatformBoundary
+Content-Disposition: form-data; name="images"; filename="destination-1.jpg"
+Content-Type: image/jpeg
+
+< ./destination-1.jpg
+--TravelPlatformBoundary--
+
+### Admin: đặt ảnh đại diện
+PATCH {{baseUrl}}/admin/destinations/{{destinationId}}/images/{{imageId}}/primary
+Authorization: Bearer {{token}}
+
+### Admin: xóa ảnh khỏi database và Cloudinary
+DELETE {{baseUrl}}/admin/destinations/{{destinationId}}/images/{{imageId}}
+Authorization: Bearer {{token}}
+
+### Admin: thêm danh mục
+POST {{baseUrl}}/admin/categories
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Du lịch sinh thái",
+  "description": "Khu bảo tồn, nông trại và trải nghiệm gần thiên nhiên"
+}
+
+### Admin: sửa danh mục
+PATCH {{baseUrl}}/admin/categories/{{categoryId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Sinh thái & Cộng đồng"
+}
+
+### Admin: xóa danh mục
+DELETE {{baseUrl}}/admin/categories/{{categoryId}}
+Authorization: Bearer {{token}}
+
+### ------------------------------------------------------------------------------
+### 11. REVIEWS, FAVORITES & ADMIN REVIEW
+### ------------------------------------------------------------------------------
+
+### Public: review đang hiển thị của một địa điểm
+GET {{baseUrl}}/destinations/{{destinationId}}/reviews?page=1&limit=10&sortBy=createdAt&sortOrder=desc
+
+### Review của chính user tại địa điểm (kể cả khi admin đã ẩn)
+GET {{baseUrl}}/destinations/{{destinationId}}/reviews/me
+Authorization: Bearer {{token}}
+
+### Tạo review kèm tối đa 5 ảnh; mỗi user chỉ tạo một review/destination
+POST {{baseUrl}}/destinations/{{destinationId}}/reviews
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=ReviewBoundary
+
+--ReviewBoundary
+Content-Disposition: form-data; name="rating"
+
+5
+--ReviewBoundary
+Content-Disposition: form-data; name="comment"
+
+Địa điểm rất đẹp và thoáng mát!
+--ReviewBoundary
+Content-Disposition: form-data; name="images"; filename="review.jpg"
+Content-Type: image/jpeg
+
+< ./review.jpg
+--ReviewBoundary--
+
+### Sửa rating/comment (có thể đổi sang multipart để bổ sung ảnh)
+PATCH {{baseUrl}}/reviews/{{reviewId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "rating": 4,
+  "comment": "Nội dung sau khi chỉnh sửa"
+}
+
+### Xóa một ảnh review khỏi database và Cloudinary
+DELETE {{baseUrl}}/reviews/{{reviewId}}/images/{{reviewImageId}}
+Authorization: Bearer {{token}}
+
+### Xóa review của chính user
+DELETE {{baseUrl}}/reviews/{{reviewId}}
+Authorization: Bearer {{token}}
+
+### Trạng thái và toggle lưu/bỏ lưu địa điểm
+GET {{baseUrl}}/destinations/{{destinationId}}/favorite
+Authorization: Bearer {{token}}
+
+POST {{baseUrl}}/destinations/{{destinationId}}/favorite
+Authorization: Bearer {{token}}
+
+### Danh sách địa điểm đã lưu
+GET {{baseUrl}}/favorites?page=1&limit=12
+Authorization: Bearer {{token}}
+
+### Admin: tất cả review, gồm bộ lọc review ẩn/vi phạm
+GET {{baseUrl}}/admin/reviews?page=1&limit=20&isVisible=false
+Authorization: Bearer {{token}}
+
+### Admin: ẩn review spam (đổi true để hiện lại)
+PATCH {{baseUrl}}/admin/reviews/{{reviewId}}/visibility
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isVisible": false
+}
+
+### Admin: xóa vĩnh viễn review vi phạm
+DELETE {{baseUrl}}/admin/reviews/{{reviewId}}
+Authorization: Bearer {{token}}
+
+### ------------------------------------------------------------------------------
+### 12. AUTH, PROFILE & ADMIN USERS
+### ------------------------------------------------------------------------------
+
+### Đăng ký; refresh token chỉ được trả qua Cookie HttpOnly
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Nguyễn Du Lịch",
+  "email": "traveler@example.com",
+  "password": "Password123"
+}
+
+### Đăng nhập; lưu data.accessToken để gọi API Bearer
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@travel.com",
+  "password": "User@123"
+}
+
+### Rotate refresh token từ Cookie HttpOnly (REST Client tự giữ cookie)
+POST {{baseUrl}}/auth/refresh
+
+### Thu hồi refresh token hiện tại và xóa cookie
+POST {{baseUrl}}/auth/logout
+
+### Bắt đầu Google OAuth 2.0 trong trình duyệt
+GET {{baseUrl}}/auth/google
+
+### Hồ sơ cá nhân
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{token}}
+
+PATCH {{baseUrl}}/users/me
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "fullName": "Nguyễn Du Lịch - đã cập nhật"
+}
+
+### Đổi mật khẩu; response trả access token mới và rotate toàn bộ phiên refresh
+PATCH {{baseUrl}}/users/me/password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "currentPassword": "User@123",
+  "newPassword": "NewPassword123"
+}
+
+### Upload avatar lên Cloudinary (field bắt buộc: image, tối đa 5 MB)
+POST {{baseUrl}}/users/me/avatar
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=AvatarBoundary
+
+--AvatarBoundary
+Content-Disposition: form-data; name="image"; filename="avatar.jpg"
+Content-Type: image/jpeg
+
+< ./avatar.jpg
+--AvatarBoundary--
+
+### Xóa avatar
+DELETE {{baseUrl}}/users/me/avatar
+Authorization: Bearer {{token}}
+
+### Admin: danh sách và chi tiết người dùng
+GET {{baseUrl}}/admin/users?page=1&limit=20&search=user&role=USER&isActive=true
+Authorization: Bearer {{token}}
+
+GET {{baseUrl}}/admin/users/{{userId}}
+Authorization: Bearer {{token}}
+
+### Admin: khóa/mở khóa; khóa tài khoản sẽ thu hồi mọi refresh token
+PATCH {{baseUrl}}/admin/users/{{userId}}/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isActive": false
+}
+
+### Admin: phân quyền ADMIN/USER
+PATCH {{baseUrl}}/admin/users/{{userId}}/role
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "role": "ADMIN"
+}

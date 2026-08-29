@@ -5,10 +5,10 @@ export type IconName =
   | 'bike' | 'bus' | 'calendar' | 'car' | 'check' | 'chevron-left'
   | 'chevron-right' | 'chevron-down' | 'clock' | 'compass' | 'copy'
   | 'edit' | 'external-link' | 'eye' | 'filter' | 'globe' | 'grip'
-  | 'image' | 'info' | 'link' | 'loader' | 'map-pin' | 'more'
+  | 'heart' | 'image' | 'info' | 'link' | 'loader' | 'map-pin' | 'more'
   | 'plane' | 'plus' | 'printer' | 'refresh' | 'route' | 'search'
   | 'share' | 'sparkles' | 'star' | 'suitcase' | 'trash' | 'unlink'
-  | 'users' | 'walk' | 'wallet' | 'x';
+  | 'upload' | 'users' | 'walk' | 'wallet' | 'x';
 
 interface TripIconProps extends Omit<SVGProps<SVGSVGElement>, 'name'> {
   name: IconName;
@@ -39,6 +39,7 @@ const iconPaths: Record<IconName, React.ReactNode> = {
   filter: <path d="M4 6h16M7 12h10m-7 6h4" />,
   globe: <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" /></>,
   grip: <><circle cx="9" cy="6" r="1" fill="currentColor" stroke="none" /><circle cx="15" cy="6" r="1" fill="currentColor" stroke="none" /><circle cx="9" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="15" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="9" cy="18" r="1" fill="currentColor" stroke="none" /><circle cx="15" cy="18" r="1" fill="currentColor" stroke="none" /></>,
+  heart: <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" />,
   image: <><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-5-5L5 20" /></>,
   info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v6m0-10h.01" /></>,
   link: <><path d="m10 13 4-4" /><path d="M7.5 16.5 5 19a3.5 3.5 0 0 1-5-5l4-4a3.5 3.5 0 0 1 5 0" transform="translate(3 -3)" /><path d="m13 8 2-2a3.5 3.5 0 1 1 5 5l-4 4a3.5 3.5 0 0 1-5 0" /></>,
@@ -57,6 +58,7 @@ const iconPaths: Record<IconName, React.ReactNode> = {
   suitcase: <><rect x="4" y="7" width="16" height="13" rx="2" /><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M4 12h16M8 11v3m8-3v3" /></>,
   trash: <><path d="M4 7h16M9 7V4h6v3m3 0-1 14H7L6 7m4 4v6m4-6v6" /></>,
   unlink: <><path d="m9 15-2 2a3.5 3.5 0 0 1-5-5l3-3M15 9l2-2a3.5 3.5 0 0 1 5 5l-3 3M8 12h8M3 3l18 18" /></>,
+  upload: <><path d="M12 16V4m0 0L7 9m5-5 5 5" /><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" /></>,
   users: <><path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 20v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></>,
   walk: <><circle cx="13" cy="4" r="2" /><path d="m10 21 2-7-3-3 2-4 4 3 3 1M6 21l3-6m5-1 3 7" /></>,
   wallet: <><path d="M4 5h14a2 2 0 0 1 2 2v13H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" /><path d="M2 8h18M15 12h7v5h-7a2.5 2.5 0 0 1 0-5Z" /></>,

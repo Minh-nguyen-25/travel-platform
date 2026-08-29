@@ -32,7 +32,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     const hasError = Boolean(error);
 
     return (
-      <div className="flex flex-col gap-1.5">
+      <div className="flex min-w-0 flex-col gap-1.5">
         {label && (
           <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
             {label}
@@ -40,7 +40,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           </label>
         )}
 
-        <div className="relative flex items-center">
+        <div className="relative flex min-w-0 items-center">
           {leftAddon && (
             <div className="absolute left-3 flex items-center text-gray-400 pointer-events-none">
               {leftAddon}
@@ -51,7 +51,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={`
-              w-full h-10 px-3 py-2 text-sm text-gray-900
+              min-w-0 w-full h-10 px-3 py-2 text-sm text-gray-900
               bg-white border rounded-lg
               placeholder:text-gray-400
               transition-colors duration-150

@@ -11,12 +11,17 @@ export const authenticate = async (
 ): Promise<void> => {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader) {
     sendError(res, 'Không có token xác thực', HTTP_STATUS.UNAUTHORIZED);
     return;
   }
 
-  const token = authHeader.split(' ')[1];
+  const match = /^Bearer ([^\s]+)$/.exec(authHeader);
+  if (!match) {
+    sendError(res, 'Token xác thực không hợp lệ', HTTP_STATUS.UNAUTHORIZED);
+    return;
+  }
+  const token = match[1];
 
   try {
     const payload = verifyAccessToken(token);

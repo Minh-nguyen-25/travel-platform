@@ -1,19 +1,20 @@
-import { createContext, useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import axiosClient from '@/api/axiosClient';
+import { authService } from '@/services/auth.service';
 import { getToken, removeToken, setToken } from '@/utils/storage.utils';
-import type { AuthContextType, LoginRequest, User } from '@/types/auth.types';
+import type {
+  AuthContextType,
+  AuthTokenResponse,
+  ChangePasswordRequest,
+  LoginRequest,
+  RegisterRequest,
+  UpdateProfileRequest,
+  User,
+} from '@/types/auth.types';
 
-// ================================================================
-// Context
-// ================================================================
-// Context và Provider cùng file để giữ API hiện tại của feature Auth.
 // eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext<AuthContextType | null>(null);
 
-// ================================================================
-// Provider
-// ================================================================
 interface AuthProviderProps {
   children: ReactNode;
 }
@@ -21,152 +22,147 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(getToken());
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  // Ref để tránh StrictMode double-call loadCurrentUser
+  const [isLoading, setIsLoading] = useState(true);
   const initialized = useRef(false);
 
-  // ================================================================
-  // Derived state
-  // ================================================================
-  const isAuthenticated = user !== null && accessToken !== null;
+  const clearSession = useCallback((): void => {
+    removeToken();
+    setAccessToken(null);
+    setUser(null);
+  }, []);
 
-  // ================================================================
-  // loadCurrentUser — Khôi phục session từ token trong localStorage
-  // Gọi 1 lần duy nhất khi app khởi động.
-  // ================================================================
-  const loadCurrentUser = useCallback(async () => {
-    const token = getToken();
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
+  const applySession = useCallback((session: AuthTokenResponse): void => {
+    setToken(session.accessToken);
+    setAccessToken(session.accessToken);
+    setUser(session.user);
+  }, []);
 
+  const loadCurrentUser = useCallback(async (): Promise<void> => {
     try {
-      /**
-       * TODO (TV phụ trách Auth): Implement GET /api/v1/users/me
-       * API này trả về thông tin user hiện tại dựa trên Bearer Token.
-       */
-      const response = await axiosClient.get<{ data: User }>('/users/me');
-      setUser(response.data.data);
-      setAccessToken(token);
+      const storedToken = getToken();
+      if (!storedToken) {
+        applySession(await authService.refresh());
+        return;
+      }
+
+      const currentUser = await authService.getProfile();
+      setUser(currentUser);
+      setAccessToken(getToken() ?? storedToken);
     } catch {
-      // Token hết hạn hoặc không hợp lệ → clear
-      removeToken();
-      setUser(null);
-      setAccessToken(null);
+      clearSession();
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [applySession, clearSession]);
 
-  // ================================================================
-  // Khởi tạo khi app load
-  // ================================================================
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
     void loadCurrentUser();
   }, [loadCurrentUser]);
 
-  // ================================================================
-  // Lắng nghe sự kiện auth:logout từ Axios interceptor
-  // Khi refresh token thất bại, axiosClient dispatch event này.
-  // ================================================================
   useEffect(() => {
-    const handleForceLogout = () => {
-      setUser(null);
-      setAccessToken(null);
+    const handleForceLogout = () => clearSession();
+    const handleTokenRefresh = (event: Event) => {
+      setAccessToken((event as CustomEvent<string>).detail);
     };
+
     window.addEventListener('auth:logout', handleForceLogout);
-    return () => window.removeEventListener('auth:logout', handleForceLogout);
-  }, []);
+    window.addEventListener('auth:token-refreshed', handleTokenRefresh);
+    return () => {
+      window.removeEventListener('auth:logout', handleForceLogout);
+      window.removeEventListener('auth:token-refreshed', handleTokenRefresh);
+    };
+  }, [clearSession]);
 
-  // ================================================================
-  // login — Đăng nhập bằng email/password
-  // ================================================================
   const login = useCallback(async (data: LoginRequest): Promise<void> => {
-    /**
-     * TODO (TV phụ trách Auth): Implement POST /api/v1/auth/login
-     * Response phải có format: { success, message, data: { accessToken, user } }
-     * Refresh Token được set tự động trong HttpOnly Cookie bởi Backend.
-     */
-    const response = await axiosClient.post<{ data: { accessToken: string; user: User } }>(
-      '/auth/login',
-      data,
-    );
-    const { accessToken: token, user: loggedInUser } = response.data.data;
+    applySession(await authService.login(data));
+  }, [applySession]);
 
+  const register = useCallback(async (data: RegisterRequest): Promise<void> => {
+    applySession(await authService.register(data));
+  }, [applySession]);
+
+  const completeGoogleLogin = useCallback(async (token: string): Promise<void> => {
     setToken(token);
     setAccessToken(token);
-    setUser(loggedInUser);
-  }, []);
+    try {
+      setUser(await authService.getProfile());
+    } catch (error) {
+      clearSession();
+      throw error;
+    }
+  }, [clearSession]);
 
-  // ================================================================
-  // logout — Đăng xuất
-  // ================================================================
   const logout = useCallback(async (): Promise<void> => {
     try {
-      /**
-       * TODO (TV phụ trách Auth): Implement POST /api/v1/auth/logout
-       * Backend xóa Refresh Token Cookie.
-       */
-      await axiosClient.post('/auth/logout');
-    } catch {
-      // Bỏ qua lỗi logout (ví dụ: mất mạng) — vẫn clear state local
+      await authService.logout();
     } finally {
-      removeToken();
-      setUser(null);
-      setAccessToken(null);
+      clearSession();
     }
-  }, []);
+  }, [clearSession]);
 
-  // ================================================================
-  // refresh — Làm mới Access Token
-  // ================================================================
   const refresh = useCallback(async (): Promise<string | null> => {
     try {
-      /**
-       * TODO (TV phụ trách Auth): Implement POST /api/v1/auth/refresh
-       * Refresh Token gửi tự động qua HttpOnly Cookie (withCredentials: true).
-       * Response: { data: { accessToken } }
-       */
-      const response = await axiosClient.post<{ data: { accessToken: string } }>('/auth/refresh');
-      const newToken = response.data.data.accessToken;
-
-      setToken(newToken);
-      setAccessToken(newToken);
-      return newToken;
+      const session = await authService.refresh();
+      applySession(session);
+      return session.accessToken;
     } catch {
-      removeToken();
-      setUser(null);
-      setAccessToken(null);
+      clearSession();
       return null;
     }
+  }, [applySession, clearSession]);
+
+  const updateProfile = useCallback(async (data: UpdateProfileRequest): Promise<User> => {
+    const updatedUser = await authService.updateProfile(data);
+    setUser(updatedUser);
+    return updatedUser;
   }, []);
 
-  // ================================================================
-  // mockLogin — Đăng nhập nhanh bằng tài khoản seed trong môi trường Dev
-  // ================================================================
-  const mockLogin = useCallback(async (role: 'USER' | 'ADMIN' = 'ADMIN') => {
-    await login(role === 'ADMIN'
-      ? { email: 'admin@travel.com', password: 'Admin@123' }
-      : { email: 'user@travel.com', password: 'User@123' });
-  }, [login]);
+  const uploadAvatar = useCallback(async (file: File): Promise<User> => {
+    const updatedUser = await authService.uploadAvatar(file);
+    setUser(updatedUser);
+    return updatedUser;
+  }, []);
 
-  // ================================================================
-  // Context value
-  // ================================================================
-  const value: AuthContextType = {
+  const deleteAvatar = useCallback(async (): Promise<User> => {
+    const updatedUser = await authService.deleteAvatar();
+    setUser(updatedUser);
+    return updatedUser;
+  }, []);
+
+  const changePassword = useCallback(async (data: ChangePasswordRequest): Promise<void> => {
+    applySession(await authService.changePassword(data));
+  }, [applySession]);
+
+  const value = useMemo<AuthContextType>(() => ({
     user,
     accessToken,
-    isAuthenticated,
+    isAuthenticated: user !== null && accessToken !== null,
+    isLoading,
+    login,
+    register,
+    completeGoogleLogin,
+    logout,
+    refresh,
+    updateProfile,
+    uploadAvatar,
+    deleteAvatar,
+    changePassword,
+  }), [
+    accessToken,
+    changePassword,
+    completeGoogleLogin,
+    deleteAvatar,
     isLoading,
     login,
     logout,
     refresh,
-    mockLogin,
-  };
+    register,
+    updateProfile,
+    uploadAvatar,
+    user,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
