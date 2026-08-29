@@ -1,33 +1,63 @@
-import 'dotenv/config';
+// ─── FIRST IMPORT: env validation + dotenv loading ────────────────────────────
+// Must precede all other imports so process.env is populated and validated
+// before any module reads it. Exits with code 1 if required vars are missing.
+import env from './config/env';
+
 import app from './app';
 import prisma from './config/db';
+import redisClient, { disconnectRedis } from './config/redis';
 
-const PORT = process.env.PORT || 3000;
+// ─── Graceful shutdown ─────────────────────────────────────────────────────────
+// Track whether shutdown is already in progress to disconnect exactly once.
+let isShuttingDown = false;
 
-const start = async () => {
+const shutdown = async (signal: string): Promise<void> => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+  console.log(`\n⚠️  Nhận tín hiệu ${signal} — đang tắt server...`);
   try {
-    // Kiểm tra kết nối DB ngay khi startup
-    // Nếu DB chết → phát hiện ngay, không phải đợi query đầu tiên
-    await prisma.$connect();
-    console.log('✅ Kết nối Database thành công');
-
-    app.listen(PORT, () => {
-      console.log(`🚀 Server đang chạy tại http://localhost:${PORT}`);
-      console.log(`📋 Health check: http://localhost:${PORT}/api/v1/health`);
-      console.log(`📊 Prisma Studio: chạy "npm run db:studio"`);
-    });
-  } catch (error) {
-    console.error('❌ Không thể kết nối Database:', error);
     await prisma.$disconnect();
+    console.log('✅ Database đã ngắt kết nối');
+
+    await disconnectRedis();
+    // disconnectRedis logs its own confirmation message
+
+    process.exit(0);
+  } catch (err) {
+    console.error('❌ Lỗi trong quá trình tắt server:', err);
     process.exit(1);
   }
 };
 
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('⚠️  Đang tắt server...');
-  await prisma.$disconnect();
-  process.exit(0);
-});
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT',  () => shutdown('SIGINT'));
 
-start();
+// ─── Startup ──────────────────────────────────────────────────────────────────
+const start = async (): Promise<void> => {
+  // Verify Database connectivity
+  await prisma.$connect();
+  console.log('✅ Kết nối Database thành công');
+
+  // Verify Redis connectivity (lazyConnect=true means we must connect explicitly)
+  await redisClient.connect();
+  await redisClient.ping();
+  // Connection event handler in redis.ts logs '✅ Kết nối Redis thành công'
+
+  app.listen(Number(env.PORT), () => {
+    console.log(`🚀 Server đang chạy tại http://localhost:${env.PORT}`);
+    console.log(`📋 Health check: http://localhost:${env.PORT}/api/v1/health`);
+    console.log(`📊 Prisma Studio: chạy "npm run db:studio"`);
+  });
+};
+
+start().catch(async (err) => {
+  console.error('❌ Không thể khởi động server:', err);
+  try {
+    await prisma.$disconnect();
+  } catch { /* ignore secondary errors */ }
+  try {
+    await disconnectRedis();
+  } catch { /* ignore secondary errors */ }
+  process.exit(1);
+});

@@ -24,11 +24,11 @@ import Loading from '@/components/common/Loading';
  * ```
  */
 export default function ProtectedRoute() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isAuthLoading } = useAuth();
   const location = useLocation();
 
   // Đang kiểm tra session ban đầu → hiển thị loading tránh flash
-  if (isLoading) {
+  if (isAuthLoading) {
     return <Loading fullPage message="Đang kiểm tra đăng nhập..." />;
   }
 

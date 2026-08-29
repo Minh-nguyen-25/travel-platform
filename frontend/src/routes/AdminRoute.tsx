@@ -26,10 +26,10 @@ import Loading from '@/components/common/Loading';
  * ```
  */
 export default function AdminRoute() {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isAuthLoading, user } = useAuth();
   const location = useLocation();
 
-  if (isLoading) {
+  if (isAuthLoading) {
     return <Loading fullPage message="Đang kiểm tra quyền truy cập..." />;
   }
 

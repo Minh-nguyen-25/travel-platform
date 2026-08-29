@@ -1,5 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { getToken, removeToken, setToken } from '@/utils/storage.utils';
+import { getToken, removeToken, setToken } from '@/utils/access-token.store';
 
 /**
  * Axios Client dùng chung cho toàn bộ Frontend.
@@ -7,7 +7,7 @@ import { getToken, removeToken, setToken } from '@/utils/storage.utils';
  * KHÔNG tạo instance Axios riêng trong từng service.
  * Tất cả gọi API phải đi qua file này.
  *
- * Đọc baseURL từ biến môi trường VITE_API_URL (xem .env.example).
+ * Đọc baseURL từ biến môi trường VITE_API_URL.
  */
 
 // ================================================================
@@ -20,14 +20,14 @@ const axiosClient = axios.create({
   },
   /**
    * withCredentials: true — bắt buộc để browser tự động gửi HttpOnly Cookie
-   * chứa Refresh Token khi gọi POST /auth/refresh.
+   * chứa Refresh Token khi gọi API.
    */
   withCredentials: true,
 });
 
 // ================================================================
 // Request Interceptor
-// Tự động gắn Authorization: Bearer <accessToken> vào mọi request.
+// Tự động gắn Authorization: Bearer <accessToken> vào mọi request từ in-memory store.
 // ================================================================
 axiosClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -41,9 +41,35 @@ axiosClient.interceptors.request.use(
 );
 
 // ================================================================
-// Response Interceptor
-// Bắt lỗi 401 → tự động refresh token → retry request gốc.
+// Response Interceptor & Refresh Queue
+// Bắt lỗi 401 → tự động refresh token một lần → retry request gốc.
 // ================================================================
+
+/** Danh sách các endpoint không được trigger refresh token khi bị 401 */
+const AUTH_SKIP_PATHS = new Set([
+  '/auth/login',
+  '/auth/register',
+  '/auth/refresh',
+  '/auth/logout',
+]);
+
+/**
+ * Chuẩn hóa URL để kiểm tra chính xác pathname trong skip list.
+ * Loại bỏ /api/v1 prefix và query string, hỗ trợ cả URL tuyệt đối lẫn tương đối.
+ */
+const isAuthSkipPath = (url?: string): boolean => {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url, 'http://localhost');
+    let pathname = parsed.pathname;
+    if (pathname.startsWith('/api/v1')) {
+      pathname = pathname.slice('/api/v1'.length);
+    }
+    return AUTH_SKIP_PATHS.has(pathname);
+  } catch {
+    return false;
+  }
+};
 
 /** Flag để tránh tạo nhiều refresh request đồng thời */
 let isRefreshing = false;
@@ -73,19 +99,17 @@ axiosClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryableConfig;
 
-    // Chỉ xử lý lỗi 401 và chưa retry
     const is401 = error.response?.status === 401;
     const alreadyRetried = originalRequest?._retry === true;
+    const isSkipped = isAuthSkipPath(originalRequest?.url);
 
-    // Tránh retry chính endpoint /auth/refresh để không vòng lặp vô tận
-    const isRefreshEndpoint = originalRequest?.url?.includes('/auth/refresh');
-
-    if (!is401 || alreadyRetried || isRefreshEndpoint) {
+    // Không xử lý nếu không phải 401, đã retry, hoặc là auth skip path (login, register, refresh, logout)
+    if (!is401 || alreadyRetried || isSkipped) {
       return Promise.reject(error);
     }
 
     if (isRefreshing) {
-      // Nếu đang refresh, đưa request vào queue và chờ
+      // Nếu đang trong quá trình refresh, đưa request vào queue chờ token mới
       return new Promise<string | null>((resolve, reject) => {
         failedQueue.push({ resolve, reject });
       }).then((token) => {
@@ -100,17 +124,20 @@ axiosClient.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      // Gọi refresh — Refresh Token HttpOnly Cookie được gửi tự động
+      // Gọi refresh bằng axios gốc (bare axios) với full URL và withCredentials: true
+      // KHÔNG dùng axiosClient để tránh re-enter interceptor stack
+      const fullRefreshUrl = `${import.meta.env.VITE_API_URL as string}/auth/refresh`;
       const response = await axios.post<{ data: { accessToken: string } }>(
-        `${import.meta.env.VITE_API_URL as string}/auth/refresh`,
+        fullRefreshUrl,
         {},
         { withCredentials: true },
       );
 
       const newToken = response.data.data.accessToken;
+      // Cập nhật token store (tự động thông báo cho AuthProvider)
       setToken(newToken);
 
-      // Cập nhật header cho request gốc và retry
+      // Cập nhật Authorization header cho request gốc
       if (originalRequest.headers) {
         originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
       }
@@ -118,13 +145,12 @@ axiosClient.interceptors.response.use(
       processQueue(null, newToken);
       return axiosClient(originalRequest);
     } catch (refreshError) {
-      // Refresh thất bại → xóa token, dispatch event để AuthContext biết
+      // Refresh thất bại → xóa token trong store, reject toàn bộ queue, dispatch event logout
       removeToken();
       processQueue(refreshError, null);
 
       /**
-       * Dispatch custom event để AuthContext lắng nghe và clear state.
-       * Tránh import circular dependency giữa axiosClient và AuthContext.
+       * Dispatch custom event để AuthProvider clear state người dùng.
        */
       window.dispatchEvent(new Event('auth:logout'));
 
