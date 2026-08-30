@@ -3,6 +3,7 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PasswordInput from '@/components/auth/PasswordInput';
 import Button from '@/components/common/Button';
+import EditorialPageHero from '@/components/common/EditorialPageHero';
 import Input from '@/components/common/Input';
 import { ROUTES } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
@@ -218,17 +219,21 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="border-b border-blue-100 bg-gradient-to-br from-blue-50 via-white to-cyan-50">
-        <div className="container py-10 sm:py-14">
-          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-primary-600">Tài khoản cá nhân</p>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-gray-900 sm:text-4xl">
-            Hồ sơ của bạn
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-500">
-            Quản lý thông tin hiển thị, ảnh đại diện và bảo mật cho tài khoản TravelPlatform.
-          </p>
-        </div>
-      </div>
+      <EditorialPageHero
+        eyebrow="Tài khoản cá nhân"
+        title={<>Hồ sơ của <span className="text-accent-300">bạn.</span></>}
+        description="Quản lý thông tin hiển thị, ảnh đại diện và bảo mật — để mỗi hành trình luôn mang dấu ấn của riêng bạn."
+        image="/images/vietnam-hoi-an-journal.jpg"
+        imageAlt="Du khách ghi lại câu chuyện hành trình trong một sân nhỏ tại Hội An"
+        icon="users"
+        motion="glide"
+        imagePosition="object-[66%_50%]"
+        compact
+      >
+        <p className="inline-flex rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-bold text-white/72 backdrop-blur">
+          Thành viên từ {joinedDate}
+        </p>
+      </EditorialPageHero>
 
       <div className="container grid gap-7 py-8 lg:grid-cols-[280px_minmax(0,1fr)] lg:py-10">
         <aside className="h-fit overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm lg:sticky lg:top-24">

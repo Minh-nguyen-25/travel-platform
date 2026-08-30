@@ -67,6 +67,7 @@ export default function RegisterPage() {
       eyebrow="Bắt đầu miễn phí"
       title="Tạo tài khoản"
       description="Một tài khoản, mọi điểm đến yêu thích và kế hoạch du lịch của riêng bạn."
+      motion="signup"
       footer={(
         <>
           Đã có tài khoản?{' '}

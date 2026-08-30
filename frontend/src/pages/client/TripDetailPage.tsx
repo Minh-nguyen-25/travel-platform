@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import AddPlaceModal from '@/components/trip/AddPlaceModal';
+import EditorialPageHero from '@/components/common/EditorialPageHero';
 import Modal from '@/components/common/Modal';
 import ShareTripModal from '@/components/trip/ShareTripModal';
 import TripIcon from '@/components/trip/TripIcon';
@@ -171,47 +172,44 @@ export default function TripDetailPage() {
   const budget = Number(trip.budget ?? 0);
   const spent = Number(trip.totalEstimatedCost ?? 0);
   const budgetPercent = budget > 0 ? Math.min(100, Math.max(0, (spent / budget) * 100)) : 0;
+  const tripCoverImage = trip.tripDays
+    .flatMap((day) => day.itineraries)
+    .flatMap((itinerary) => itinerary.destination.images)
+    .find((image) => image.isPrimary)?.imageUrl
+    ?? trip.tripDays.flatMap((day) => day.itineraries).flatMap((itinerary) => itinerary.destination.images)[0]?.imageUrl
+    ?? '/images/vietnam-dalat-roadtrip.jpg';
 
   return (
     <div className="trip-page-bg min-h-screen pb-20">
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary-900 via-primary-800 to-primary-600 text-white">
-        <div className="absolute -left-28 top-12 h-72 w-72 rounded-full bg-primary-500/20 blur-3xl" />
-        <div className="absolute -right-20 -top-24 h-80 w-80 rounded-full bg-accent-400/20 blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-40 w-40 rounded-full border border-white/10" />
-        <div className="container relative pb-24 pt-8 sm:pb-28 sm:pt-10">
-          <Link to={ROUTES.TRIPS} className="inline-flex items-center gap-2 text-sm font-semibold text-primary-100 transition hover:-translate-x-0.5 hover:text-white">
-            <TripIcon name="arrow-left" size={17} /> Chuyến đi của tôi
-          </Link>
-          <div className="mt-7 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-            <div className="max-w-3xl">
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">
-                  <TripIcon name="map-pin" size={14} /> {trip.destinationCity}
-                </span>
-                {trip.isAiGenerated && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-400/20 px-3 py-1.5 text-xs font-bold text-accent-100 backdrop-blur-sm">
-                    <TripIcon name="sparkles" size={14} /> AI gợi ý
-                  </span>
-                )}
-                {trip.isPublic && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-primary-50 backdrop-blur-sm">
-                    <TripIcon name="eye" size={14} /> Đang chia sẻ
-                  </span>
-                )}
-              </div>
-              <h1 className="text-3xl font-extrabold leading-tight text-white sm:text-4xl lg:text-5xl">{trip.name}</h1>
-              <div className="mt-4 flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-primary-100">
-                <span className="inline-flex items-center gap-2"><TripIcon name="calendar" size={17} />{formatDateRange(trip.startDate, trip.endDate)}</span>
-                <span className="inline-flex items-center gap-2"><TripIcon name="users" size={17} />{trip.numberOfPeople} người</span>
-                <span className="inline-flex items-center gap-2"><TripIcon name="route" size={17} />{totalStops} điểm dừng</span>
-              </div>
-            </div>
-            <button type="button" onClick={() => setIsShareOpen(true)} className="inline-flex h-11 w-fit items-center gap-2 rounded-xl bg-white px-5 text-sm font-extrabold text-primary-700 shadow-lg shadow-primary-900/20 transition hover:-translate-y-0.5 hover:bg-primary-50">
-              <TripIcon name="share" size={17} /> Chia sẻ chuyến đi
-            </button>
-          </div>
+      <EditorialPageHero
+        eyebrow={trip.destinationCity}
+        title={trip.name}
+        description={trip.description ?? 'Một hành trình đang được bạn viết tiếp, từng ngày và từng điểm dừng.'}
+        image={tripCoverImage}
+        imageAlt={`Ảnh đại diện chuyến đi ${trip.name}`}
+        icon="route"
+        motion="route"
+        imagePosition="object-center"
+        compact
+        aside={(
+          <button type="button" onClick={() => setIsShareOpen(true)} className="inline-flex h-11 w-fit items-center gap-2 rounded-2xl bg-white px-5 text-sm font-extrabold text-primary-800 shadow-float transition hover:-translate-y-1 hover:bg-primary-50">
+            <TripIcon name="share" size={17} /> Chia sẻ chuyến đi
+          </button>
+        )}
+      >
+        <Link to={ROUTES.TRIPS} className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-primary-100 transition hover:-translate-x-1 hover:text-white">
+          <TripIcon name="arrow-left" size={17} /> Chuyến đi của tôi
+        </Link>
+        <div className="flex flex-wrap gap-2">
+          {trip.isAiGenerated && <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-400/20 px-3 py-1.5 text-xs font-bold text-accent-100 backdrop-blur"><TripIcon name="sparkles" size={14} /> AI gợi ý</span>}
+          {trip.isPublic && <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-primary-50 backdrop-blur"><TripIcon name="eye" size={14} /> Đang chia sẻ</span>}
         </div>
-      </section>
+        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-primary-100">
+          <span className="inline-flex items-center gap-2"><TripIcon name="calendar" size={17} />{formatDateRange(trip.startDate, trip.endDate)}</span>
+          <span className="inline-flex items-center gap-2"><TripIcon name="users" size={17} />{trip.numberOfPeople} người</span>
+          <span className="inline-flex items-center gap-2"><TripIcon name="route" size={17} />{totalStops} điểm dừng</span>
+        </div>
+      </EditorialPageHero>
 
       <main className="container relative -mt-14">
         {trip.tripDays.length > 0 ? (

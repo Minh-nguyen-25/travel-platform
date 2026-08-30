@@ -1,48 +1,78 @@
 import { Link } from 'react-router-dom';
+import TripIcon from '@/components/trip/TripIcon';
 import { ROUTES } from '@/constants';
+
+const footerLinks = [
+  {
+    title: 'Khám phá',
+    links: [
+      { label: 'Điểm đến Việt Nam', to: ROUTES.DESTINATIONS },
+      { label: 'AI Travel Planner', to: ROUTES.PREFERENCES },
+      { label: 'Địa điểm yêu thích', to: ROUTES.FAVORITES },
+    ],
+  },
+  {
+    title: 'Hành trình',
+    links: [
+      { label: 'Chuyến đi của tôi', to: ROUTES.TRIPS },
+      { label: 'Tạo tài khoản', to: ROUTES.REGISTER },
+      { label: 'Hồ sơ cá nhân', to: ROUTES.PROFILE },
+    ],
+  },
+];
 
 export default function Footer() {
   return (
-    <footer className="mt-auto overflow-hidden bg-gray-900 text-gray-400">
-      <div className="container py-12">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_0.7fr_0.7fr_1fr]">
+    <footer className="relative mt-auto overflow-hidden bg-navy-950 text-white">
+      <div className="absolute -left-28 top-24 h-80 w-80 rounded-full bg-primary-500/10 blur-3xl" />
+      <div className="absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-accent-500/10 blur-3xl" />
+
+      <div className="container relative pt-16 sm:pt-20">
+        <div className="grid gap-12 border-b border-white/10 pb-14 lg:grid-cols-[1.35fr_0.65fr_0.65fr_1.1fr]">
           <div>
-            <Link to={ROUTES.HOME} className="flex items-center gap-2.5 text-lg font-extrabold text-white hover:text-white">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white">
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s7-5.35 7-12a7 7 0 10-14 0c0 6.65 7 12 7 12z" />
-                  <circle cx="12" cy="9" r="2.25" />
-                </svg>
+            <Link to={ROUTES.HOME} className="flex items-center gap-3 text-xl font-extrabold tracking-tight text-white hover:text-white">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-400 to-primary-700 text-white shadow-lg shadow-navy-950/40">
+                <TripIcon name="compass" size={22} />
               </span>
               TravelPlatform
             </Link>
-            <p className="mt-4 max-w-sm text-sm leading-6">
-              Khám phá, lên kế hoạch và lưu giữ những hành trình đáng nhớ theo cách của riêng bạn.
+            <p className="mt-5 max-w-sm text-sm leading-7 text-white/58">
+              Nền tảng khám phá Việt Nam, lưu giữ cảm hứng và biến những điểm đến mơ ước thành hành trình rõ ràng.
             </p>
+            <p className="accent-script mt-5 text-3xl text-primary-200">Đi xa theo cách của bạn.</p>
           </div>
-          <div>
-            <h2 className="text-sm font-bold text-white">Khám phá</h2>
-            <ul className="mt-4 space-y-3 text-sm">
-              <li><Link to={ROUTES.DESTINATIONS} className="text-gray-400 hover:text-white">Địa điểm nổi bật</Link></li>
-              <li><Link to={ROUTES.PREFERENCES} className="text-gray-400 hover:text-white">AI lập lịch trình</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h2 className="text-sm font-bold text-white">Hành trình</h2>
-            <ul className="mt-4 space-y-3 text-sm">
-              <li><Link to={ROUTES.TRIPS} className="text-gray-400 hover:text-white">Chuyến đi của tôi</Link></li>
-              <li><Link to={ROUTES.FAVORITES} className="text-gray-400 hover:text-white">Địa điểm yêu thích</Link></li>
-            </ul>
-          </div>
-          <div className="rounded-2xl border border-gray-800 bg-gray-800/40 p-5">
-            <p className="text-xs font-bold uppercase tracking-wider text-primary-300">Sẵn sàng lên đường?</p>
-            <p className="mt-2 text-sm leading-6 text-gray-300">Biến ý tưởng tiếp theo thành một lịch trình thật dễ theo dõi.</p>
-            <Link to={ROUTES.TRIPS} className="mt-4 inline-flex text-sm font-bold text-white hover:text-primary-300">Bắt đầu lập kế hoạch →</Link>
+
+          {footerLinks.map((group) => (
+            <div key={group.title}>
+              <h2 className="font-sans text-xs font-extrabold uppercase tracking-[0.18em] text-white">{group.title}</h2>
+              <ul className="mt-5 space-y-3">
+                {group.links.map((link) => (
+                  <li key={link.label}>
+                    <Link to={link.to} className="group inline-flex items-center gap-2 text-sm text-white/58 hover:text-primary-200">
+                      <span className="h-px w-0 bg-primary-300 transition-all duration-300 group-hover:w-4" />
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+
+          <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur-sm sm:p-6">
+            <span className="eyebrow text-accent-300"><TripIcon name="sparkles" size={14} />Bắt đầu từ đây</span>
+            <h2 className="mt-3 text-2xl font-bold leading-tight text-white">Chuyến đi tiếp theo đang chờ bạn đặt tên.</h2>
+            <Link to={ROUTES.PREFERENCES} className="mt-5 inline-flex h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-extrabold text-navy-900 shadow-lg transition hover:-translate-y-0.5 hover:bg-primary-50 hover:text-primary-900">
+              Tạo lịch trình <TripIcon name="arrow-right" size={16} />
+            </Link>
           </div>
         </div>
-        <div className="mt-10 flex flex-col gap-2 border-t border-gray-800 pt-6 text-xs sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} TravelPlatform. All rights reserved.</p>
-          <p>Được tạo cho những hành trình đáng nhớ.</p>
+
+        <div className="flex flex-col gap-3 py-6 text-xs text-white/40 sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} TravelPlatform. Made for journeys across Vietnam.</p>
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-secondary-400" />
+            Trải nghiệm du lịch Việt Nam hiện đại
+          </div>
         </div>
       </div>
     </footer>

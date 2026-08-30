@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import EditorialPageHero from '@/components/common/EditorialPageHero';
 import DestinationCard, { DestinationCardSkeleton } from '@/components/destination/DestinationCard';
 import FavoriteButton from '@/components/favorite/FavoriteButton';
 import TripIcon from '@/components/trip/TripIcon';
@@ -79,28 +80,23 @@ export default function FavoritesPage() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gray-50 pb-20">
-      <section className="border-b border-primary-100 bg-gradient-to-br from-primary-50 via-white to-red-50/50">
-        <div className="container py-12 sm:py-16">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-red-50 text-red-500 shadow-sm">
-                <TripIcon name="heart" size={22} className="fill-current" />
-              </span>
-              <p className="mt-5 text-xs font-extrabold uppercase tracking-[0.18em] text-primary-600">Bộ sưu tập của bạn</p>
-              <h1 className="mt-2 text-3xl font-black tracking-tight text-gray-900 sm:text-4xl">Địa điểm yêu thích</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-500 sm:text-base">
-                Lưu lại những nơi truyền cảm hứng và quay lại khi bạn sẵn sàng lên kế hoạch.
-              </p>
-            </div>
-            {!isLoading && !error && (
-              <div className="w-fit rounded-2xl border border-white bg-white/80 px-5 py-3 shadow-sm backdrop-blur">
-                <p className="text-2xl font-black text-gray-900">{pagination.total}</p>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Địa điểm đã lưu</p>
-              </div>
-            )}
+      <EditorialPageHero
+        eyebrow="Bộ sưu tập của bạn"
+        title={<>Những nơi từng làm bạn <span className="text-coral-400">rung động.</span></>}
+        description="Lưu lại những điểm đến truyền cảm hứng và quay về đây khi bạn sẵn sàng biến cảm xúc thành một chuyến đi."
+        image="/images/vietnam-hoi-an-journal.jpg"
+        imageAlt="Du khách ghi nhật ký trong sân nhỏ Hội An dưới ánh đèn lồng"
+        icon="heart"
+        motion="focus"
+        imagePosition="object-[62%_48%]"
+        compact
+        aside={!isLoading && !error ? (
+          <div className="min-w-44 rounded-3xl border border-white/20 bg-white/12 px-6 py-5 text-white shadow-float backdrop-blur-xl">
+            <p className="text-4xl font-black text-white">{pagination.total}</p>
+            <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.16em] text-white/65">Địa điểm đã lưu</p>
           </div>
-        </div>
-      </section>
+        ) : undefined}
+      />
 
       <main className="container py-10">
         {feedback && (

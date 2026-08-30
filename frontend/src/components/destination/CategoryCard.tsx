@@ -23,7 +23,7 @@ export default function CategoryCard({ category, index }: CategoryCardProps) {
   return (
     <Link
       to={`${ROUTES.DESTINATIONS}?${query}`}
-      className={`group relative overflow-hidden rounded-3xl border border-white bg-gradient-to-br ${visual.background} p-5 text-gray-900 shadow-sm transition duration-300 hover:-translate-y-1 hover:text-gray-900 hover:shadow-lg`}
+      className={`travel-card-shine group relative h-full overflow-hidden rounded-3xl border border-white bg-gradient-to-br ${visual.background} p-5 text-gray-900 shadow-soft transition duration-500 ease-travel hover:-translate-y-1.5 hover:text-gray-900 hover:shadow-float`}
     >
       <span className={`flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg ${visual.iconClass}`}>
         <TripIcon name={visual.icon} size={22} />

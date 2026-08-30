@@ -7,12 +7,12 @@ interface AdminHeaderProps {
   onOpenSidebar: () => void;
 }
 
-const pageMeta: Record<string, { title: string; description: string }> = {
-  [ROUTES.ADMIN_DASHBOARD]: { title: 'Tổng quan', description: 'Theo dõi sức khỏe và tăng trưởng hệ thống' },
-  [ROUTES.ADMIN_USERS]: { title: 'Người dùng', description: 'Quản lý tài khoản và quyền truy cập' },
-  [ROUTES.ADMIN_DESTINATIONS]: { title: 'Địa điểm', description: 'Quản lý nội dung điểm đến' },
-  [ROUTES.ADMIN_CATEGORIES]: { title: 'Danh mục', description: 'Tổ chức danh mục du lịch' },
-  [ROUTES.ADMIN_REVIEWS]: { title: 'Đánh giá', description: 'Kiểm duyệt nội dung cộng đồng' },
+const pageMeta: Record<string, { title: string; description: string; image: string; imageAlt: string; motion: string }> = {
+  [ROUTES.ADMIN_DASHBOARD]: { title: 'Tổng quan', description: 'Theo dõi sức khỏe và tăng trưởng hệ thống', image: '/images/vietnam-ai-planner.jpg', imageAlt: 'Bàn lập kế hoạch du lịch', motion: 'focus' },
+  [ROUTES.ADMIN_USERS]: { title: 'Người dùng', description: 'Quản lý tài khoản và quyền truy cập', image: '/images/vietnam-hoi-an-journal.jpg', imageAlt: 'Du khách ghi nhật ký tại Hội An', motion: 'glide' },
+  [ROUTES.ADMIN_DESTINATIONS]: { title: 'Địa điểm', description: 'Quản lý nội dung điểm đến', image: '/images/vietnam-ninh-binh-discovery.jpg', imageAlt: 'Sông núi Ninh Bình', motion: 'pan' },
+  [ROUTES.ADMIN_CATEGORIES]: { title: 'Danh mục', description: 'Tổ chức danh mục du lịch', image: '/images/vietnam-ha-giang-hero.jpg', imageAlt: 'Núi non Hà Giang', motion: 'rise' },
+  [ROUTES.ADMIN_REVIEWS]: { title: 'Đánh giá', description: 'Kiểm duyệt nội dung cộng đồng', image: '/images/vietnam-dalat-roadtrip.jpg', imageAlt: 'Hành trình qua Đà Lạt', motion: 'drift' },
 };
 
 export default function AdminHeader({ onOpenSidebar }: AdminHeaderProps) {
@@ -20,7 +20,7 @@ export default function AdminHeader({ onOpenSidebar }: AdminHeaderProps) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const meta = pageMeta[pathname] ?? { title: 'Quản trị', description: 'TravelPlatform Admin' };
+  const meta = pageMeta[pathname] ?? { title: 'Quản trị', description: 'TravelPlatform Admin', image: '/images/vietnam-ha-giang-hero.jpg', imageAlt: 'Phong cảnh Việt Nam', motion: 'focus' };
 
   const handleLogout = async () => {
     await logout();
@@ -28,11 +28,14 @@ export default function AdminHeader({ onOpenSidebar }: AdminHeaderProps) {
   };
 
   return (
-    <header className="relative z-30 flex h-[72px] flex-none items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur sm:px-6 xl:px-8">
+    <header className="relative z-30 flex h-20 flex-none items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur sm:px-6 xl:px-8">
       <div className="flex min-w-0 items-center gap-3">
         <button type="button" onClick={onOpenSidebar} className="flex h-10 w-10 flex-none items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 lg:hidden" aria-label="Mở menu quản trị">
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" /></svg>
         </button>
+        <div key={pathname} className="admin-header__visual hidden h-12 w-20 flex-none overflow-hidden rounded-2xl border-2 border-white shadow-md sm:block">
+          <img src={meta.image} alt={meta.imageAlt} className={`admin-header__image admin-header__image--${meta.motion} h-full w-full object-cover`} />
+        </div>
         <div className="min-w-0">
           <h1 className="truncate text-base font-black text-slate-900 sm:text-lg">{meta.title}</h1>
           <p className="hidden truncate text-xs text-slate-500 sm:block">{meta.description}</p>

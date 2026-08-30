@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AiItineraryResult from '@/components/ai/AiItineraryResult';
 import AiPlannerForm from '@/components/ai/AiPlannerForm';
+import EditorialPageHero from '@/components/common/EditorialPageHero';
 import TripIcon from '@/components/trip/TripIcon';
 import { aiService } from '@/services/ai.service';
 import { preferenceService } from '@/services/preference.service';
@@ -250,24 +251,23 @@ export default function PreferencesPage() {
 
   return (
     <div className="trip-page-bg min-h-screen pb-24">
-      <section className="relative overflow-hidden border-b border-primary-100 bg-gradient-to-br from-primary-50 via-white to-accent-50">
-        <div className="absolute -left-28 top-10 h-72 w-72 rounded-full bg-primary-100/70 blur-3xl" />
-        <div className="absolute -right-20 -top-28 h-80 w-80 rounded-full bg-accent-100/70 blur-3xl" />
-        <div className="container relative py-12 sm:py-16">
-          <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary-100 bg-white/80 px-3 py-1.5 text-xs font-bold text-primary-700 shadow-sm backdrop-blur-sm">
-              <TripIcon name="sparkles" size={14} />
-              AI Travel Planner
-            </span>
-            <h1 className="mt-5 text-4xl font-black tracking-tight text-gray-900 sm:text-5xl">
-              Một hành trình <span className="text-primary-600">vừa vặn với bạn</span>
-            </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-gray-600 sm:text-base">
-              Chọn ngân sách, phong cách và sở thích. AI sẽ xây lịch trình từng ngày, cân đối chi phí và quãng đường trong vài phút.
-            </p>
-          </div>
+      <EditorialPageHero
+        eyebrow="AI Travel Planner"
+        title={<>Một hành trình <span className="text-primary-200">vừa vặn với bạn.</span></>}
+        description="Chọn ngân sách, phong cách và sở thích. AI sẽ xây lịch trình từng ngày, cân đối chi phí và quãng đường trong vài phút."
+        image="/images/vietnam-ai-planner.jpg"
+        imageAlt="Bản đồ Việt Nam và dụng cụ du lịch dưới ánh đèn lồng"
+        icon="sparkles"
+        motion="orbit"
+        imagePosition="object-[62%_50%]"
+        compact
+      >
+        <div className="flex flex-wrap gap-3 text-xs font-bold text-white/72">
+          <span className="rounded-full border border-white/15 bg-white/10 px-3 py-2 backdrop-blur">Cá nhân hóa sở thích</span>
+          <span className="rounded-full border border-white/15 bg-white/10 px-3 py-2 backdrop-blur">Cân đối ngân sách</span>
+          <span className="rounded-full border border-white/15 bg-white/10 px-3 py-2 backdrop-blur">Tối ưu quãng đường</span>
         </div>
-      </section>
+      </EditorialPageHero>
 
       <main id="ai-planner-output" className="container scroll-mt-24 py-8 sm:py-10">
         {result ? (

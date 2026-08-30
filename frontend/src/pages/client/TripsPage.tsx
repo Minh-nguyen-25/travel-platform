@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import EditorialPageHero from '@/components/common/EditorialPageHero';
 import Modal from '@/components/common/Modal';
 import CreateTripModal from '@/components/trip/CreateTripModal';
 import TripCard from '@/components/trip/TripCard';
@@ -110,32 +111,36 @@ export default function TripsPage() {
 
   return (
     <div className="trip-page-bg min-h-screen pb-20">
-      <section className="relative overflow-hidden border-b border-primary-100 bg-gradient-to-br from-primary-50 via-white to-accent-50">
-        <div className="absolute -left-24 top-12 h-64 w-64 rounded-full bg-primary-100/60 blur-3xl" />
-        <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-accent-100/70 blur-3xl" />
-        <div className="container relative py-12 sm:py-16">
-          <div className="flex flex-col justify-between gap-7 lg:flex-row lg:items-end">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-primary-100 bg-white/70 px-3 py-1.5 text-xs font-bold text-primary-700 shadow-sm backdrop-blur-sm"><TripIcon name="sparkles" size={14} />Không gian hành trình của bạn</span>
-              <h1 className="mt-5 text-4xl font-black tracking-tight text-gray-900 sm:text-5xl">Chuyến đi của tôi</h1>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-gray-600 sm:text-base">Từ ý tưởng đầu tiên đến từng điểm dừng — mọi hành trình đáng nhớ đều bắt đầu ở đây.</p>
-            </div>
-            <button type="button" onClick={() => setIsCreateOpen(true)} className="inline-flex h-12 w-fit items-center gap-2 rounded-xl bg-primary-600 px-5 text-sm font-extrabold text-white shadow-xl shadow-primary-200 transition hover:-translate-y-0.5 hover:bg-primary-700"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/15"><TripIcon name="plus" size={17} /></span>Tạo chuyến đi mới</button>
-          </div>
-          <div className="mt-9 grid max-w-2xl grid-cols-3 gap-3">
+      <EditorialPageHero
+        eyebrow="Không gian hành trình của bạn"
+        title={<>Chuyến đi của <span className="text-accent-300">tôi.</span></>}
+        description="Từ ý tưởng đầu tiên đến từng điểm dừng — mọi hành trình đáng nhớ đều bắt đầu ở đây."
+        image="/images/vietnam-dalat-roadtrip.jpg"
+        imageAlt="Du khách xem bản đồ bên cung đường xuyên rừng thông Đà Lạt"
+        icon="suitcase"
+        motion="drift"
+        imagePosition="object-[64%_50%]"
+        compact
+        aside={(
+          <button type="button" onClick={() => setIsCreateOpen(true)} className="inline-flex h-12 w-fit items-center gap-2 rounded-2xl bg-accent-500 px-5 text-sm font-extrabold text-white shadow-xl shadow-navy-950/25 transition hover:-translate-y-1 hover:bg-accent-600">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/15"><TripIcon name="plus" size={17} /></span>
+            Tạo chuyến đi mới
+          </button>
+        )}
+      >
+          <div className="grid max-w-2xl grid-cols-3 gap-3">
             {[
               { icon: 'suitcase' as const, value: trips.length, label: 'Tổng chuyến đi' },
               { icon: 'calendar' as const, value: counts.upcoming + counts.ongoing, label: 'Sắp diễn ra' },
               { icon: 'share' as const, value: publicCount, label: 'Đang chia sẻ' },
             ].map(({ icon, value, label }) => (
-              <div key={label} className="rounded-2xl border border-white/80 bg-white/70 p-3 shadow-sm backdrop-blur-sm sm:flex sm:items-center sm:gap-3 sm:p-4">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><TripIcon name={icon} size={17} /></span>
-                <div className="mt-2 sm:mt-0"><p className="text-xl font-black text-gray-900">{value}</p><p className="text-[10px] font-semibold text-gray-500 sm:text-xs">{label}</p></div>
+              <div key={label} className="rounded-2xl border border-white/15 bg-white/10 p-3 shadow-sm backdrop-blur-md sm:flex sm:items-center sm:gap-3 sm:p-4">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/12 text-primary-100"><TripIcon name={icon} size={17} /></span>
+                <div className="mt-2 sm:mt-0"><p className="text-xl font-black text-white">{value}</p><p className="text-[10px] font-semibold text-white/58 sm:text-xs">{label}</p></div>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+      </EditorialPageHero>
 
       <main className="container py-9">
         <div className="flex flex-col gap-4 rounded-2xl border border-gray-100 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">

@@ -100,6 +100,7 @@ export default function LoginPage() {
       eyebrow="Chào mừng trở lại"
       title="Đăng nhập"
       description="Tiếp tục hành trình và mở lại những kế hoạch bạn đang ấp ủ."
+      motion="signin"
       footer={(
         <>
           Chưa có tài khoản?{' '}

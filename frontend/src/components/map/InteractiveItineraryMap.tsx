@@ -236,7 +236,7 @@ export default function InteractiveItineraryMap({
   maxFitZoom = 15,
   onStopSelect,
   profile,
-  routeColor = '#2563eb',
+  routeColor = '#0e7490',
   routeEnabled = true,
   scrollWheelZoom = false,
   showSummary = true,

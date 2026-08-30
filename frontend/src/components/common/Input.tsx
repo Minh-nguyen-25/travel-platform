@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useId } from 'react';
 import type { InputHTMLAttributes } from 'react';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -28,7 +28,8 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
  */
 const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, hint, leftAddon, rightAddon, id, className = '', ...props }, ref) => {
-    const inputId = id ?? `input-${Math.random().toString(36).slice(2, 9)}`;
+    const generatedId = useId();
+    const inputId = id ?? `input-${generatedId.replace(/:/g, '')}`;
     const hasError = Boolean(error);
 
     return (
@@ -51,17 +52,17 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={`
-              min-w-0 w-full h-10 px-3 py-2 text-sm text-gray-900
-              bg-white border rounded-lg
+              min-w-0 w-full h-11 px-3.5 py-2 text-sm text-gray-900
+              bg-white border rounded-xl shadow-sm
               placeholder:text-gray-400
-              transition-colors duration-150
+              transition-all duration-200
               focus:outline-none focus:ring-2 focus:ring-offset-0
               disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed
               ${leftAddon ? 'pl-10' : ''}
               ${rightAddon ? 'pr-10' : ''}
               ${hasError
                 ? 'border-error focus:border-error focus:ring-red-400/30'
-                : 'border-gray-300 focus:border-primary-500 focus:ring-primary-500/30'
+                : 'border-gray-200 focus:border-primary-400 focus:ring-primary-100'
               }
               ${className}
             `}

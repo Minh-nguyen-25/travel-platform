@@ -1,0 +1,22 @@
+import { Request, Response } from 'express';
+export declare const getTrips: (req: Request, res: Response) => Promise<void>;
+export declare const createTrip: (req: Request, res: Response) => Promise<void>;
+export declare const getTrip: (req: Request, res: Response) => Promise<void>;
+export declare const updateTrip: (req: Request, res: Response) => Promise<void>;
+export declare const deleteTrip: (req: Request, res: Response) => Promise<void>;
+export declare const getTripDays: (req: Request, res: Response) => Promise<void>;
+export declare const createTripDay: (req: Request, res: Response) => Promise<void>;
+export declare const getTripDay: (req: Request, res: Response) => Promise<void>;
+export declare const updateTripDay: (req: Request, res: Response) => Promise<void>;
+export declare const deleteTripDay: (req: Request, res: Response) => Promise<void>;
+export declare const getItineraries: (req: Request, res: Response) => Promise<void>;
+export declare const createItinerary: (req: Request, res: Response) => Promise<void>;
+export declare const getItinerary: (req: Request, res: Response) => Promise<void>;
+export declare const updateItinerary: (req: Request, res: Response) => Promise<void>;
+export declare const deleteItinerary: (req: Request, res: Response) => Promise<void>;
+export declare const reorderItineraries: (req: Request, res: Response) => Promise<void>;
+export declare const getCostSummary: (req: Request, res: Response) => Promise<void>;
+export declare const enableTripShare: (req: Request, res: Response) => Promise<void>;
+export declare const disableTripShare: (req: Request, res: Response) => Promise<void>;
+export declare const getSharedTrip: (req: Request, res: Response) => Promise<void>;
+//# sourceMappingURL=trip.controller.d.ts.map

@@ -1,4 +1,6 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import Loading from '@/components/common/Loading';
 
 // Layouts
 import MainLayout from '@/layouts/MainLayout';
@@ -8,28 +10,24 @@ import AdminLayout from '@/layouts/AdminLayout';
 import ProtectedRoute from './ProtectedRoute';
 import AdminRoute from './AdminRoute';
 
-// Client Pages (Public)
-import HomePage from '@/pages/client/HomePage';
-import DestinationsPage from '@/pages/client/DestinationsPage';
-import DestinationDetailPage from '@/pages/client/DestinationDetailPage';
-import LoginPage from '@/pages/client/LoginPage';
-import RegisterPage from '@/pages/client/RegisterPage';
-import SharedTripPage from '@/pages/client/SharedTripPage';
-import NotFoundPage from '@/pages/client/NotFoundPage';
-
-// Client Pages (Protected - User)
-import ProfilePage from '@/pages/client/ProfilePage';
-import FavoritesPage from '@/pages/client/FavoritesPage';
-import PreferencesPage from '@/pages/client/PreferencesPage';
-import TripsPage from '@/pages/client/TripsPage';
-import TripDetailPage from '@/pages/client/TripDetailPage';
-
-// Admin Pages
-import DashboardPage from '@/pages/admin/DashboardPage';
-import UsersPage from '@/pages/admin/UsersPage';
-import DestinationsAdminPage from '@/pages/admin/DestinationsAdminPage';
-import CategoriesPage from '@/pages/admin/CategoriesPage';
-import ReviewsAdminPage from '@/pages/admin/ReviewsAdminPage';
+// Route-level code splitting keeps the first visit lightweight while preserving route contracts.
+const HomePage = lazy(() => import('@/pages/client/HomePage'));
+const DestinationsPage = lazy(() => import('@/pages/client/DestinationsPage'));
+const DestinationDetailPage = lazy(() => import('@/pages/client/DestinationDetailPage'));
+const LoginPage = lazy(() => import('@/pages/client/LoginPage'));
+const RegisterPage = lazy(() => import('@/pages/client/RegisterPage'));
+const SharedTripPage = lazy(() => import('@/pages/client/SharedTripPage'));
+const NotFoundPage = lazy(() => import('@/pages/client/NotFoundPage'));
+const ProfilePage = lazy(() => import('@/pages/client/ProfilePage'));
+const FavoritesPage = lazy(() => import('@/pages/client/FavoritesPage'));
+const PreferencesPage = lazy(() => import('@/pages/client/PreferencesPage'));
+const TripsPage = lazy(() => import('@/pages/client/TripsPage'));
+const TripDetailPage = lazy(() => import('@/pages/client/TripDetailPage'));
+const DashboardPage = lazy(() => import('@/pages/admin/DashboardPage'));
+const UsersPage = lazy(() => import('@/pages/admin/UsersPage'));
+const DestinationsAdminPage = lazy(() => import('@/pages/admin/DestinationsAdminPage'));
+const CategoriesPage = lazy(() => import('@/pages/admin/CategoriesPage'));
+const ReviewsAdminPage = lazy(() => import('@/pages/admin/ReviewsAdminPage'));
 
 /**
  * AppRoutes — Bộ định tuyến tập trung của toàn bộ ứng dụng.
@@ -48,7 +46,8 @@ import ReviewsAdminPage from '@/pages/admin/ReviewsAdminPage';
  */
 export default function AppRoutes() {
   return (
-    <Routes>
+    <Suspense fallback={<Loading fullPage message="Đang mở hành trình..." />}>
+      <Routes>
       {/* ======================================================
           PUBLIC ROUTES — Ai cũng vào được (trong MainLayout)
           ====================================================== */}
@@ -93,6 +92,7 @@ export default function AppRoutes() {
           404 — Fallback
           ====================================================== */}
       <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 }

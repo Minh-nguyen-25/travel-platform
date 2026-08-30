@@ -1,4 +1,4 @@
-import { useCallback, useEffect, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 interface ModalProps {
@@ -26,6 +26,9 @@ export default function Modal({
   size = 'md',
   closeOnBackdrop = true,
 }: ModalProps) {
+  const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (event.key === 'Escape') onClose();
   }, [onClose]);
@@ -33,11 +36,22 @@ export default function Modal({
   useEffect(() => {
     if (!isOpen) return;
     const previousOverflow = document.body.style.overflow;
+    previousFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
     document.addEventListener('keydown', handleKeyDown);
     document.body.style.overflow = 'hidden';
+    const frameId = window.requestAnimationFrame(() => {
+      const firstControl = dialogRef.current?.querySelector<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])',
+      );
+      (firstControl ?? dialogRef.current)?.focus();
+    });
     return () => {
+      window.cancelAnimationFrame(frameId);
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = previousOverflow;
+      previousFocusRef.current?.focus();
     };
   }, [handleKeyDown, isOpen]);
 
@@ -48,7 +62,7 @@ export default function Modal({
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
-      aria-labelledby={title ? 'modal-title' : undefined}
+      aria-labelledby={title ? titleId : undefined}
     >
       <button
         type="button"
@@ -56,10 +70,10 @@ export default function Modal({
         onClick={closeOnBackdrop ? onClose : undefined}
         aria-label="Đóng hộp thoại"
       />
-      <div className={`trip-modal-enter relative z-10 max-h-[calc(100vh-2rem)] w-full overflow-hidden rounded-2xl bg-white shadow-xl ${sizeClasses[size]}`}>
+      <div ref={dialogRef} tabIndex={-1} className={`trip-modal-enter relative z-10 max-h-[calc(100vh-2rem)] w-full overflow-hidden rounded-3xl border border-white bg-white shadow-float outline-none ${sizeClasses[size]}`}>
         {title && (
-          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-            <h2 id="modal-title" className="text-lg font-bold text-gray-900">{title}</h2>
+          <div className="flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-primary-50/70 to-white px-6 py-4">
+            <h2 id={titleId} className="text-lg font-bold text-gray-900">{title}</h2>
             <button
               type="button"
               onClick={onClose}

@@ -5,7 +5,7 @@ export type IconName =
   | 'bike' | 'bus' | 'calendar' | 'car' | 'check' | 'chevron-left'
   | 'chevron-right' | 'chevron-down' | 'clock' | 'compass' | 'copy'
   | 'edit' | 'external-link' | 'eye' | 'filter' | 'globe' | 'grip'
-  | 'heart' | 'image' | 'info' | 'link' | 'loader' | 'map-pin' | 'more'
+  | 'heart' | 'image' | 'info' | 'link' | 'loader' | 'map-pin' | 'menu' | 'more'
   | 'plane' | 'plus' | 'printer' | 'refresh' | 'route' | 'search'
   | 'share' | 'sparkles' | 'star' | 'suitcase' | 'trash' | 'unlink'
   | 'upload' | 'users' | 'walk' | 'wallet' | 'x';
@@ -45,6 +45,7 @@ const iconPaths: Record<IconName, React.ReactNode> = {
   link: <><path d="m10 13 4-4" /><path d="M7.5 16.5 5 19a3.5 3.5 0 0 1-5-5l4-4a3.5 3.5 0 0 1 5 0" transform="translate(3 -3)" /><path d="m13 8 2-2a3.5 3.5 0 1 1 5 5l-4 4a3.5 3.5 0 0 1-5 0" /></>,
   loader: <><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v6h-6" /></>,
   'map-pin': <><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></>,
+  menu: <path d="M4 7h16M4 12h16M4 17h16" />,
   more: <><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none" /></>,
   plane: <path d="m22 2-8.5 20-2.2-9.3L2 8.5 22 2Zm-10.7 10.7L22 2" />,
   plus: <path d="M12 5v14M5 12h14" />,

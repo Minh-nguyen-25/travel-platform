@@ -114,11 +114,11 @@ export default function SharedTripPage() {
 
   return (
     <div className="trip-page-bg min-h-screen pb-20">
-      <section className="relative min-h-[420px] overflow-hidden bg-gradient-to-br from-primary-900 via-primary-800 to-primary-600 text-white">
-        {coverImage && <img src={coverImage} alt="" className="absolute inset-0 h-full w-full object-cover opacity-40" />}
+      <section className="shared-trip-hero relative min-h-[420px] overflow-hidden bg-gradient-to-br from-primary-900 via-primary-800 to-primary-600 text-white">
+        <img src={coverImage ?? '/images/vietnam-dalat-roadtrip.jpg'} alt="" className="shared-trip-hero__media absolute inset-0 h-full w-full object-cover opacity-55" />
         <div className="absolute inset-0 bg-gradient-to-t from-primary-900 via-primary-900/65 to-primary-800/30" />
         <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-accent-400/20 blur-3xl" />
-        <div className="container relative flex min-h-[420px] flex-col justify-end pb-16 pt-12">
+        <div className="shared-trip-hero__content container relative flex min-h-[420px] flex-col justify-end pb-16 pt-12">
           <div className="trip-print-hide mb-auto flex items-center justify-between gap-4"><Link to={ROUTES.HOME} className="inline-flex items-center gap-2 text-sm font-bold text-white hover:text-primary-100"><TripIcon name="globe" size={17} />TravelPlatform</Link><span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">Lịch trình được chia sẻ</span></div>
           <div className="max-w-3xl"><p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary-100"><TripIcon name="map-pin" size={15} />{trip.destinationCity}</p><h1 className="mt-3 text-4xl font-black leading-tight text-white sm:text-5xl lg:text-6xl">{trip.name}</h1>{trip.description && <p className="mt-4 max-w-2xl text-sm leading-6 text-primary-100 sm:text-base">{trip.description}</p>}<div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-primary-50"><span className="inline-flex items-center gap-2"><TripIcon name="calendar" size={17} />{formatDateRange(trip.startDate, trip.endDate)}</span><span className="inline-flex items-center gap-2"><TripIcon name="users" size={17} />{trip.numberOfPeople} người</span><span className="inline-flex items-center gap-2"><TripIcon name="route" size={17} />{totalStops} điểm dừng</span></div></div>
         </div>

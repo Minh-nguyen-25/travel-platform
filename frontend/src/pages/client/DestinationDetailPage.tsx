@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import EditorialPageHero from '@/components/common/EditorialPageHero';
 import DestinationGallery from '@/components/destination/DestinationGallery';
 import FavoriteButton from '@/components/favorite/FavoriteButton';
 import ReviewSection from '@/components/review/ReviewSection';
@@ -134,9 +135,41 @@ export default function DestinationDetailPage() {
   }
 
   const rating = Number(destination.rating);
+  const coverImage = destination.images.find((image) => image.isPrimary)?.imageUrl
+    ?? destination.images[0]?.imageUrl
+    ?? '/images/vietnam-ninh-binh-discovery.jpg';
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-white pb-20">
+      <EditorialPageHero
+        eyebrow={destination.categories[0]?.name ?? 'Điểm đến Việt Nam'}
+        title={destination.name}
+        description={destination.address}
+        image={coverImage}
+        imageAlt={`Khung cảnh tại ${destination.name}`}
+        icon="map-pin"
+        motion="rise"
+        imagePosition="object-center"
+        compact
+        aside={rating > 0 ? (
+          <a href="#reviews" className="flex w-fit items-center gap-3 rounded-2xl border border-white/20 bg-white/12 px-4 py-3 text-white shadow-float backdrop-blur-xl hover:bg-white/20 hover:text-white">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning text-white">
+              <TripIcon name="star" size={20} className="fill-white" />
+            </span>
+            <div><p className="text-xl font-black text-white">{rating.toFixed(1)}</p><p className="text-[10px] font-bold uppercase tracking-wider text-white/65">Đánh giá</p></div>
+          </a>
+        ) : undefined}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          {destination.categories.map((category) => (
+            <Link key={category.id} to={`${ROUTES.DESTINATIONS}?categoryId=${category.id}`} className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-extrabold text-white backdrop-blur hover:bg-white/20 hover:text-white">
+              {category.name}
+            </Link>
+          ))}
+          <FavoriteButton destinationId={destination.id} showLabel />
+        </div>
+      </EditorialPageHero>
+
       <div className="container pt-7 sm:pt-9">
         <nav className="flex flex-wrap items-center gap-2 text-xs font-semibold text-gray-500" aria-label="Đường dẫn trang">
           <Link to={ROUTES.HOME} className="text-gray-500 hover:text-primary-700">Trang chủ</Link>
@@ -145,38 +178,6 @@ export default function DestinationDetailPage() {
           <TripIcon name="chevron-right" size={13} />
           <span className="max-w-52 truncate text-gray-800" aria-current="page">{destination.name}</span>
         </nav>
-
-        <header className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <div className="flex flex-wrap gap-2">
-              {destination.categories.map((category) => (
-                <Link
-                  key={category.id}
-                  to={`${ROUTES.DESTINATIONS}?categoryId=${category.id}`}
-                  className="rounded-full bg-primary-50 px-3 py-1.5 text-xs font-extrabold text-primary-700 hover:bg-primary-100"
-                >
-                  {category.name}
-                </Link>
-              ))}
-            </div>
-            <h1 className="mt-4 text-3xl font-black tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">{destination.name}</h1>
-            <p className="mt-3 flex max-w-3xl items-start gap-2 text-sm leading-6 text-gray-500 sm:text-base">
-              <TripIcon name="map-pin" size={18} className="mt-0.5 flex-none text-primary-500" />
-              {destination.address}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <FavoriteButton destinationId={destination.id} showLabel />
-            {rating > 0 && (
-              <a href="#reviews" className="flex w-fit items-center gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-gray-900 hover:text-gray-900">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning text-white shadow-md shadow-amber-200">
-                  <TripIcon name="star" size={20} className="fill-white" />
-                </span>
-                <div><p className="text-xl font-black text-gray-900">{rating.toFixed(1)}</p><p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Đánh giá</p></div>
-              </a>
-            )}
-          </div>
-        </header>
 
         <div className="mt-8">
           <DestinationGallery destinationName={destination.name} images={destination.images} />

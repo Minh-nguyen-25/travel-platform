@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import EditorialPageHero from '@/components/common/EditorialPageHero';
 import DestinationCard, { DestinationCardSkeleton } from '@/components/destination/DestinationCard';
 import TripIcon from '@/components/trip/TripIcon';
 import { destinationService } from '@/services/destination.service';
@@ -325,14 +326,18 @@ export default function DestinationsPage() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-gray-50 pb-20">
-      <section className="relative overflow-hidden border-b border-primary-100 bg-gradient-to-br from-primary-50 via-white to-accent-50">
-        <div className="absolute -left-24 top-10 h-64 w-64 rounded-full bg-primary-100/60 blur-3xl" />
-        <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-accent-100/60 blur-3xl" />
-        <div className="container relative py-12 sm:py-16">
-          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-primary-600">Khám phá Việt Nam</p>
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-gray-900 sm:text-4xl">Tìm điểm đến dành riêng cho bạn</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">Tìm theo tên, địa chỉ, phong cách trải nghiệm, mức giá và đánh giá.</p>
-          <form onSubmit={submitSearch} className="mt-7 flex w-full min-w-0 max-w-3xl gap-2 rounded-2xl border border-gray-100 bg-white p-2 shadow-lg shadow-primary-900/5">
+      <EditorialPageHero
+        eyebrow="Khám phá Việt Nam"
+        title={<>Tìm một nơi khiến bạn <span className="text-primary-100">muốn lên đường.</span></>}
+        description="Tìm theo tên, địa chỉ, phong cách trải nghiệm, mức giá và đánh giá — rồi để Việt Nam dẫn bạn đến bất ngờ tiếp theo."
+        image="/images/vietnam-ninh-binh-discovery.jpg"
+        imageAlt="Thuyền nhỏ giữa sông và núi đá vôi Ninh Bình lúc bình minh"
+        icon="compass"
+        motion="pan"
+        imagePosition="object-[64%_50%]"
+        compact
+      >
+          <form onSubmit={submitSearch} className="flex w-full min-w-0 max-w-3xl gap-2 rounded-2xl border border-white/25 bg-white/95 p-2 shadow-float backdrop-blur-xl">
             <div className="relative min-w-0 flex-1">
               <TripIcon name="search" size={19} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
               <label htmlFor="destination-search" className="sr-only">Từ khóa tìm kiếm</label>
@@ -349,8 +354,7 @@ export default function DestinationsPage() {
               <span className="hidden sm:inline">Tìm kiếm</span><TripIcon name="search" size={17} />
             </button>
           </form>
-        </div>
-      </section>
+      </EditorialPageHero>
 
       <div className="container py-8">
         <div className="flex items-center justify-between gap-3 lg:hidden">
