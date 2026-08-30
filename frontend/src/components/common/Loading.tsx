@@ -1,4 +1,4 @@
-interface LoadingProps {
+export interface LoadingProps {
   /** Hiển thị toàn màn hình (dùng khi check auth khi app load) */
   fullPage?: boolean;
   /** Text hiển thị dưới spinner */
@@ -14,7 +14,7 @@ const sizeClasses = {
 };
 
 /**
- * Loading spinner dùng chung.
+ * Loading spinner dùng chung cho TravelGo.
  *
  * Full-page (khi check auth lần đầu):
  * ```tsx
@@ -33,15 +33,15 @@ export default function Loading({ fullPage = false, message, size = 'md' }: Load
         className={`
           ${sizeClasses[size]}
           rounded-full
-          border-gray-200
-          border-t-primary-600
+          border-stone-200
+          border-t-primary-700
           animate-spin
         `}
         role="status"
         aria-label="Đang tải"
       />
       {message && (
-        <p className="text-sm text-gray-500">{message}</p>
+        <p className="text-sm font-medium text-stone-600">{message}</p>
       )}
     </div>
   );

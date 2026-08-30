@@ -9,11 +9,13 @@
  *   - "dark"   → teal icon + stone-900 text (for light form panels)
  */
 
-interface TravelGoLogoProps {
+export interface TravelGoLogoProps {
   /** Color scheme for the logo */
   variant?: 'light' | 'dark';
   /** Show the supporting tagline below the wordmark */
   showTagline?: boolean;
+  /** Render only the icon mark (for compact/collapsed sidebars) */
+  iconOnly?: boolean;
   /** CSS class applied to the root wrapper */
   className?: string;
 }
@@ -21,6 +23,7 @@ interface TravelGoLogoProps {
 export default function TravelGoLogo({
   variant = 'light',
   showTagline = true,
+  iconOnly = false,
   className = '',
 }: TravelGoLogoProps) {
   const isLight = variant === 'light';
@@ -83,19 +86,21 @@ export default function TravelGoLogo({
         </svg>
       </div>
 
-      {/* ─── Wordmark + Tagline ─── */}
-      <div className="flex flex-col leading-none">
-        <span className={`text-[22px] font-bold tracking-tight ${wordmarkColor}`}>
-          TravelGo
-        </span>
-        {showTagline && (
-          <span
-            className={`text-[9.5px] font-semibold tracking-[0.18em] uppercase mt-0.5 ${taglineColor}`}
-          >
-            Hành trình Việt
+      {/* ─── Wordmark + Tagline (Hidden if iconOnly) ─── */}
+      {!iconOnly && (
+        <div className="flex flex-col leading-none">
+          <span className={`text-[22px] font-bold tracking-tight ${wordmarkColor}`}>
+            TravelGo
           </span>
-        )}
-      </div>
+          {showTagline && (
+            <span
+              className={`text-[9.5px] font-semibold tracking-[0.18em] uppercase mt-0.5 ${taglineColor}`}
+            >
+              Hành trình Việt
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

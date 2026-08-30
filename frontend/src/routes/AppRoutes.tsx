@@ -1,4 +1,11 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import Loading from '@/components/common/Loading';
+
+// Dev-Only Preview (tree-shaken in production)
+const DesignSystemPreviewPage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/DesignSystemPreviewPage'))
+  : null;
 
 // Layouts
 import MainLayout from '@/layouts/MainLayout';
@@ -96,6 +103,20 @@ export default function AppRoutes() {
           <Route path="reviews" element={<ReviewsAdminPage />} />
         </Route>
       </Route>
+
+      {/* ======================================================
+          DEV-ONLY DESIGN SYSTEM PREVIEW
+          ====================================================== */}
+      {import.meta.env.DEV && DesignSystemPreviewPage && (
+        <Route
+          path="design-system"
+          element={
+            <Suspense fallback={<Loading fullPage message="Đang tải Design System Preview..." />}>
+              <DesignSystemPreviewPage />
+            </Suspense>
+          }
+        />
+      )}
 
       {/* ======================================================
           404 — Fallback
