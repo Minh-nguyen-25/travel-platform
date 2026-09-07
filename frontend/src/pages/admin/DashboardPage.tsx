@@ -1,207 +1,202 @@
+import axios from 'axios';
+import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import GrowthChart from '@/components/admin/GrowthChart';
+import Button from '@/components/common/Button';
 import { ROUTES } from '@/constants';
+import { useAuth } from '@/hooks/useAuth';
+import { adminService } from '@/services/admin.service';
+import type {
+  AnalyticsMetric,
+  AnalyticsOverview,
+  PopularDestination,
+} from '@/types/admin.types';
+import { getApiErrorMessage } from '@/utils/trip.utils';
 
-/**
- * DashboardPage — Trang tổng quan quản trị (Admin Dashboard).
- *
- * Dữ liệu thực sẽ được kết nối sau khi Analytics API hoàn thành (TV5).
- * Mọi ô số liệu hiển thị "—" cho đến khi có dữ liệu thực từ backend.
- */
+interface KpiCardProps {
+  label: string;
+  metric: AnalyticsMetric;
+  detail: string;
+  icon: ReactNode;
+  theme: string;
+}
+
+const KpiCard = ({ label, metric, detail, icon, theme }: KpiCardProps) => {
+  const growth = metric.growthPercentage;
+  const positive = growth === null || growth >= 0;
+  return (
+    <article className="group rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60">
+      <div className="flex items-start justify-between gap-4">
+        <span className={`flex h-11 w-11 items-center justify-center rounded-2xl ${theme}`}>{icon}</span>
+        <span className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold ${positive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+          {growth === null ? 'Mới' : `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%`}
+        </span>
+      </div>
+      <p className="mt-5 text-sm font-semibold text-slate-500">{label}</p>
+      <p className="mt-1 text-3xl font-black tracking-tight text-slate-900">{metric.total.toLocaleString('vi-VN')}</p>
+      <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
+        <span className="text-slate-400">Trong kỳ</span>
+        <span className="font-extrabold text-slate-700">+{metric.currentPeriod.toLocaleString('vi-VN')} · {detail}</span>
+      </div>
+    </article>
+  );
+};
+
+const KpiSkeleton = () => (
+  <div className="animate-pulse rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm">
+    <div className="flex justify-between"><span className="h-11 w-11 rounded-2xl bg-slate-100" /><span className="h-6 w-14 rounded-full bg-slate-100" /></div>
+    <span className="mt-5 block h-3 w-28 rounded bg-slate-100" /><span className="mt-3 block h-8 w-24 rounded bg-slate-100" /><span className="mt-5 block h-px bg-slate-100" /><span className="mt-3 block h-3 w-full rounded bg-slate-100" />
+  </div>
+);
+
+interface RankingCardProps {
+  title: string;
+  subtitle: string;
+  items: PopularDestination[];
+  metric: (item: PopularDestination) => ReactNode;
+  metricLabel: string;
+  accent: 'blue' | 'amber';
+}
+
+const RankingCard = ({ title, subtitle, items, metric, metricLabel, accent }: RankingCardProps) => (
+  <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
+    <div className="flex items-center justify-between border-b border-slate-100 px-5 py-5 sm:px-6">
+      <div>
+        <h3 className="font-black text-slate-900">{title}</h3>
+        <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
+      </div>
+      <span className={`flex h-10 w-10 items-center justify-center rounded-2xl ${accent === 'blue' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'}`}>
+        {accent === 'blue' ? (
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" strokeLinejoin="round" /></svg>
+        ) : (
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3 2.8 5.67 6.2.9-4.5 4.38 1.06 6.18L12 17.2l-5.56 2.93 1.06-6.18L3 9.57l6.2-.9L12 3Z" strokeLinejoin="round" /></svg>
+        )}
+      </span>
+    </div>
+    <div className="divide-y divide-slate-100">
+      {items.slice(0, 5).map((item, index) => (
+        <div key={item.id} className="flex items-center gap-3 px-5 py-4 transition hover:bg-slate-50/70 sm:px-6">
+          <span className={`flex h-8 w-8 flex-none items-center justify-center rounded-xl text-xs font-black ${index < 3 ? (accent === 'blue' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700') : 'bg-slate-100 text-slate-500'}`}>{index + 1}</span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-extrabold text-slate-800">{item.name}</p>
+            <p className="mt-0.5 truncate text-[11px] text-slate-400">{item.categories.map((category) => category.name).join(' · ') || item.address}</p>
+          </div>
+          <div className="text-right">
+            <p className={`text-sm font-black ${accent === 'blue' ? 'text-blue-700' : 'text-amber-700'}`}>{metric(item)}</p>
+            <p className="mt-0.5 text-[10px] font-semibold text-slate-400">{metricLabel}</p>
+          </div>
+        </div>
+      ))}
+      {items.length === 0 && <div className="px-6 py-12 text-center text-sm text-slate-400">Chưa có dữ liệu xếp hạng.</div>}
+    </div>
+  </section>
+);
+
 export default function DashboardPage() {
-  // ── Stat card definitions ─────────────────────────────────────────────
-  // 4 uniform summary cards with consistent surface, border, and hierarchy.
-  const stats = [
-    {
-      label: 'Tổng người dùng',
-      value: '—',
-      note: 'Chưa kết nối dữ liệu',
-      iconBg: 'bg-stone-100 text-stone-600',
-      icon: (
-        <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Tổng địa điểm',
-      value: '—',
-      note: 'Chưa kết nối',
-      iconBg: 'bg-teal-50 text-teal-700',
-      icon: (
-        <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Danh mục',
-      value: '—',
-      note: 'Chưa kết nối',
-      iconBg: 'bg-stone-100 text-stone-600',
-      icon: (
-        <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Đánh giá',
-      value: '—',
-      note: 'Chưa kết nối',
-      iconBg: 'bg-stone-100 text-stone-600',
-      icon: (
-        <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ),
-    },
-  ];
+  const { user } = useAuth();
+  const [periodDays, setPeriodDays] = useState(30);
+  const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
 
-  // ── Quick nav links ───────────────────────────────────────────────────
-  const quickLinks = [
-    {
-      to: ROUTES.ADMIN_USERS,
-      label: 'Quản lý Người dùng',
-      description: 'Xem và phân quyền tài khoản',
-      icon: (
-        <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-        </svg>
-      ),
-    },
-    {
-      to: ROUTES.ADMIN_DESTINATIONS,
-      label: 'Quản lý Địa điểm',
-      description: 'Thêm, sửa, xóa điểm đến',
-      icon: (
-        <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-        </svg>
-      ),
-    },
-    {
-      to: ROUTES.ADMIN_CATEGORIES,
-      label: 'Quản lý Danh mục',
-      description: 'Phân loại điểm đến',
-      icon: (
-        <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" />
-        </svg>
-      ),
-    },
-    {
-      to: ROUTES.ADMIN_REVIEWS,
-      label: 'Kiểm duyệt Đánh giá',
-      description: 'Duyệt & ẩn bình luận',
-      icon: (
-        <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ),
-    },
-  ];
+  useEffect(() => {
+    const controller = new AbortController();
+    const loadOverview = async () => {
+      setIsLoading(true);
+      setError('');
+      try {
+        setOverview(await adminService.getAnalytics(periodDays, controller.signal));
+      } catch (loadError) {
+        if (axios.isCancel(loadError)) return;
+        setError(getApiErrorMessage(loadError, 'Không thể tải dữ liệu tổng quan.'));
+      } finally {
+        if (!controller.signal.aborted) setIsLoading(false);
+      }
+    };
+    void loadOverview();
+    return () => controller.abort();
+  }, [periodDays, reloadKey]);
+
+  const favoriteRanking = useMemo(
+    () => [...(overview?.popularDestinations ?? [])].sort((left, right) => right.favoriteCount - left.favoriteCount || right.engagementCount - left.engagementCount),
+    [overview],
+  );
+  const ratingRanking = useMemo(
+    () => [...(overview?.popularDestinations ?? [])].sort((left, right) => (right.averageReviewRating ?? right.rating) - (left.averageReviewRating ?? left.rating) || right.reviewCount - left.reviewCount),
+    [overview],
+  );
+
+  const generatedTime = overview
+    ? new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }).format(new Date(overview.generatedAt))
+    : '';
 
   return (
-    <div className="space-y-6 lg:space-y-8">
-
-      {/* ── Page header ──────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-primary-600 mb-1">
-            TravelGo Admin
-          </p>
-          <h2 className="text-2xl font-bold text-stone-900 leading-tight">
-            Tổng quan hệ thống
-          </h2>
-          <p className="text-sm text-stone-500 mt-1 leading-relaxed">
-            Quản lý địa điểm, người dùng, danh mục và đánh giá trong nền tảng TravelGo.
-          </p>
-        </div>
-      </div>
-
-      {/* ── Stat cards: 4 uniform summary cards ──────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-5">
-        {stats.map((stat, idx) => (
-          <div
-            key={idx}
-            className="bg-white rounded-2xl p-5 border border-line shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between min-h-[140px]"
-          >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.iconBg}`}>
-              {stat.icon}
-            </div>
-            <div className="mt-4">
-              <p className="text-sm font-medium text-stone-500">{stat.label}</p>
-              <p className="text-2xl font-bold text-stone-900 mt-0.5">{stat.value}</p>
-              <p className="text-[11px] text-stone-400 mt-1">{stat.note}</p>
-            </div>
+    <div className="space-y-6">
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500 px-6 py-7 text-white shadow-xl shadow-blue-900/15 sm:px-8">
+        <div className="absolute -right-10 -top-24 h-60 w-60 rounded-full border-[42px] border-white/10" />
+        <div className="absolute bottom-0 right-1/4 h-24 w-24 rounded-full bg-cyan-300/20 blur-2xl" />
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-normal text-blue-100">TravelGo Analytics</p>
+            <h2 className="mt-2 text-2xl font-black text-white sm:text-3xl">Chào {user?.fullName?.split(' ').slice(-1)[0] ?? 'Admin'}, đây là bức tranh hôm nay.</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100">Theo dõi tăng trưởng người dùng, hoạt động cộng đồng và những điểm đến đang được quan tâm nhất.</p>
           </div>
-        ))}
-      </div>
-
-      {/* ── Bottom: Destinations panel + Quick links ─────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6">
-
-        {/* Destinations panel — data not yet available */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-line shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-line">
-            <h3 className="text-sm font-bold text-stone-900">Địa điểm du lịch</h3>
-            <span className="text-xs text-stone-400 font-medium">Chờ kết nối API</span>
-          </div>
-
-          {/* Honest empty state while data is unavailable */}
-          <div className="flex flex-col items-center justify-center py-14 px-6 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-stone-100 text-stone-400 flex items-center justify-center mb-3">
-              <svg className="w-6 h-6" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <p className="text-sm font-semibold text-stone-700 mb-1">Dữ liệu chưa sẵn sàng</p>
-            <p className="text-xs text-stone-400 max-w-xs leading-relaxed">
-              Danh sách địa điểm sẽ hiển thị ở đây sau khi API Destinations được kết nối.
-            </p>
-          </div>
-        </div>
-
-        {/* Quick navigation links */}
-        <div className="bg-white rounded-2xl border border-line shadow-sm flex flex-col">
-          <div className="px-5 py-4 border-b border-line">
-            <h3 className="text-sm font-bold text-stone-900">Lối tắt quản lý</h3>
-          </div>
-
-          <div className="flex-1 p-3 flex flex-col gap-1">
-            {quickLinks.map((link) => (
-              <a
-                key={link.to}
-                href={link.to}
-                className="group flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-stone-50 transition-colors border border-transparent hover:border-line"
-              >
-                <div className="w-9 h-9 rounded-xl bg-stone-100 text-stone-500 group-hover:bg-primary-50 group-hover:text-primary-600 flex items-center justify-center flex-shrink-0 transition-colors">
-                  {link.icon}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-stone-800 group-hover:text-primary-700 truncate transition-colors">
-                    {link.label}
-                  </p>
-                  <p className="text-xs text-stone-400 truncate">{link.description}</p>
-                </div>
-                <svg
-                  className="w-4 h-4 text-stone-300 group-hover:text-primary-500 flex-shrink-0 transition-colors"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                </svg>
-              </a>
+          <div className="flex flex-wrap gap-2">
+            {[7, 30, 90].map((days) => (
+              <button key={days} type="button" onClick={() => setPeriodDays(days)} className={`rounded-xl px-4 py-2.5 text-xs font-extrabold transition ${periodDays === days ? 'bg-white text-blue-700 shadow-lg' : 'border border-white/20 bg-white/10 text-white hover:bg-white/20'}`}>{days} ngày</button>
             ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* ── Developer notice — DEV build only ─────────────────────── */}
-      {import.meta.env.DEV && (
-        <p className="text-[11px] text-stone-400 text-center">
-          ⓘ Môi trường phát triển — Số liệu thực sẽ kết nối sau khi API Analytics hoàn thành (TV5).
-        </p>
+      {error && !overview ? (
+        <section className="flex flex-col items-center rounded-3xl border border-rose-200 bg-white px-6 py-16 text-center shadow-sm">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 font-black text-rose-600">!</span>
+          <h3 className="mt-4 font-black text-slate-900">Không tải được Dashboard</h3>
+          <p className="mt-2 max-w-md text-sm text-slate-500">{error}</p>
+          <Button type="button" className="mt-5" onClick={() => setReloadKey((value) => value + 1)}>Thử lại</Button>
+        </section>
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {isLoading && !overview ? Array.from({ length: 4 }, (_, index) => <KpiSkeleton key={index} />) : overview && (
+              <>
+                <KpiCard label="Tổng người dùng" metric={overview.summary.users} detail={`${overview.summary.users.active} hoạt động`} theme="bg-blue-50 text-blue-600" icon={<svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87" strokeLinecap="round" /></svg>} />
+                <KpiCard label="Địa điểm" metric={overview.summary.destinations} detail={`${overview.summary.destinations.active} hiển thị`} theme="bg-emerald-50 text-emerald-600" icon={<svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>} />
+                <KpiCard label="Chuyến đi" metric={overview.summary.trips} detail={`${overview.summary.trips.aiGenerated} từ AI`} theme="bg-violet-50 text-violet-600" icon={<svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z" strokeLinejoin="round" /><path d="M9 3v15M15 6v15" /></svg>} />
+                <KpiCard label="Đánh giá" metric={overview.summary.reviews} detail={`${overview.summary.reviews.visible} hiển thị`} theme="bg-amber-50 text-amber-600" icon={<svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3 2.8 5.67 6.2.9-4.5 4.38 1.06 6.18L12 17.2l-5.56 2.93 1.06-6.18L3 9.57l6.2-.9L12 3Z" strokeLinejoin="round" /></svg>} />
+              </>
+            )}
+          </div>
+
+          <section className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="font-black text-slate-900">Tăng trưởng theo ngày</h3>
+                <p className="mt-1 text-xs text-slate-500">Người dùng mới, chuyến đi được tạo và đánh giá trong {periodDays} ngày</p>
+              </div>
+              <div className="flex items-center gap-3">
+                {generatedTime && <span className="text-[11px] text-slate-400">Cập nhật {generatedTime}</span>}
+                <button type="button" onClick={() => setReloadKey((value) => value + 1)} disabled={isLoading} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50" aria-label="Làm mới dữ liệu">
+                  <svg className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6v5h-5M4 18v-5h5M18.5 9A7 7 0 0 0 6 6.5L4 11M5.5 15A7 7 0 0 0 18 17.5l2-4.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </button>
+              </div>
+            </div>
+            {isLoading && !overview ? <div className="h-72 animate-pulse rounded-2xl bg-slate-50" /> : <GrowthChart data={overview?.dailyActivity ?? []} />}
+          </section>
+
+          <div className="grid gap-6 xl:grid-cols-2">
+            <RankingCard title="Được yêu thích nhất" subtitle="Xếp hạng theo lượt lưu của người dùng" items={favoriteRanking} metric={(item) => item.favoriteCount.toLocaleString('vi-VN')} metricLabel="lượt lưu" accent="blue" />
+            <RankingCard title="Đánh giá cao nhất" subtitle="Điểm trung bình từ các đánh giá hiển thị" items={ratingRanking} metric={(item) => `★ ${(item.averageReviewRating ?? item.rating).toFixed(1)}`} metricLabel="điểm trung bình" accent="amber" />
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+            <span>Dữ liệu được tính trực tiếp từ hoạt động trong hệ thống.</span>
+            <div className="flex gap-4"><Link to={ROUTES.ADMIN_USERS} className="font-bold text-blue-600">Quản lý người dùng →</Link><Link to={ROUTES.ADMIN_DESTINATIONS} className="font-bold text-blue-600">Quản lý địa điểm →</Link></div>
+          </div>
+        </>
       )}
     </div>
   );

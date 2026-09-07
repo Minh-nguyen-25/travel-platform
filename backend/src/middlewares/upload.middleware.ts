@@ -1,7 +1,8 @@
 import multer, { FileFilterCallback } from 'multer';
 import { Request } from 'express';
+import { HTTP_STATUS } from '../constants';
+import { AppError } from '../utils/app-error';
 
-// Lưu file tạm trong memory — upload.service.ts sẽ đẩy lên Cloudinary
 const storage = multer.memoryStorage();
 
 const fileFilter = (_req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
@@ -9,7 +10,7 @@ const fileFilter = (_req: Request, file: Express.Multer.File, cb: FileFilterCall
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Chỉ chấp nhận file ảnh: jpeg, jpg, png, webp'));
+    cb(new AppError('Chỉ chấp nhận file ảnh: jpeg, jpg, png, webp', HTTP_STATUS.BAD_REQUEST));
   }
 };
 
@@ -17,12 +18,10 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: 5 * 1024 * 1024,
+    files: 5,
   },
 });
 
-// Dùng: router.post('/reviews', authenticate, uploadSingle, reviewController.create)
 export const uploadSingle = upload.single('image');
-
-// Dùng cho upload nhiều ảnh (tối đa 5)
 export const uploadMultiple = upload.array('images', 5);

@@ -1,47 +1,82 @@
+import { AxiosResponse } from 'axios';
 import axiosClient from '@/api/axiosClient';
-import type { AxiosResponse } from 'axios';
 import type {
   ApiResponse,
   AuthTokenResponse,
+  ChangePasswordRequest,
   LoginRequest,
   RegisterRequest,
+  UpdateProfileRequest,
   User,
 } from '@/types/auth.types';
 
-/**
- * Service API tập trung cho Authentication.
- * Tất cả request đều đi qua axiosClient (đã gắn withCredentials: true và request interceptor).
- */
 export const authApi = {
-  /**
-   * Đăng nhập với email và password.
-   * Backend trả về accessToken và user object; refreshToken được set trong HttpOnly cookie.
-   */
   login: (data: LoginRequest): Promise<AxiosResponse<ApiResponse<AuthTokenResponse>>> =>
     axiosClient.post<ApiResponse<AuthTokenResponse>>('/auth/login', data),
 
-  /**
-   * Đăng ký tài khoản người dùng mới.
-   * Backend trả về accessToken và user object; refreshToken được set trong HttpOnly cookie.
-   */
   register: (data: RegisterRequest): Promise<AxiosResponse<ApiResponse<AuthTokenResponse>>> =>
     axiosClient.post<ApiResponse<AuthTokenResponse>>('/auth/register', data),
 
-  /**
-   * Làm mới Access Token thông qua HttpOnly cookie.
-   */
   refresh: (): Promise<AxiosResponse<ApiResponse<{ accessToken: string }>>> =>
     axiosClient.post<ApiResponse<{ accessToken: string }>>('/auth/refresh'),
 
-  /**
-   * Đăng xuất người dùng — Backend thu hồi session trong Redis và xóa HttpOnly cookie.
-   */
   logout: (): Promise<AxiosResponse<ApiResponse<null>>> =>
     axiosClient.post<ApiResponse<null>>('/auth/logout'),
 
-  /**
-   * Lấy thông tin an toàn của người dùng hiện tại (yêu cầu Authorization: Bearer token).
-   */
   getMe: (): Promise<AxiosResponse<ApiResponse<{ user: User }>>> =>
     axiosClient.get<ApiResponse<{ user: User }>>('/auth/me'),
+};
+
+export const authService = {
+  async login(input: LoginRequest): Promise<AuthTokenResponse> {
+    const response = await authApi.login(input);
+    return response.data.data;
+  },
+
+  async register(input: RegisterRequest): Promise<AuthTokenResponse> {
+    const response = await authApi.register(input);
+    return response.data.data;
+  },
+
+  async refresh(): Promise<AuthTokenResponse> {
+    const response = await authApi.refresh();
+    return {
+      accessToken: response.data.data.accessToken,
+      user: (await authService.getProfile()),
+    };
+  },
+
+  async logout(): Promise<void> {
+    await authApi.logout();
+  },
+
+  async getProfile(): Promise<User> {
+    const response = await authApi.getMe();
+    return response.data.data.user;
+  },
+
+  async updateProfile(input: UpdateProfileRequest): Promise<User> {
+    const response = await axiosClient.patch<ApiResponse<User>>('/users/me', input);
+    return response.data.data;
+  },
+
+  async uploadAvatar(file: File): Promise<User> {
+    const formData = new FormData();
+    formData.append('image', file);
+    const response = await axiosClient.post<ApiResponse<User>>('/users/me/avatar', formData);
+    return response.data.data;
+  },
+
+  async deleteAvatar(): Promise<User> {
+    const response = await axiosClient.delete<ApiResponse<User>>('/users/me/avatar');
+    return response.data.data;
+  },
+
+  async changePassword(input: ChangePasswordRequest): Promise<AuthTokenResponse> {
+    const response = await axiosClient.patch<ApiResponse<AuthTokenResponse>>(
+      '/users/me/password',
+      input,
+    );
+    return response.data.data;
+  },
 };

@@ -53,7 +53,7 @@ export default function DesignSystemPreviewPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="p-6 rounded-2xl bg-white border border-line flex flex-col gap-3 shadow-sm">
-              <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
+              <span className="text-xs font-semibold text-stone-500 uppercase tracking-normal">
                 Variant: Dark (Trên nền sáng / Form panels)
               </span>
               <div className="p-4 bg-stone-50 rounded-xl flex items-center">
@@ -61,7 +61,7 @@ export default function DesignSystemPreviewPage() {
               </div>
             </div>
             <div className="p-6 rounded-2xl bg-stone-900 border border-stone-800 flex flex-col gap-3 shadow-sm">
-              <span className="text-xs font-semibold text-stone-400 uppercase tracking-wider">
+              <span className="text-xs font-semibold text-stone-400 uppercase tracking-normal">
                 Variant: Light (Trên nền tối / Cinematic Hero)
               </span>
               <div className="p-4 bg-stone-800/80 rounded-xl flex items-center">

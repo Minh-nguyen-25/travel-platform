@@ -1,0 +1,1 @@
+export const MAX_ITINERARIES_PER_DAY = 200;

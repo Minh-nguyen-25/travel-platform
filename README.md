@@ -31,12 +31,29 @@ docker compose up -d
 ```bash
 cd backend
 npm install
+# Cấu hình biến SEED_DEMO_PASSWORD trong backend/.env trước khi seed
 npm run db:migrate   # Đồng bộ 12 bảng vào PostgreSQL
-npm run db:seed      # Nạp dữ liệu tài khoản Admin/User & Danh mục mẫu
+npm run db:seed      # Seed an toàn dữ liệu demo (xem chi tiết tại docs/database-seed-guide.md)
 npm run dev          # Khởi động server tại http://localhost:3000
 ```
 
-### 4. Kiểm tra Database & Health Check
+
+### 4. Cấu hình upload ảnh Cloudinary
+Tạo tài khoản Cloudinary, lấy thông tin xác thực trong Cloudinary Console rồi cập nhật `backend/.env` theo **một** trong hai cách:
+
+```env
+# Cách 1: API Environment variable
+CLOUDINARY_URL=cloudinary://api_key:api_secret@cloud_name
+
+# Hoặc cách 2: ba biến riêng
+CLOUDINARY_CLOUD_NAME=cloud_name_thật
+CLOUDINARY_API_KEY=api_key_thật
+CLOUDINARY_API_SECRET=api_secret_thật
+```
+
+Không dùng các chuỗi mẫu `your_*`, không commit khóa thật lên Git và cần khởi động lại backend sau khi sửa `.env`.
+
+### 5. Kiểm tra Database & Health Check
 * **Health Check API:** `http://localhost:3000/api/v1/health`
 * **Giao diện trực quan Prisma Studio:**
   ```bash

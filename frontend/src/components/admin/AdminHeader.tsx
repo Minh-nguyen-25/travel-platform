@@ -1,121 +1,80 @@
-import { useLocation } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/constants';
-
-/** Map route path → tên trang (dùng cho breadcrumb title) */
-const PAGE_TITLES: Record<string, string> = {
-  [ROUTES.ADMIN_DASHBOARD]:   'Dashboard Tổng quan',
-  [ROUTES.ADMIN_USERS]:        'Quản lý Người dùng',
-  [ROUTES.ADMIN_DESTINATIONS]: 'Quản lý Địa điểm',
-  [ROUTES.ADMIN_CATEGORIES]:   'Quản lý Danh mục',
-  [ROUTES.ADMIN_REVIEWS]:      'Kiểm duyệt Đánh giá',
-};
+import { useAuth } from '@/hooks/useAuth';
 
 interface AdminHeaderProps {
-  /** Called by the hamburger button to open/close the mobile sidebar drawer */
-  onMobileMenuToggle?: () => void;
-  /** Whether the mobile drawer is currently open */
-  mobileMenuOpen?: boolean;
+  onOpenSidebar: () => void;
 }
 
-/**
- * AdminHeader — Topbar chuẩn hóa cho Admin Dashboard TravelGo.
- *
- * Left:  Mobile hamburger (lg:hidden) + breadcrumb context + real page title.
- * Right: Localized current date (secondary) + admin identity (name, role, avatar).
- *
- * Does not duplicate sidebar account actions. No fake session info,
- * no notification counts, no search box, no unsupported controls.
- */
-export default function AdminHeader({
-  onMobileMenuToggle,
-  mobileMenuOpen = false,
-}: AdminHeaderProps) {
-  const { user } = useAuth();
+const pageMeta: Record<string, { title: string; description: string; image: string; imageAlt: string; motion: string }> = {
+  [ROUTES.ADMIN_DASHBOARD]: { title: 'Tổng quan', description: 'Theo dõi sức khỏe và tăng trưởng hệ thống', image: '/images/vietnam-ai-planner.jpg', imageAlt: 'Bàn lập kế hoạch du lịch', motion: 'focus' },
+  [ROUTES.ADMIN_USERS]: { title: 'Người dùng', description: 'Quản lý tài khoản và quyền truy cập', image: '/images/vietnam-hoi-an-journal.jpg', imageAlt: 'Du khách ghi nhật ký tại Hội An', motion: 'glide' },
+  [ROUTES.ADMIN_DESTINATIONS]: { title: 'Địa điểm', description: 'Quản lý nội dung điểm đến', image: '/images/vietnam-ninh-binh-discovery.jpg', imageAlt: 'Sông núi Ninh Bình', motion: 'pan' },
+  [ROUTES.ADMIN_CATEGORIES]: { title: 'Danh mục', description: 'Tổ chức danh mục du lịch', image: '/images/vietnam-ha-giang-hero.jpg', imageAlt: 'Núi non Hà Giang', motion: 'rise' },
+  [ROUTES.ADMIN_REVIEWS]: { title: 'Đánh giá', description: 'Kiểm duyệt nội dung cộng đồng', image: '/images/vietnam-dalat-roadtrip.jpg', imageAlt: 'Hành trình qua Đà Lạt', motion: 'drift' },
+};
+
+export default function AdminHeader({ onOpenSidebar }: AdminHeaderProps) {
+  const { logout, user } = useAuth();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const meta = pageMeta[pathname] ?? { title: 'Quản trị', description: 'TravelGo Admin', image: '/images/vietnam-ha-giang-hero.jpg', imageAlt: 'Phong cảnh Việt Nam', motion: 'focus' };
 
-  const pageTitle = PAGE_TITLES[pathname] ?? 'Quản trị hệ thống';
-
-  // Real localized date — secondary display only
-  const today = new Intl.DateTimeFormat('vi-VN', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  }).format(new Date());
+  const handleLogout = async () => {
+    await logout();
+    navigate(ROUTES.LOGIN, { replace: true });
+  };
 
   return (
-    <header
-      className="h-16 bg-white border-b border-line flex items-center justify-between px-4 sm:px-6 flex-shrink-0 shadow-sm z-20"
-      role="banner"
-    >
-      {/* ── Left: Mobile trigger + Page breadcrumb ────────────── */}
-      <div className="flex items-center gap-3 min-w-0">
-        {/* Hamburger — visible only below lg */}
-        {onMobileMenuToggle && (
-          <button
-            onClick={onMobileMenuToggle}
-            className="lg:hidden flex-shrink-0 p-2 rounded-xl text-stone-600 hover:bg-stone-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
-            aria-label={mobileMenuOpen ? 'Đóng menu điều hướng' : 'Mở menu điều hướng'}
-            aria-expanded={mobileMenuOpen}
-            aria-controls="admin-main-content"
-          >
-            {mobileMenuOpen ? (
-              /* X icon */
-              <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-            ) : (
-              /* Hamburger icon */
-              <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-              </svg>
-            )}
-          </button>
-        )}
-
-        {/* Breadcrumb + Page title */}
+    <header className="relative z-30 flex h-20 flex-none items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur sm:px-6 xl:px-8">
+      <div className="flex min-w-0 items-center gap-3">
+        <button type="button" onClick={onOpenSidebar} className="flex h-10 w-10 flex-none items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 lg:hidden" aria-label="Mở menu quản trị">
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" /></svg>
+        </button>
+        <div key={pathname} className="admin-header__visual hidden h-12 w-20 flex-none overflow-hidden rounded-2xl border-2 border-white shadow-md sm:block">
+          <img src={meta.image} alt={meta.imageAlt} className={`admin-header__image admin-header__image--${meta.motion} h-full w-full object-cover`} />
+        </div>
         <div className="min-w-0">
-          <p className="hidden sm:block text-xs text-stone-400 font-medium leading-none mb-0.5 truncate">
-            Quản trị
-          </p>
-          <h1 className="text-base font-bold text-stone-900 tracking-tight leading-tight truncate">
-            {pageTitle}
-          </h1>
+          <h1 className="truncate text-base font-black text-slate-900 sm:text-lg">{meta.title}</h1>
+          <p className="hidden truncate text-xs text-slate-500 sm:block">{meta.description}</p>
         </div>
       </div>
 
-      {/* ── Right: Date + Admin identity ──────────────────────── */}
-      <div className="flex items-center gap-4 flex-shrink-0">
-        {/* Current date — secondary, hidden on small screens */}
-        <p className="hidden md:block text-xs text-stone-400 font-medium capitalize">
-          {today}
-        </p>
-
-        {/* Admin identity */}
-        {user && (
-          <div className="flex items-center gap-2.5">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-bold text-stone-900 leading-tight">
-                {user.fullName}
-              </p>
-              <p className="text-xs font-semibold text-primary-700 leading-none mt-0.5">
-                {user.role}
-              </p>
-            </div>
-
-            {user.avatarUrl ? (
-              <img
-                src={user.avatarUrl}
-                alt={user.fullName}
-                className="w-8 h-8 rounded-full object-cover border border-line flex-shrink-0"
-              />
+      <div className="flex items-center gap-3">
+        <div className="hidden items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-700 md:flex">
+          <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.15)]" />
+          Hệ thống ổn định
+        </div>
+        <div className="relative">
+          <button type="button" onClick={() => setMenuOpen((value) => !value)} className="flex items-center gap-2 rounded-xl border border-transparent p-1.5 transition hover:border-slate-200 hover:bg-slate-50" aria-expanded={menuOpen}>
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="" className="h-9 w-9 rounded-xl object-cover" />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 border border-primary-200 flex items-center justify-center font-bold text-sm flex-shrink-0 select-none">
-                {user.fullName.charAt(0).toUpperCase()}
-              </div>
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100 text-sm font-black text-blue-700">{user?.fullName.charAt(0).toUpperCase() ?? 'A'}</span>
             )}
-          </div>
-        )}
+            <div className="hidden max-w-36 text-left sm:block">
+              <p className="truncate text-xs font-extrabold text-slate-800">{user?.fullName}</p>
+              <p className="text-[10px] font-semibold text-slate-400">ADMIN</p>
+            </div>
+            <svg className="hidden h-4 w-4 text-slate-400 sm:block" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.3 7.3a1 1 0 0 1 1.4 0l3.3 3.3 3.3-3.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.4Z" clipRule="evenodd" /></svg>
+          </button>
+          {menuOpen && (
+            <>
+              <button type="button" className="fixed inset-0 z-10 cursor-default" onClick={() => setMenuOpen(false)} aria-label="Đóng menu tài khoản" />
+              <div className="trip-modal-enter absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-2xl border border-slate-100 bg-white py-1.5 shadow-xl shadow-slate-200/70">
+                <div className="border-b border-slate-100 px-4 py-3 sm:hidden">
+                  <p className="truncate text-sm font-bold text-slate-900">{user?.fullName}</p>
+                  <p className="truncate text-xs text-slate-500">{user?.email}</p>
+                </div>
+                <Link to={ROUTES.PROFILE} onClick={() => setMenuOpen(false)} className="flex px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Hồ sơ cá nhân</Link>
+                <Link to={ROUTES.HOME} onClick={() => setMenuOpen(false)} className="flex px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Về trang chính</Link>
+                <button type="button" onClick={() => void handleLogout()} className="mt-1 w-full border-t border-slate-100 px-4 py-2.5 text-left text-sm font-bold text-rose-600 hover:bg-rose-50">Đăng xuất</button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );

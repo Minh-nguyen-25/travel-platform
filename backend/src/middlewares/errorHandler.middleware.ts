@@ -58,6 +58,20 @@ export const errorHandler = (
       });
       return;
     }
+    if (prismaError.code === 'P2003') {
+      res.status(HTTP_STATUS.CONFLICT).json({
+        success: false,
+        message: 'Dữ liệu liên quan không tồn tại hoặc vừa bị thay đổi',
+      });
+      return;
+    }
+    if (prismaError.code === 'P2034' || prismaError.code === 'P2028') {
+      res.status(HTTP_STATUS.CONFLICT).json({
+        success: false,
+        message: 'Dữ liệu vừa được thay đổi đồng thời, vui lòng thử lại',
+      });
+      return;
+    }
   }
 
   // Lỗi không xác định

@@ -1,5 +1,13 @@
 import { z } from 'zod';
 
+export const passwordSchema = z
+  .string({ required_error: 'Mật khẩu là bắt buộc' })
+  .min(8, 'Mật khẩu phải có ít nhất 8 ký tự')
+  .max(128, 'Mật khẩu không được vượt quá 128 ký tự')
+  .regex(/[A-Z]/, 'Mật khẩu phải có ít nhất 1 chữ hoa')
+  .regex(/[a-z]/, 'Mật khẩu phải có ít nhất 1 chữ thường')
+  .regex(/[0-9]/, 'Mật khẩu phải có ít nhất 1 chữ số');
+
 // ─── Register ─────────────────────────────────────────────────────────────────
 // .strict() rejects any unknown field (e.g. role, isAdmin) with 422 before
 // reaching the service layer. The service hard-codes role=USER as a second defence.
@@ -15,12 +23,7 @@ export const registerSchema = z
       .trim()
       .toLowerCase()
       .email('Email không hợp lệ'),
-    password: z
-      .string({ required_error: 'Mật khẩu là bắt buộc' })
-      .min(8, 'Mật khẩu phải có ít nhất 8 ký tự')
-      .regex(/[A-Z]/, 'Mật khẩu phải có ít nhất 1 chữ hoa')
-      .regex(/[a-z]/, 'Mật khẩu phải có ít nhất 1 chữ thường')
-      .regex(/[0-9]/, 'Mật khẩu phải có ít nhất 1 chữ số'),
+    password: passwordSchema,
   })
   .strict(); // unknown fields → 422 Unprocessable
 

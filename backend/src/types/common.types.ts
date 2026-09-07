@@ -11,7 +11,14 @@ export interface SearchQuery extends PaginationQuery {
 
 // JWT Payload
 export interface JwtPayload {
+  type: 'access';
   userId: number;
   email: string;
   role: string;
+}
+
+export interface RefreshTokenPayload {
+  type: 'refresh';
+  userId: number;
+  tokenId: string;
 }

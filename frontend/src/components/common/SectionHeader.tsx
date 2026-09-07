@@ -47,11 +47,11 @@ export default function SectionHeader({
     >
       <div className={isCenter ? 'max-w-2xl mx-auto' : 'max-w-xl'}>
         {eyebrow && (
-          <p className="text-xs font-semibold text-primary-700 tracking-[0.02em] mb-1.5">
+          <p className="text-xs font-semibold text-primary-700 tracking-normal mb-1.5">
             {eyebrow}
           </p>
         )}
-        <h2 className="text-2xl md:text-3xl font-bold text-stone-900 tracking-tight leading-snug">
+        <h2 className="text-2xl md:text-3xl font-bold text-stone-900 tracking-normal leading-snug">
           {title}
         </h2>
         {subtitle && (

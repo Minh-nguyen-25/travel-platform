@@ -1,253 +1,150 @@
-import { NavLink, Link } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import type { ReactNode } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/constants';
+import { useAuth } from '@/hooks/useAuth';
 import TravelGoLogo from '@/components/common/TravelGoLogo';
-import { useState } from 'react';
+
+interface AdminSidebarProps {
+  mobileOpen: boolean;
+  collapsed: boolean;
+  onCloseMobile: () => void;
+  onToggleCollapsed: () => void;
+}
 
 interface NavItem {
   to: string;
   label: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
 }
 
+const iconClass = 'h-5 w-5';
 const navItems: NavItem[] = [
   {
     to: ROUTES.ADMIN_DASHBOARD,
-    label: 'Dashboard',
-    icon: (
-      <svg className="w-5 h-5 shrink-0 text-current" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-      </svg>
-    ),
+    label: 'Tổng quan',
+    icon: <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="3" width="7" height="7" rx="2" /><rect x="3" y="14" width="7" height="7" rx="2" /><rect x="14" y="14" width="7" height="7" rx="2" /></svg>,
   },
   {
     to: ROUTES.ADMIN_USERS,
     label: 'Người dùng',
-    icon: (
-      <svg className="w-5 h-5 shrink-0 text-current" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-      </svg>
-    ),
+    icon: <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" strokeLinecap="round" /></svg>,
   },
   {
     to: ROUTES.ADMIN_DESTINATIONS,
     label: 'Địa điểm',
-    icon: (
-      <svg className="w-5 h-5 shrink-0 text-current" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-        <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-      </svg>
-    ),
+    icon: <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>,
   },
   {
     to: ROUTES.ADMIN_CATEGORIES,
     label: 'Danh mục',
-    icon: (
-      <svg className="w-5 h-5 shrink-0 text-current" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-        <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" />
-      </svg>
-    ),
+    icon: <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 17.5h7M17.5 14v7" strokeLinecap="round" /></svg>,
   },
   {
     to: ROUTES.ADMIN_REVIEWS,
     label: 'Đánh giá',
-    icon: (
-      <svg className="w-5 h-5 shrink-0 text-current" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-      </svg>
-    ),
+    icon: <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3 2.8 5.67 6.2.9-4.5 4.38 1.06 6.18L12 17.2l-5.56 2.93 1.06-6.18L3 9.57l6.2-.9L12 3Z" strokeLinejoin="round" /></svg>,
   },
 ];
 
-interface AdminSidebarProps {
-  /** Whether the mobile overlay drawer is open */
-  mobileOpen: boolean;
-  /** Called when sidebar wants to close (e.g., user clicks a nav link on mobile) */
-  onCloseMobile: () => void;
-}
-
-/**
- * AdminSidebar — Menu điều hướng chuẩn hóa cho Admin Dashboard TravelGo.
- *
- * Cấu trúc:
- * - Logo/Header ở trên cùng
- * - Điều hướng chính trong khu vực flex-1 (khoảng cách và padding cân đối, không dồn sát mép trên)
- * - "Về trang chủ" và "Đăng xuất" neo chắc chắn tại footer dưới đáy
- * - Nút thu gọn (collapse button) định vị tại tâm dọc (top-1/2) của toàn bộ Sidebar
- * - Kiểu chữ hiển thị đầy đủ dấu tiếng Việt (leading-6, whitespace-nowrap)
- */
-export default function AdminSidebar({ mobileOpen, onCloseMobile }: AdminSidebarProps) {
-  const { logout } = useAuth();
-  const [collapsed, setCollapsed] = useState(false);
+export default function AdminSidebar({
+  mobileOpen,
+  collapsed,
+  onCloseMobile,
+  onToggleCollapsed,
+}: AdminSidebarProps) {
+  const { logout, user } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
-    onCloseMobile();
     await logout();
-  };
-
-  const getNavLinkClass = ({ isActive }: { isActive: boolean }) => {
-    const base =
-      'relative flex items-center min-h-[48px] h-12 px-3.5 rounded-xl transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 select-none';
-
-    if (collapsed) {
-      return isActive
-        ? `${base} justify-center bg-primary-700 text-white shadow-sm font-semibold hover:bg-primary-700/90 hover:text-white`
-        : `${base} justify-center text-stone-300 hover:bg-stone-800 hover:text-white font-medium`;
-    }
-
-    return isActive
-      ? `${base} gap-3.5 bg-primary-700 text-white shadow-sm font-semibold hover:bg-primary-700/90 hover:text-white`
-      : `${base} gap-3.5 text-stone-300 hover:bg-stone-800 hover:text-white font-medium`;
+    navigate(ROUTES.LOGIN, { replace: true });
   };
 
   return (
     <>
+      {mobileOpen && (
+        <button
+          type="button"
+          onClick={onCloseMobile}
+          className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-sm lg:hidden"
+          aria-label="Đóng menu quản trị"
+        />
+      )}
+
       <aside
-        className={[
-          // Shared structural classes
-          'relative flex flex-col h-screen flex-shrink-0 z-50 overflow-visible',
-          'bg-gradient-to-b from-stone-950 via-stone-900 to-[#0c2824]',
-          'text-stone-300 border-r border-stone-800/60',
-          'transition-[width,transform] duration-200',
-          // Width
-          collapsed ? 'w-16' : 'w-64',
-          // Mobile: fixed overlay, hidden by default, slides in when mobileOpen
-          'fixed inset-y-0 left-0 lg:relative lg:inset-auto',
-          mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
-        ].join(' ')}
-        aria-label="Menu điều hướng quản trị"
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-none flex-col bg-slate-950 text-slate-300 shadow-2xl transition-all duration-300 lg:relative lg:z-auto lg:translate-x-0 lg:shadow-none ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        } ${collapsed ? 'lg:w-[84px]' : 'lg:w-72'}`}
       >
-        {/* ── 1. Brand Header ───────────────────────────────────── */}
-        <div
-          className={`h-16 flex items-center border-b border-stone-800/60 flex-shrink-0 px-3.5 ${
-            collapsed ? 'justify-center' : 'justify-start'
-          }`}
-        >
-          <Link
-            to={ROUTES.ADMIN_DASHBOARD}
-            className="flex items-center gap-2 min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded-lg"
-            aria-label="TravelGo Admin — Dashboard"
-            onClick={onCloseMobile}
-          >
-            <div className="flex-shrink-0">
-              <TravelGoLogo variant="light" iconOnly={collapsed} showTagline={false} />
-            </div>
-            {!collapsed && (
-              <span className="text-[10px] font-bold uppercase tracking-wider bg-stone-800 text-teal-300 px-1.5 py-0.5 rounded border border-stone-700 whitespace-nowrap flex-shrink-0">
-                Admin
-              </span>
-            )}
-          </Link>
-        </div>
-
-        {/* ── 2. Primary Navigation Region ──────────────────────── */}
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          <nav
-            className="pt-5 pb-4 px-2.5 flex flex-col gap-2"
-            aria-label="Menu chức năng quản trị"
-          >
-            {/* Section label — only when expanded */}
-            {!collapsed && (
-              <p className="px-3.5 pb-1 text-xs font-semibold uppercase tracking-wider text-stone-400 select-none">
-                Điều hướng
-              </p>
-            )}
-
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={getNavLinkClass}
-                onClick={onCloseMobile}
-                title={collapsed ? item.label : undefined}
-                aria-label={collapsed ? item.label : undefined}
-              >
-                {({ isActive }) => (
-                  <>
-                    {/* Absolutely-positioned active indicator bar */}
-                    {isActive && (
-                      <span
-                        className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary-400 rounded-r-full"
-                        aria-hidden="true"
-                      />
-                    )}
-                    <div className="w-6 h-6 shrink-0 flex items-center justify-center" aria-hidden="true">
-                      {item.icon}
-                    </div>
-                    {!collapsed && (
-                      <span className="text-[17px] leading-6 whitespace-nowrap">
-                        {item.label}
-                      </span>
-                    )}
-                  </>
-                )}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-
-        {/* ── 3. Footer: Secondary Actions (Home + Logout) ──────── */}
-        <footer className="shrink-0 border-t border-stone-800/60 p-2.5 pb-3 flex flex-col gap-1.5">
-          <NavLink
-            to={ROUTES.HOME}
-            onClick={onCloseMobile}
-            className={`relative flex items-center min-h-[48px] h-12 px-3.5 rounded-xl transition-colors duration-150 text-stone-300 hover:bg-stone-800 hover:text-white font-medium select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-300 ${
-              collapsed ? 'justify-center' : 'gap-3.5'
-            }`}
-            title={collapsed ? 'Về trang chủ' : undefined}
-            aria-label={collapsed ? 'Về trang chủ' : undefined}
-          >
-            <div className="w-6 h-6 shrink-0 flex items-center justify-center" aria-hidden="true">
-              <svg className="w-5 h-5 shrink-0 text-current" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-              </svg>
-            </div>
-            {!collapsed && (
-              <span className="text-[17px] leading-6 whitespace-nowrap">
-                Về trang chủ
-              </span>
+        <div className={`flex h-[72px] flex-none items-center border-b border-white/10 ${collapsed ? 'lg:justify-center lg:px-3' : 'justify-between px-5'}`}>
+          <NavLink to={ROUTES.ADMIN_DASHBOARD} className="flex min-w-0 items-center gap-3 text-white hover:text-white" onClick={onCloseMobile}>
+            {collapsed ? (
+              <TravelGoLogo variant="light" iconOnly className="lg:flex" />
+            ) : (
+              <div className="flex min-w-0 flex-col">
+                <TravelGoLogo variant="light" showTagline={false} />
+                <span className="ml-[34px] mt-0.5 block text-[10px] font-bold uppercase tracking-normal text-blue-300">Admin Console</span>
+              </div>
             )}
           </NavLink>
+          <button type="button" onClick={onCloseMobile} className="rounded-xl p-2 text-slate-400 hover:bg-white/10 hover:text-white lg:hidden" aria-label="Đóng menu">
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 6 12 12M18 6 6 18" strokeLinecap="round" /></svg>
+          </button>
+        </div>
 
-          <button
-            onClick={() => void handleLogout()}
-            className={`relative flex items-center min-h-[48px] h-12 px-3.5 rounded-xl transition-colors duration-150 text-rose-300 hover:bg-rose-950/40 hover:text-rose-100 font-medium select-none w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 ${
-              collapsed ? 'justify-center' : 'gap-3.5'
-            }`}
-            title={collapsed ? 'Đăng xuất' : undefined}
-            aria-label={collapsed ? 'Đăng xuất' : undefined}
-          >
-            <div className="w-6 h-6 shrink-0 flex items-center justify-center" aria-hidden="true">
-              <svg className="w-5 h-5 shrink-0 text-current" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            {!collapsed && (
-              <span className="text-[17px] leading-6 whitespace-nowrap">
-                Đăng xuất
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-6">
+          <p className={`mb-3 px-3 text-[10px] font-extrabold uppercase tracking-normal text-slate-500 ${collapsed ? 'lg:text-center lg:text-[0]' : ''}`}>
+            {collapsed ? <span className="hidden lg:inline">•••</span> : 'Quản lý hệ thống'}
+          </p>
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={onCloseMobile}
+              title={collapsed ? item.label : undefined}
+              className={({ isActive }) => `group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${
+                isActive
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/30'
+                  : 'text-slate-400 hover:bg-white/[0.07] hover:text-white'
+              } ${collapsed ? 'lg:justify-center' : ''}`}
+            >
+              <span className="flex-none">{item.icon}</span>
+              <span className={collapsed ? 'lg:hidden' : ''}>{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="border-t border-white/10 p-3">
+          <div className={`mb-2 flex items-center gap-3 rounded-xl bg-white/[0.05] p-3 ${collapsed ? 'lg:justify-center lg:p-2' : ''}`}>
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="" className="h-9 w-9 flex-none rounded-xl object-cover" />
+            ) : (
+              <span className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-blue-500/20 text-sm font-black text-blue-300">
+                {user?.fullName.charAt(0).toUpperCase() ?? 'A'}
               </span>
             )}
+            <div className={`min-w-0 ${collapsed ? 'lg:hidden' : ''}`}>
+              <p className="truncate text-xs font-bold text-white">{user?.fullName}</p>
+              <p className="truncate text-[10px] text-slate-500">Quản trị viên</p>
+            </div>
+          </div>
+          <NavLink to={ROUTES.HOME} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-400 hover:bg-white/[0.07] hover:text-white ${collapsed ? 'lg:justify-center' : ''}`} title="Về trang chính">
+            <svg className="h-5 w-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m3 11 9-8 9 8M5 10v10h14V10M9 20v-6h6v6" strokeLinejoin="round" /></svg>
+            <span className={collapsed ? 'lg:hidden' : ''}>Về trang chính</span>
+          </NavLink>
+          <button type="button" onClick={() => void handleLogout()} className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 ${collapsed ? 'lg:justify-center' : ''}`} title="Đăng xuất">
+            <svg className="h-5 w-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 17l5-5-5-5M15 12H3M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <span className={collapsed ? 'lg:hidden' : ''}>Đăng xuất</span>
           </button>
-        </footer>
+        </div>
 
-        {/* ── 4. Desktop collapse toggle (vertically centered on full sidebar height) ── */}
         <button
-          onClick={() => setCollapsed((c) => !c)}
-          className="hidden lg:flex absolute right-0 top-1/2 z-30 h-9 w-9 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-stone-800 border border-stone-700 text-stone-300 hover:text-white hover:bg-stone-700 shadow-md transition-transform duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? 'Mở rộng menu' : 'Thu nhỏ menu'}
+          type="button"
+          onClick={onToggleCollapsed}
+          className="absolute -right-3 top-24 hidden h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-md transition hover:text-primary-600 lg:flex"
+          aria-label={collapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
         >
-          <svg
-            className={`h-4 w-4 block shrink-0 transition-transform duration-200 ${collapsed ? 'rotate-180' : 'rotate-0'}`}
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              fillRule="evenodd"
-              d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-              clipRule="evenodd"
-            />
-          </svg>
+          <svg className={`h-4 w-4 transition-transform ${collapsed ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.7 5.3a1 1 0 0 1 0 1.4L9.4 10l3.3 3.3a1 1 0 0 1-1.4 1.4l-4-4a1 1 0 0 1 0-1.4l4-4a1 1 0 0 1 1.4 0Z" clipRule="evenodd" /></svg>
         </button>
       </aside>
     </>
