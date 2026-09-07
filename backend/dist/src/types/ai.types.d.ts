@@ -15,6 +15,24 @@ export interface GenerateItineraryInput {
     additionalRequests?: string;
     locale?: string;
 }
+export type AiChatRole = 'user' | 'assistant';
+export interface AiChatMessage {
+    role: AiChatRole;
+    content: string;
+}
+export interface AiChatInput {
+    message: string;
+    history?: AiChatMessage[];
+    locale?: string;
+}
+export interface AiChatResult {
+    reply: string;
+    metadata: AiGenerationMetadata;
+    context: {
+        tripCount: number;
+        destinationCount: number;
+    };
+}
 export interface AiDestinationCandidate {
     id: number;
     name: string;

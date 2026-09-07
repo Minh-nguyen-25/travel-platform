@@ -39,4 +39,32 @@ export declare const generateItinerarySchema: z.ZodObject<{
     additionalRequests?: string | undefined;
     locale?: string | undefined;
 }>;
+export declare const chatSchema: z.ZodObject<{
+    message: z.ZodString;
+    history: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        role: z.ZodEnum<["user", "assistant"]>;
+        content: z.ZodString;
+    }, "strict", z.ZodTypeAny, {
+        role: "user" | "assistant";
+        content: string;
+    }, {
+        role: "user" | "assistant";
+        content: string;
+    }>, "many">>;
+    locale: z.ZodOptional<z.ZodString>;
+}, "strict", z.ZodTypeAny, {
+    message: string;
+    locale?: string | undefined;
+    history?: {
+        role: "user" | "assistant";
+        content: string;
+    }[] | undefined;
+}, {
+    message: string;
+    locale?: string | undefined;
+    history?: {
+        role: "user" | "assistant";
+        content: string;
+    }[] | undefined;
+}>;
 //# sourceMappingURL=ai.validator.d.ts.map

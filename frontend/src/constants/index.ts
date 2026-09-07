@@ -20,6 +20,7 @@ export const ROUTES = {
   PROFILE: '/profile',
   FAVORITES: '/favorites',
   PREFERENCES: '/preferences',
+  AI_CHAT: '/ai-chat',
   TRIPS: '/trips',
   TRIP_DETAIL: (id: number | string = ':id') => `/trips/${id}`,
 

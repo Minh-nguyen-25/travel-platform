@@ -24,6 +24,55 @@ const aiPreferenceSelect = {
     preferredActivities: true,
     preferredCategories: true,
 };
+const aiChatTripSelect = {
+    id: true,
+    name: true,
+    destinationCity: true,
+    startDate: true,
+    endDate: true,
+    budget: true,
+    numberOfPeople: true,
+    description: true,
+    isAiGenerated: true,
+    tripDays: {
+        orderBy: { dayNumber: 'asc' },
+        take: 14,
+        select: {
+            dayNumber: true,
+            date: true,
+            note: true,
+            itineraries: {
+                orderBy: { sequenceOrder: 'asc' },
+                take: 8,
+                select: {
+                    startTime: true,
+                    endTime: true,
+                    estimatedCost: true,
+                    travelMode: true,
+                    note: true,
+                    destination: {
+                        select: {
+                            id: true,
+                            name: true,
+                            address: true,
+                        },
+                    },
+                },
+            },
+        },
+    },
+};
+const aiChatDestinationSelect = {
+    id: true,
+    name: true,
+    address: true,
+    description: true,
+    ticketPrice: true,
+    openingHoursNote: true,
+    visitDuration: true,
+    rating: true,
+    categories: { select: { category: { select: { name: true } } } },
+};
 exports.aiRepository = {
     findPreference(userId) {
         return db_1.default.travelPreference.findUnique({
@@ -41,6 +90,22 @@ exports.aiRepository = {
                 ],
             },
             select: aiDestinationSelect,
+            orderBy: [{ rating: 'desc' }, { id: 'asc' }],
+            take: limit,
+        });
+    },
+    findUserTripsForChat(userId, limit) {
+        return db_1.default.trip.findMany({
+            where: { userId },
+            select: aiChatTripSelect,
+            orderBy: [{ startDate: 'desc' }, { id: 'desc' }],
+            take: limit,
+        });
+    },
+    findDestinationsForChat(limit) {
+        return db_1.default.destination.findMany({
+            where: { isActive: true },
+            select: aiChatDestinationSelect,
             orderBy: [{ rating: 'desc' }, { id: 'asc' }],
             take: limit,
         });

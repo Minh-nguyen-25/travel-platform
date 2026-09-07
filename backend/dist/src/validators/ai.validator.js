@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateItinerarySchema = void 0;
+exports.chatSchema = exports.generateItinerarySchema = void 0;
 const zod_1 = require("zod");
 const constants_1 = require("../constants");
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -41,6 +41,23 @@ exports.generateItinerarySchema = zod_1.z
     ])
         .optional(),
     additionalRequests: zod_1.z.string().trim().min(1).max(2_000).optional(),
+    locale: zod_1.z
+        .string()
+        .trim()
+        .regex(/^[a-zA-Z]{2,3}(?:-[a-zA-Z]{2,4})?$/, 'locale không hợp lệ')
+        .optional(),
+})
+    .strict();
+const chatMessageSchema = zod_1.z
+    .object({
+    role: zod_1.z.enum(['user', 'assistant']),
+    content: zod_1.z.string().trim().min(1).max(4_000),
+})
+    .strict();
+exports.chatSchema = zod_1.z
+    .object({
+    message: zod_1.z.string().trim().min(1).max(2_000),
+    history: zod_1.z.array(chatMessageSchema).max(12).optional(),
     locale: zod_1.z
         .string()
         .trim()

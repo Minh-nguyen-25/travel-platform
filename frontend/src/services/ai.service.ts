@@ -1,5 +1,7 @@
 import axiosClient from '@/api/axiosClient';
 import type {
+  AiChatPayload,
+  AiChatResult,
   AiItineraryGenerationResult,
   AiTripDraft,
   GenerateItineraryPayload,
@@ -13,6 +15,11 @@ interface ApiEnvelope<T> {
 }
 
 export const aiService = {
+  async chat(payload: AiChatPayload): Promise<AiChatResult> {
+    const response = await axiosClient.post<ApiEnvelope<AiChatResult>>('/ai/chat', payload);
+    return response.data.data;
+  },
+
   async generateItinerary(
     payload: GenerateItineraryPayload,
   ): Promise<AiItineraryGenerationResult> {

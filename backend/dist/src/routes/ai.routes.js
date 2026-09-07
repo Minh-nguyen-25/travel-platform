@@ -43,6 +43,7 @@ const router = (0, express_1.Router)();
 router.use(auth_middleware_1.authenticate);
 router.use((0, rateLimit_middleware_1.userRateLimit)({ namespace: 'ai', maxRequests: 6, windowMs: 10 * 60_000 }));
 router.use((0, rateLimit_middleware_1.userConcurrencyLimit)({ maxGlobal: 4, maxPerUser: 1 }));
+router.post('/chat', (0, validate_middleware_1.validate)(ai_validator_1.chatSchema), aiController.chat);
 router.post('/generate-itinerary', (0, validate_middleware_1.validate)(ai_validator_1.generateItinerarySchema), aiController.generateItinerary);
 exports.default = router;
 //# sourceMappingURL=ai.routes.js.map

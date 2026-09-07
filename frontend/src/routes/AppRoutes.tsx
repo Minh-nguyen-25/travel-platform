@@ -21,6 +21,7 @@ const NotFoundPage = lazy(() => import('@/pages/client/NotFoundPage'));
 const ProfilePage = lazy(() => import('@/pages/client/ProfilePage'));
 const FavoritesPage = lazy(() => import('@/pages/client/FavoritesPage'));
 const PreferencesPage = lazy(() => import('@/pages/client/PreferencesPage'));
+const AiChatPage = lazy(() => import('@/pages/client/AiChatPage'));
 const TripsPage = lazy(() => import('@/pages/client/TripsPage'));
 const TripDetailPage = lazy(() => import('@/pages/client/TripDetailPage'));
 const DashboardPage = lazy(() => import('@/pages/admin/DashboardPage'));
@@ -68,6 +69,7 @@ export default function AppRoutes() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="favorites" element={<FavoritesPage />} />
           <Route path="preferences" element={<PreferencesPage />} />
+          <Route path="ai-chat" element={<AiChatPage />} />
           <Route path="trips" element={<TripsPage />} />
           <Route path="trips/:id" element={<TripDetailPage />} />
         </Route>

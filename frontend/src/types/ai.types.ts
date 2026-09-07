@@ -80,3 +80,29 @@ export interface AiPlannerFormValues {
   travelMode: TravelMode;
   additionalRequests: string;
 }
+
+export type AiChatRole = 'user' | 'assistant';
+
+export interface AiChatMessage {
+  role: AiChatRole;
+  content: string;
+}
+
+export interface AiChatPayload {
+  message: string;
+  history?: AiChatMessage[];
+  locale?: string;
+}
+
+export interface AiChatResult {
+  reply: string;
+  metadata: {
+    provider: 'openai' | 'gemini';
+    model: string;
+    generatedAt: string;
+  };
+  context: {
+    tripCount: number;
+    destinationCount: number;
+  };
+}

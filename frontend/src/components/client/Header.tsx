@@ -48,6 +48,7 @@ export default function Header() {
     { to: ROUTES.PREFERENCES, label: 'AI Planner' },
     ...(isAuthenticated
       ? [
+          { to: ROUTES.AI_CHAT, label: 'AI Chat' },
           { to: ROUTES.TRIPS, label: 'Chuyến đi' },
           { to: ROUTES.FAVORITES, label: 'Yêu thích' },
         ]

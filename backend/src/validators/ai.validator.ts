@@ -52,3 +52,22 @@ export const generateItinerarySchema = z
       .optional(),
   })
   .strict();
+
+const chatMessageSchema = z
+  .object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string().trim().min(1).max(4_000),
+  })
+  .strict();
+
+export const chatSchema = z
+  .object({
+    message: z.string().trim().min(1).max(2_000),
+    history: z.array(chatMessageSchema).max(12).optional(),
+    locale: z
+      .string()
+      .trim()
+      .regex(/^[a-zA-Z]{2,3}(?:-[a-zA-Z]{2,4})?$/, 'locale không hợp lệ')
+      .optional(),
+  })
+  .strict();

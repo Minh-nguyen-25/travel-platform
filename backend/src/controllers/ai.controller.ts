@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { HTTP_STATUS } from '../constants';
 import { aiService } from '../services/ai.service';
-import { GenerateItineraryInput } from '../types/ai.types';
+import { AiChatInput, GenerateItineraryInput } from '../types/ai.types';
 import { AppError } from '../utils/app-error';
 import { sendSuccess } from '../utils/response.utils';
 
@@ -24,4 +24,14 @@ export const generateItinerary = async (req: Request, res: Response): Promise<vo
 
   res.setHeader('Cache-Control', 'no-store');
   sendSuccess(res, result, 'Tạo lịch trình gợi ý bằng AI thành công');
+};
+
+export const chat = async (req: Request, res: Response): Promise<void> => {
+  const result = await aiService.chat(
+    getAuthenticatedUserId(req),
+    req.body as AiChatInput
+  );
+
+  res.setHeader('Cache-Control', 'no-store');
+  sendSuccess(res, result, 'AI đã trả lời');
 };

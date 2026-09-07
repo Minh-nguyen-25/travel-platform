@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateItinerary = void 0;
+exports.chat = exports.generateItinerary = void 0;
 const constants_1 = require("../constants");
 const ai_service_1 = require("../services/ai.service");
 const app_error_1 = require("../utils/app-error");
@@ -17,4 +17,10 @@ const generateItinerary = async (req, res) => {
     (0, response_utils_1.sendSuccess)(res, result, 'Tạo lịch trình gợi ý bằng AI thành công');
 };
 exports.generateItinerary = generateItinerary;
+const chat = async (req, res) => {
+    const result = await ai_service_1.aiService.chat(getAuthenticatedUserId(req), req.body);
+    res.setHeader('Cache-Control', 'no-store');
+    (0, response_utils_1.sendSuccess)(res, result, 'AI đã trả lời');
+};
+exports.chat = chat;
 //# sourceMappingURL=ai.controller.js.map
