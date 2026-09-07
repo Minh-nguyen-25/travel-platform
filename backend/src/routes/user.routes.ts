@@ -4,6 +4,7 @@ import * as userController from '../controllers/user.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { requireRole } from '../middlewares/role.middleware';
 import { uploadSingle } from '../middlewares/upload.middleware';
+import { userRateLimit } from '../middlewares/rateLimit.middleware';
 import { validate } from '../middlewares/validate.middleware';
 import {
   adminUserListQuerySchema,
@@ -20,6 +21,12 @@ userRoutes.get('/me', userController.getMe);
 userRoutes.patch('/me', validate(updateProfileSchema), userController.updateMe);
 userRoutes.patch(
   '/me/password',
+  userRateLimit({
+    namespace: 'change-password',
+    maxRequests: 5,
+    windowMs: 15 * 60 * 1000,
+    message: 'Bạn đã thử đổi mật khẩu quá nhiều lần, vui lòng thử lại sau 15 phút',
+  }),
   validate(changePasswordSchema),
   userController.changePassword
 );

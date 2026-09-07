@@ -49,6 +49,7 @@ export default function UsersPage() {
   const [error, setError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const [targetUser, setTargetUser] = useState<AdminUser | null>(null);
+  const [targetRoleUser, setTargetRoleUser] = useState<AdminUser | null>(null);
   const [busyUserId, setBusyUserId] = useState<number | null>(null);
   const [toast, setToast] = useState<Toast>(null);
 
@@ -114,6 +115,29 @@ export default function UsersPage() {
       setToast({
         type: 'error',
         message: getApiErrorMessage(statusError, 'Không thể cập nhật trạng thái tài khoản.'),
+      });
+    } finally {
+      setBusyUserId(null);
+    }
+  };
+
+  const confirmRoleChange = async () => {
+    if (!targetRoleUser) return;
+    const nextRole: UserRole = targetRoleUser.role === 'ADMIN' ? 'USER' : 'ADMIN';
+    setBusyUserId(targetRoleUser.id);
+    try {
+      const updated = await adminService.setUserRole(targetRoleUser.id, nextRole);
+      setUsers((current) => current.map((user) => (user.id === updated.id ? updated : user)));
+      setToast({
+        type: 'success',
+        message: `Đã đổi vai trò của ${targetRoleUser.fullName} thành ${nextRole === 'ADMIN' ? 'Quản trị viên (ADMIN)' : 'Người dùng (USER)'}.`,
+      });
+      setTargetRoleUser(null);
+      if (role !== 'all') setReloadKey((value) => value + 1);
+    } catch (roleError) {
+      setToast({
+        type: 'error',
+        message: getApiErrorMessage(roleError, 'Không thể cập nhật vai trò người dùng.'),
       });
     } finally {
       setBusyUserId(null);
@@ -226,15 +250,38 @@ export default function UsersPage() {
                         <td className="px-5 py-4"><div className="flex gap-3 text-xs text-slate-500"><span title="Chuyến đi"><b className="text-slate-700">{user.counts.trips}</b> chuyến</span><span title="Đánh giá"><b className="text-slate-700">{user.counts.reviews}</b> đánh giá</span></div></td>
                         <td className="px-5 py-4"><span className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[11px] font-bold ${user.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}><span className={`h-1.5 w-1.5 rounded-full ${user.isActive ? 'bg-emerald-500' : 'bg-rose-500'}`} />{user.isActive ? 'Hoạt động' : 'Đã khóa'}</span></td>
                         <td className="px-5 py-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => setTargetUser(user)}
-                            disabled={isSelf || busyUserId === user.id}
-                            title={isSelf ? 'Bạn không thể tự khóa tài khoản của mình' : undefined}
-                            className={`inline-flex h-9 items-center gap-2 rounded-xl border px-3 text-xs font-extrabold transition disabled:cursor-not-allowed disabled:opacity-40 ${user.isActive ? 'border-rose-200 text-rose-600 hover:bg-rose-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`}
-                          >
-                            {user.isActive ? 'Khóa tài khoản' : 'Mở khóa'}
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setTargetRoleUser(user)}
+                              disabled={isSelf || busyUserId === user.id}
+                              title={isSelf ? 'Bạn không thể tự đổi quyền của mình' : (user.role === 'ADMIN' ? 'Hạ quyền xuống USER' : 'Nâng quyền lên ADMIN')}
+                              className={`inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-xs font-extrabold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                                user.role === 'ADMIN'
+                                  ? 'border-amber-200 text-amber-700 hover:bg-amber-50'
+                                  : 'border-blue-200 text-blue-700 hover:bg-blue-50'
+                              }`}
+                            >
+                              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                              </svg>
+                              {user.role === 'ADMIN' ? 'Hạ USER' : 'Nâng ADMIN'}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setTargetUser(user)}
+                              disabled={isSelf || busyUserId === user.id}
+                              title={isSelf ? 'Bạn không thể tự khóa tài khoản của mình' : undefined}
+                              className={`inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-xs font-extrabold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                                user.isActive
+                                  ? 'border-rose-200 text-rose-600 hover:bg-rose-50'
+                                  : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                              }`}
+                            >
+                              {user.isActive ? 'Khóa' : 'Mở khóa'}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -259,6 +306,7 @@ export default function UsersPage() {
         )}
       </section>
 
+      {/* Modal Xác nhận Đổi Trạng thái (Khóa / Mở khóa) */}
       <Modal isOpen={targetUser !== null} onClose={() => !busyUserId && setTargetUser(null)} title={targetUser?.isActive ? 'Khóa tài khoản' : 'Mở khóa tài khoản'} size="sm" closeOnBackdrop={!busyUserId}>
         {targetUser && (
           <div>
@@ -272,6 +320,50 @@ export default function UsersPage() {
             <div className="mt-6 flex justify-end gap-2">
               <Button type="button" variant="secondary" onClick={() => setTargetUser(null)} disabled={busyUserId !== null}>Hủy</Button>
               <Button type="button" variant={targetUser.isActive ? 'danger' : 'primary'} onClick={() => void confirmStatusChange()} isLoading={busyUserId === targetUser.id}>{targetUser.isActive ? 'Xác nhận khóa' : 'Mở khóa'}</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Modal Xác nhận Đổi Vai trò (USER <-> ADMIN) */}
+      <Modal isOpen={targetRoleUser !== null} onClose={() => !busyUserId && setTargetRoleUser(null)} title="Thay đổi vai trò người dùng" size="sm" closeOnBackdrop={!busyUserId}>
+        {targetRoleUser && (
+          <div>
+            <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${targetRoleUser.role === 'ADMIN' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>
+              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+            </div>
+            <p className="mt-4 text-sm leading-6 text-slate-600">
+              Bạn có chắc chắn muốn thay đổi quyền của tài khoản này? Sau khi thay đổi, toàn bộ phiên đăng nhập hiện tại của người dùng sẽ bị thu hồi và họ phải đăng nhập lại.
+            </p>
+            <div className="mt-4 rounded-xl bg-slate-50 p-3.5 space-y-2">
+              <div>
+                <p className="text-sm font-extrabold text-slate-800">{targetRoleUser.fullName}</p>
+                <p className="mt-0.5 text-xs text-slate-500">{targetRoleUser.email}</p>
+              </div>
+              <div className="flex items-center gap-2 pt-2 border-t border-slate-200/60 text-xs">
+                <span className="text-slate-500">Vai trò hiện tại:</span>
+                <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-extrabold ${targetRoleUser.role === 'ADMIN' ? 'bg-violet-50 text-violet-700' : 'bg-slate-200 text-slate-700'}`}>
+                  {targetRoleUser.role}
+                </span>
+                <span className="text-slate-400 font-bold">→</span>
+                <span className="text-slate-500">Vai trò mới:</span>
+                <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-extrabold ${targetRoleUser.role === 'ADMIN' ? 'bg-slate-200 text-slate-700' : 'bg-violet-50 text-violet-700'}`}>
+                  {targetRoleUser.role === 'ADMIN' ? 'USER' : 'ADMIN'}
+                </span>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button type="button" variant="secondary" onClick={() => setTargetRoleUser(null)} disabled={busyUserId !== null}>Hủy</Button>
+              <Button
+                type="button"
+                variant={targetRoleUser.role === 'ADMIN' ? 'danger' : 'primary'}
+                onClick={() => void confirmRoleChange()}
+                isLoading={busyUserId === targetRoleUser.id}
+              >
+                {targetRoleUser.role === 'ADMIN' ? 'Xác nhận hạ thành USER' : 'Xác nhận nâng thành ADMIN'}
+              </Button>
             </div>
           </div>
         )}

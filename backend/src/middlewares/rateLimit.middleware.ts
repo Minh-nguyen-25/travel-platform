@@ -2,10 +2,13 @@ import { NextFunction, Request, Response } from 'express';
 import { HTTP_STATUS } from '../constants';
 import { sendError } from '../utils/response.utils';
 
+import redisClient from '../config/redis';
+
 interface UserRateLimitOptions {
   namespace: string;
   maxRequests: number;
   windowMs: number;
+  message?: string;
 }
 
 interface ConcurrencyLimitOptions {
@@ -24,13 +27,45 @@ export const userRateLimit = ({
   namespace,
   maxRequests,
   windowMs,
+  message,
 }: UserRateLimitOptions) => {
   const buckets = new Map<string, RateBucket>();
+  const defaultMessage = 'Bạn đã gửi quá nhiều yêu cầu, vui lòng thử lại sau';
+  const errorMessage = message || defaultMessage;
 
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     if (!req.user) {
       sendError(res, 'Chưa xác thực', HTTP_STATUS.UNAUTHORIZED);
       return;
+    }
+
+    // Use Redis when available for distributed rate-limiting
+    if (redisClient.status === 'ready') {
+      try {
+        const key = `ratelimit:${namespace}:${req.user.id}`;
+        const count = await redisClient.incr(key);
+        if (count === 1) {
+          await redisClient.pexpire(key, windowMs);
+        }
+        const ttlMs = await redisClient.pttl(key);
+        const resetSeconds = Math.ceil((Date.now() + Math.max(0, ttlMs)) / 1_000);
+        const remaining = Math.max(0, maxRequests - count);
+
+        res.setHeader('X-RateLimit-Limit', String(maxRequests));
+        res.setHeader('X-RateLimit-Remaining', String(remaining));
+        res.setHeader('X-RateLimit-Reset', String(resetSeconds));
+
+        if (count > maxRequests) {
+          res.setHeader('Retry-After', String(Math.max(1, Math.ceil(ttlMs / 1_000))));
+          sendError(res, errorMessage, HTTP_STATUS.TOO_MANY_REQUESTS);
+          return;
+        }
+
+        next();
+        return;
+      } catch {
+        // If Redis operation fails, fall through to in-memory bucket fallback
+      }
     }
 
     const now = Date.now();
@@ -50,7 +85,7 @@ export const userRateLimit = ({
       res.setHeader('Retry-After', String(Math.max(1, Math.ceil((bucket.resetAt - now) / 1_000))));
       sendError(
         res,
-        'Bạn đã gửi quá nhiều yêu cầu, vui lòng thử lại sau',
+        errorMessage,
         HTTP_STATUS.TOO_MANY_REQUESTS
       );
       return;

@@ -5,7 +5,7 @@ import { User } from '@prisma/client';
 import { AppError } from '../utils/app-error';
 import { HTTP_STATUS, ROLE, AUTH_PROVIDER } from '../constants';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt.utils';
-import { setSession, consumeSession, deleteSession } from '../utils/token-session';
+import { setSession, consumeSession, deleteSession, revokeAllUserSessions } from '../utils/token-session';
 import * as userRepo from '../repositories/user.repository';
 import type { RegisterDto, LoginDto } from '../validators/auth.validator';
 
@@ -155,7 +155,7 @@ export const logout = async (rawRefreshToken: string | undefined): Promise<void>
 
   try {
     const payload = verifyRefreshToken(rawRefreshToken);
-    await deleteSession(payload.jti);
+    await deleteSession(payload.jti, Number(payload.sub));
     // deleteSession re-throws Redis failures — they will propagate here
   } catch (err) {
     if (err instanceof AppError && err.statusCode === HTTP_STATUS.UNAUTHORIZED) {
@@ -173,6 +173,7 @@ export const logout = async (rawRefreshToken: string | undefined): Promise<void>
 };
 
 export const replaceAllSessionsForUser = async (user: User): Promise<AuthResult> => {
+  await revokeAllUserSessions(user.id);
   const jti = randomUUID();
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user.id, jti);
@@ -186,4 +187,5 @@ export const authService = {
   refreshAccessToken,
   logout,
   replaceAllSessionsForUser,
+  revokeAllUserSessions,
 };
