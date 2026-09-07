@@ -124,10 +124,21 @@ export const userRepository = {
   },
 
   setStatus(id: number, isActive: boolean): Promise<AdminUserRecord> {
-    return prisma.$transaction(async (tx) => {
-      await tx.user.update({ where: { id }, data: { isActive } });
-      return tx.user.findUniqueOrThrow({ where: { id }, include: adminUserInclude });
-    });
+    return prisma.$transaction(
+      async (tx) => {
+        const current = await tx.user.findUniqueOrThrow({ where: { id } });
+        if (current.role === 'ADMIN' && current.isActive && !isActive) {
+          const activeAdminCount = await tx.user.count({
+            where: { role: 'ADMIN', isActive: true },
+          });
+          if (activeAdminCount <= 1) throw new Error('LAST_ACTIVE_ADMIN');
+        }
+
+        await tx.user.update({ where: { id }, data: { isActive } });
+        return tx.user.findUniqueOrThrow({ where: { id }, include: adminUserInclude });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    );
   },
 
   setRole(id: number, role: 'ADMIN' | 'USER'): Promise<AdminUserRecord> {

@@ -18,6 +18,7 @@ import {
   deleteUploadedImages,
   uploadImagesToCloudinary,
 } from './upload.service';
+import { revokeAllUserSessions } from '../utils/token-session';
 
 const USER_NOT_FOUND = 'Không tìm thấy người dùng';
 const BCRYPT_ROUNDS = Math.min(14, Math.max(10, Number(process.env.BCRYPT_ROUNDS) || 12));
@@ -140,7 +141,22 @@ export const userService = {
     const user = await userRepository.findAdminById(userId);
     if (!user) throw new AppError(USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
     if (user.isActive === isActive) return serializeAdminUser(user);
-    return serializeAdminUser(await userRepository.setStatus(userId, isActive));
+
+    try {
+      const updated = await userRepository.setStatus(userId, isActive);
+      if (!isActive) {
+        await revokeAllUserSessions(userId);
+      }
+      return serializeAdminUser(updated);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'LAST_ACTIVE_ADMIN') {
+        throw new AppError(
+          'Hệ thống phải còn ít nhất một quản trị viên đang hoạt động',
+          HTTP_STATUS.CONFLICT
+        );
+      }
+      throw error;
+    }
   },
 
   async setUserRole(
@@ -156,7 +172,9 @@ export const userService = {
     if (user.role === role) return serializeAdminUser(user);
 
     try {
-      return serializeAdminUser(await userRepository.setRole(userId, role));
+      const updated = await userRepository.setRole(userId, role);
+      await revokeAllUserSessions(userId);
+      return serializeAdminUser(updated);
     } catch (error) {
       if (error instanceof Error && error.message === 'LAST_ACTIVE_ADMIN') {
         throw new AppError(

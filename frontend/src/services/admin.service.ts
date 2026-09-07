@@ -5,6 +5,7 @@ import type {
   AdminUserQuery,
   AnalyticsOverview,
 } from '@/types/admin.types';
+import type { UserRole } from '@/types/auth.types';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -29,6 +30,14 @@ export const adminService = {
     const response = await axiosClient.patch<ApiResponse<AdminUser>>(
       `/admin/users/${userId}/status`,
       { isActive },
+    );
+    return response.data.data;
+  },
+
+  async setUserRole(userId: number, role: UserRole): Promise<AdminUser> {
+    const response = await axiosClient.patch<ApiResponse<AdminUser>>(
+      `/admin/users/${userId}/role`,
+      { role },
     );
     return response.data.data;
   },

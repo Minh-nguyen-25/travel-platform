@@ -36,7 +36,23 @@ const {
   adminUserListQuerySchema,
   changePasswordSchema,
   updateProfileSchema,
+  updateUserRoleSchema,
+  updateUserStatusSchema,
 } = require('../dist/src/validators/user.validator.js');
+const {
+  sessionKey,
+  userSessionsKey,
+  setSession,
+  consumeSession,
+  deleteSession,
+  revokeAllUserSessions,
+} = require('../dist/src/utils/token-session.js');
+const redisClient = require('../dist/src/config/redis.js').default;
+const { disconnectRedis } = require('../dist/src/config/redis.js');
+const { userService } = require('../dist/src/services/user.service.js');
+const { userRepository } = require('../dist/src/repositories/user.repository.js');
+const { requireRole } = require('../dist/src/middlewares/role.middleware.js');
+const { userRateLimit } = require('../dist/src/middlewares/rateLimit.middleware.js');
 const {
   generateAccessToken,
   generateRefreshToken,
@@ -714,4 +730,401 @@ test('Gemini adapter requests JSON schema output through generateContent', async
   assert.equal(requestBody.generationConfig.responseJsonSchema.type, 'object');
   assert.equal(result.metadata.provider, 'gemini');
   assert.equal(result.tripDraft, null);
+});
+
+test('token-session reverse index Set tracks JTIs and atomically revokes single or all user sessions', async () => {
+  const store = new Map();
+  const sets = new Map();
+  const ttls = new Map();
+
+  const originalPipeline = redisClient.pipeline;
+  const originalGetdel = redisClient.getdel;
+  const originalSmembers = redisClient.smembers;
+  const originalSrem = redisClient.srem;
+  const originalDel = redisClient.del;
+
+  redisClient.pipeline = function () {
+    const ops = [];
+    const pipe = {
+      set(key, val, ex, ttl) {
+        ops.push(() => {
+          store.set(key, String(val));
+          ttls.set(key, ttl);
+        });
+        return pipe;
+      },
+      sadd(key, member) {
+        ops.push(() => {
+          if (!sets.has(key)) sets.set(key, new Set());
+          sets.get(key).add(member);
+        });
+        return pipe;
+      },
+      expire(key, ttl) {
+        ops.push(() => ttls.set(key, ttl));
+        return pipe;
+      },
+      del(key) {
+        ops.push(() => {
+          store.delete(key);
+          sets.delete(key);
+        });
+        return pipe;
+      },
+      srem(key, member) {
+        ops.push(() => {
+          const s = sets.get(key);
+          if (s) {
+            s.delete(member);
+            if (s.size === 0) sets.delete(key);
+          }
+        });
+        return pipe;
+      },
+      async exec() {
+        for (const op of ops) op();
+        return ops.map(() => [null, 'OK']);
+      },
+    };
+    return pipe;
+  };
+
+  redisClient.getdel = async function (key) {
+    const val = store.get(key) ?? null;
+    store.delete(key);
+    return val;
+  };
+
+  redisClient.smembers = async function (key) {
+    const s = sets.get(key);
+    return s ? Array.from(s) : [];
+  };
+
+  redisClient.srem = async function (key, member) {
+    const s = sets.get(key);
+    if (s) {
+      s.delete(member);
+      if (s.size === 0) sets.delete(key);
+      return 1;
+    }
+    return 0;
+  };
+
+  redisClient.del = async function (key) {
+    store.delete(key);
+    sets.delete(key);
+    return 1;
+  };
+
+  try {
+    const userId = 42;
+    const jti1 = 'session-uuid-1';
+    const jti2 = 'session-uuid-2';
+
+    // 1. Create two sessions for the same user
+    await setSession(jti1, userId);
+    await setSession(jti2, userId);
+
+    assert.equal(store.get(sessionKey(jti1)), '42');
+    assert.equal(store.get(sessionKey(jti2)), '42');
+    assert.equal(sets.get(userSessionsKey(userId)).has(jti1), true);
+    assert.equal(sets.get(userSessionsKey(userId)).has(jti2), true);
+    assert.equal(ttls.get(userSessionsKey(userId)) > 0, true);
+
+    // 2. Consume jti1 (token rotation single-flight)
+    const consumed = await consumeSession(jti1);
+    assert.equal(consumed, '42');
+    assert.equal(store.has(sessionKey(jti1)), false);
+    assert.equal(sets.get(userSessionsKey(userId)).has(jti1), false);
+    assert.equal(sets.get(userSessionsKey(userId)).has(jti2), true);
+
+    // Repeated consume of jti1 returns null (prevent replay)
+    const replayed = await consumeSession(jti1);
+    assert.equal(replayed, null);
+
+    // 3. Revoke all remaining sessions for the user (e.g. password change / admin action)
+    const revokedCount = await revokeAllUserSessions(userId);
+    assert.equal(revokedCount, 1);
+    assert.equal(store.has(sessionKey(jti2)), false);
+    assert.equal(sets.has(userSessionsKey(userId)), false);
+
+    // Consuming jti2 now fails
+    assert.equal(await consumeSession(jti2), null);
+
+    // 4. Revoking a user with no sessions is safe and returns 0
+    const emptyRevoke = await revokeAllUserSessions(999);
+    assert.equal(emptyRevoke, 0);
+  } finally {
+    redisClient.pipeline = originalPipeline;
+    redisClient.getdel = originalGetdel;
+    redisClient.smembers = originalSmembers;
+    redisClient.srem = originalSrem;
+    redisClient.del = originalDel;
+  }
+});
+
+test('change password validation and rate-limiting protect password endpoint', async () => {
+  // 1. Validation checks
+  assert.equal(
+    changePasswordSchema.safeParse({
+      currentPassword: 'OldPassword1',
+      newPassword: 'OldPassword1',
+    }).success,
+    false,
+    'New password must be different from current'
+  );
+
+  assert.equal(
+    changePasswordSchema.safeParse({
+      currentPassword: 'OldPassword1',
+      newPassword: 'short',
+    }).success,
+    false,
+    'Weak new password must be rejected'
+  );
+
+  const valid = changePasswordSchema.safeParse({
+    currentPassword: 'OldPassword1',
+    newPassword: 'NewStrongPassword2',
+  });
+  assert.equal(valid.success, true);
+
+  // 2. Rate limiter checks
+  const limiter = userRateLimit({
+    namespace: 'test-change-pass',
+    maxRequests: 5,
+    windowMs: 15 * 60 * 1000,
+    message: 'Bạn đã thử đổi mật khẩu quá nhiều lần, vui lòng thử lại sau 15 phút',
+  });
+
+  const req = { user: { id: 77 } };
+  let allowedCount = 0;
+  for (let i = 0; i < 5; i++) {
+    await limiter(req, { setHeader() {} }, () => {
+      allowedCount++;
+    });
+  }
+  assert.equal(allowedCount, 5);
+
+  let statusCode = 0;
+  let responseData = null;
+  const capturedHeaders = {};
+  const blockedRes = {
+    setHeader(key, val) {
+      capturedHeaders[key] = val;
+    },
+    status(code) {
+      statusCode = code;
+      return {
+        json(data) {
+          responseData = data;
+        },
+      };
+    },
+  };
+
+  await limiter(req, blockedRes, () => {
+    assert.fail('Should not proceed past limit');
+  });
+
+  assert.equal(statusCode, 429);
+  assert.equal(responseData.success, false);
+  assert.equal(
+    responseData.message,
+    'Bạn đã thử đổi mật khẩu quá nhiều lần, vui lòng thử lại sau 15 phút'
+  );
+  assert.ok(capturedHeaders['Retry-After']);
+  assert.equal(capturedHeaders['X-RateLimit-Limit'], '5');
+  assert.equal(capturedHeaders['X-RateLimit-Remaining'], '0');
+});
+
+test('admin status rules prevent self-locking, protect last active admin, and revoke user sessions on deactivation', async () => {
+  // 1. Role middleware test
+  const adminOnly = requireRole('ADMIN');
+  let forbiddenCalled = false;
+  adminOnly(
+    { user: { id: 2, role: 'USER' } },
+    {
+      status(code) {
+        assert.equal(code, 403);
+        return {
+          json(body) {
+            assert.equal(body.message, 'Bạn không có quyền thực hiện hành động này');
+            forbiddenCalled = true;
+          },
+        };
+      },
+    },
+    () => {}
+  );
+  assert.equal(forbiddenCalled, true);
+
+  // 2. Schema validation
+  assert.equal(updateUserStatusSchema.safeParse({ isActive: false }).success, true);
+  assert.equal(updateUserStatusSchema.safeParse({ isActive: 'false' }).success, false);
+  assert.equal(updateUserStatusSchema.safeParse({ isActive: true, rogue: 1 }).success, false);
+
+  // 3. Self-lock prevention
+  await assert.rejects(
+    async () => userService.setUserStatus(1, 1, false),
+    (err) => {
+      assert.equal(err.statusCode, 409);
+      assert.match(err.message, /không thể tự khóa tài khoản của mình/);
+      return true;
+    }
+  );
+
+  // 4. Last active admin protection & session revocation on deactivation
+  const originalFindAdminById = userRepository.findAdminById;
+  const originalSetStatus = userRepository.setStatus;
+  let revokedUserId = null;
+
+  const originalRevoke = redisClient.smembers;
+  redisClient.smembers = async function (key) {
+    if (key === userSessionsKey(10)) {
+      revokedUserId = 10;
+    }
+    return [];
+  };
+
+  try {
+    // A) Deactivating the last active admin throws 409
+    userRepository.findAdminById = async (id) => ({
+      id,
+      email: 'admin@travel.test',
+      fullName: 'Admin',
+      role: 'ADMIN',
+      isActive: true,
+      authProvider: 'LOCAL',
+      avatarUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      _count: { reviews: 0, favorites: 0, trips: 0 },
+    });
+    userRepository.setStatus = async () => {
+      throw new Error('LAST_ACTIVE_ADMIN');
+    };
+
+    await assert.rejects(
+      async () => userService.setUserStatus(1, 2, false),
+      (err) => {
+        assert.equal(err.statusCode, 409);
+        assert.match(err.message, /ít nhất một quản trị viên đang hoạt động/);
+        return true;
+      }
+    );
+
+    // B) Deactivating a normal user succeeds and revokes their sessions
+    userRepository.setStatus = async (id, isActive) => ({
+      id,
+      email: 'user@travel.test',
+      fullName: 'User 10',
+      role: 'USER',
+      isActive,
+      authProvider: 'LOCAL',
+      avatarUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      _count: { reviews: 0, favorites: 0, trips: 0 },
+    });
+
+    const deactivated = await userService.setUserStatus(1, 10, false);
+    assert.equal(deactivated.isActive, false);
+    assert.equal(revokedUserId, 10);
+
+    // C) Reactivating user does NOT create any sessions
+    revokedUserId = null;
+    const reactivated = await userService.setUserStatus(1, 10, true);
+    assert.equal(reactivated.isActive, true);
+    assert.equal(revokedUserId, null);
+  } finally {
+    userRepository.findAdminById = originalFindAdminById;
+    userRepository.setStatus = originalSetStatus;
+    redisClient.smembers = originalRevoke;
+  }
+});
+
+test('admin role rules prevent self-demotion, protect last active admin, validate payload, and revoke sessions on role change', async () => {
+  // 1. Role schema validation
+  assert.equal(updateUserRoleSchema.safeParse({ role: 'ADMIN' }).success, true);
+  assert.equal(updateUserRoleSchema.safeParse({ role: 'USER' }).success, true);
+  assert.equal(updateUserRoleSchema.safeParse({ role: 'SUPERADMIN' }).success, false);
+  assert.equal(updateUserRoleSchema.safeParse({ role: '' }).success, false);
+  assert.equal(updateUserRoleSchema.safeParse({ role: 'ADMIN', hack: true }).success, false);
+
+  // 2. Self-demotion prevention
+  await assert.rejects(
+    async () => userService.setUserRole(5, 5, 'USER'),
+    (err) => {
+      assert.equal(err.statusCode, 409);
+      assert.match(err.message, /không thể tự hạ quyền tài khoản của mình/);
+      return true;
+    }
+  );
+
+  // 3. Last active admin protection on role demotion
+  const originalFindAdminById = userRepository.findAdminById;
+  const originalSetRole = userRepository.setRole;
+  let revokedUserId = null;
+
+  const originalRevoke = redisClient.smembers;
+  redisClient.smembers = async function (key) {
+    if (key === userSessionsKey(20)) {
+      revokedUserId = 20;
+    }
+    return [];
+  };
+
+  try {
+    userRepository.findAdminById = async (id) => ({
+      id,
+      email: 'admin@travel.test',
+      fullName: 'Admin 20',
+      role: 'ADMIN',
+      isActive: true,
+      authProvider: 'LOCAL',
+      avatarUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      _count: { reviews: 0, favorites: 0, trips: 0 },
+    });
+    userRepository.setRole = async () => {
+      throw new Error('LAST_ACTIVE_ADMIN');
+    };
+
+    await assert.rejects(
+      async () => userService.setUserRole(1, 20, 'USER'),
+      (err) => {
+        assert.equal(err.statusCode, 409);
+        assert.match(err.message, /ít nhất một quản trị viên đang hoạt động/);
+        return true;
+      }
+    );
+
+    // 4. Role change succeeds and revokes all user sessions
+    userRepository.setRole = async (id, role) => ({
+      id,
+      email: 'user20@travel.test',
+      fullName: 'User 20',
+      role,
+      isActive: true,
+      authProvider: 'LOCAL',
+      avatarUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      _count: { reviews: 0, favorites: 0, trips: 0 },
+    });
+
+    const updated = await userService.setUserRole(1, 20, 'USER');
+    assert.equal(updated.role, 'USER');
+    assert.equal(revokedUserId, 20);
+  } finally {
+    userRepository.findAdminById = originalFindAdminById;
+    userRepository.setRole = originalSetRole;
+    redisClient.smembers = originalRevoke;
+  }
+});
+
+test.after(async () => {
+  await disconnectRedis();
 });
