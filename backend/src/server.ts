@@ -4,6 +4,7 @@
 import env from './config/env';
 
 import app from './app';
+import { cloudinaryConfigurationStatus } from './config/cloudinary';
 import prisma from './config/db';
 import redisClient, { disconnectRedis } from './config/redis';
 
@@ -38,6 +39,15 @@ const start = async (): Promise<void> => {
   // Verify Database connectivity
   await prisma.$connect();
   console.log('✅ Kết nối Database thành công');
+
+  if (cloudinaryConfigurationStatus.configured) {
+    console.log(`✅ Cloudinary đã cấu hình qua ${cloudinaryConfigurationStatus.source}`);
+  } else {
+    console.warn(
+      `⚠️  Cloudinary chưa được cấu hình (${cloudinaryConfigurationStatus.invalidKeys.join(', ')}). `
+      + 'Chức năng upload ảnh sẽ tạm thời không hoạt động.'
+    );
+  }
 
   // Verify Redis connectivity (lazyConnect=true means we must connect explicitly)
   await redisClient.connect();

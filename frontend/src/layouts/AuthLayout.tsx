@@ -51,7 +51,7 @@ export default function AuthLayout() {
 
         {/* Top-Right: Destination Badge */}
         <div className="absolute top-8 right-8 z-10 auth-hero-reveal" style={{ animationDelay: '80ms' }}>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 text-white text-[11px] font-medium tracking-wide shadow-sm">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 text-white text-[11px] font-medium tracking-normal shadow-sm">
             <svg
               className="w-3 h-3 text-amber-300 flex-shrink-0"
               viewBox="0 0 20 20"
@@ -77,7 +77,7 @@ export default function AuthLayout() {
               &ldquo;{SELECTED_HERO.quotation}&rdquo;
             </blockquote>
             {SELECTED_HERO.quotationAuthor && (
-              <p className="mt-2.5 text-xs text-stone-300 font-medium tracking-widest uppercase">
+              <p className="mt-2.5 text-xs text-stone-300 font-medium tracking-normal uppercase">
                 — {SELECTED_HERO.quotationAuthor}
               </p>
             )}

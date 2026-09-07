@@ -195,7 +195,7 @@ export default function RegisterPage() {
       <div className="bg-white rounded-2xl border border-stone-200/80 shadow-[0_8px_30px_-8px_rgba(15,118,110,0.10),0_2px_8px_-2px_rgba(0,0,0,0.04)] p-7 sm:p-8">
         {/* Card Header — Centered */}
         <div className="mb-6 text-center">
-          <h1 className="text-[22px] font-bold text-stone-900 tracking-tight leading-snug">
+          <h1 className="text-[22px] font-bold text-stone-900 tracking-normal leading-snug">
             Bắt đầu hành trình của bạn
           </h1>
           <p className="text-[13px] text-slate-500 mt-1 leading-relaxed max-w-[300px] mx-auto">

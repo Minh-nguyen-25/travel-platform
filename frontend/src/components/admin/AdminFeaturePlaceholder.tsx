@@ -60,7 +60,7 @@ export default function AdminFeaturePlaceholder({
         {/* Planned capabilities */}
         {capabilities && capabilities.length > 0 && (
           <div className="mt-8 text-left bg-white rounded-2xl border border-line shadow-sm p-5">
-            <p className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-3">
+            <p className="text-xs font-semibold uppercase tracking-normal text-stone-400 mb-3">
               Tính năng dự kiến
             </p>
             <ul className="space-y-2">

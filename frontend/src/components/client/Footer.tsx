@@ -1,105 +1,76 @@
 import { Link } from 'react-router-dom';
-import { ROUTES } from '@/constants';
 import TravelGoLogo from '@/components/common/TravelGoLogo';
+import TripIcon from '@/components/trip/TripIcon';
+import { ROUTES } from '@/constants';
 
-/**
- * Footer chung cho Client (User) website TravelGo.
- * Đặt trong MainLayout.
- */
+const footerLinks = [
+  {
+    title: 'Khám phá',
+    links: [
+      { label: 'Điểm đến Việt Nam', to: ROUTES.DESTINATIONS },
+      { label: 'AI Travel Planner', to: ROUTES.PREFERENCES },
+      { label: 'Địa điểm yêu thích', to: ROUTES.FAVORITES },
+    ],
+  },
+  {
+    title: 'Hành trình',
+    links: [
+      { label: 'Chuyến đi của tôi', to: ROUTES.TRIPS },
+      { label: 'Tạo tài khoản', to: ROUTES.REGISTER },
+      { label: 'Hồ sơ cá nhân', to: ROUTES.PROFILE },
+    ],
+  },
+];
+
 export default function Footer() {
-  const currentYear = new Date().getFullYear();
-
   return (
-    <footer className="bg-stone-900 text-stone-400 border-t border-stone-800 mt-auto">
-      <div className="container py-12 lg:py-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
+    <footer className="relative mt-auto overflow-hidden bg-navy-950 text-white">
+      <div className="absolute -left-28 top-24 h-80 w-80 rounded-full bg-primary-500/10 blur-3xl" />
+      <div className="absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-accent-500/10 blur-3xl" />
 
-          {/* Brand */}
-          <div className="col-span-1 sm:col-span-2 md:col-span-1 space-y-4">
-            <Link
-              to={ROUTES.HOME}
-              className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded-lg p-0.5"
-              aria-label="TravelGo — Về trang chủ"
-            >
-              <TravelGoLogo variant="light" />
+      <div className="container relative pt-16 sm:pt-20">
+        <div className="grid gap-12 border-b border-white/10 pb-14 lg:grid-cols-[1.35fr_0.65fr_0.65fr_1.1fr]">
+          <div>
+            <Link to={ROUTES.HOME} className="hover:opacity-85 transition-opacity">
+              <TravelGoLogo variant="light" showTagline className="inline-flex" />
             </Link>
-            <p className="text-sm text-stone-400 leading-relaxed max-w-sm">
-              Nền tảng du lịch thông minh hỗ trợ khám phá, lên kế hoạch và trải nghiệm các điểm đến Việt Nam cùng công nghệ AI.
+            <p className="mt-5 max-w-sm text-sm leading-7 text-white/58">
+              Nền tảng khám phá Việt Nam, lưu giữ cảm hứng và biến những điểm đến mơ ước thành hành trình rõ ràng.
             </p>
+            <p className="accent-script mt-5 text-3xl text-primary-200">Đi xa theo cách của bạn.</p>
           </div>
 
-          {/* Khám phá */}
-          <div>
-            <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
-              Khám phá
-            </h4>
-            <ul className="space-y-2.5 text-sm">
-              <li>
-                <Link
-                  to={ROUTES.DESTINATIONS}
-                  className="text-stone-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded"
-                >
-                  Địa điểm du lịch
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to={ROUTES.PREFERENCES}
-                  className="text-stone-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded"
-                >
-                  AI Lập lịch trình
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {footerLinks.map((group) => (
+            <div key={group.title}>
+              <h2 className="font-sans text-xs font-extrabold uppercase tracking-normal text-white">{group.title}</h2>
+              <ul className="mt-5 space-y-3">
+                {group.links.map((link) => (
+                  <li key={link.label}>
+                    <Link to={link.to} className="group inline-flex items-center gap-2 text-sm text-white/58 hover:text-primary-200">
+                      <span className="h-px w-0 bg-primary-300 transition-all duration-300 group-hover:w-4" />
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
 
-          {/* Tài khoản */}
-          <div>
-            <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
-              Tài khoản
-            </h4>
-            <ul className="space-y-2.5 text-sm">
-              <li>
-                <Link
-                  to={ROUTES.TRIPS}
-                  className="text-stone-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded"
-                >
-                  Chuyến đi của tôi
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to={ROUTES.FAVORITES}
-                  className="text-stone-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded"
-                >
-                  Địa điểm yêu thích
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to={ROUTES.PROFILE}
-                  className="text-stone-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded"
-                >
-                  Hồ sơ cá nhân
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Dự án */}
-          <div>
-            <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
-              Dự án
-            </h4>
-            <p className="text-sm text-stone-400 leading-relaxed">
-              Đồ án môn học — Xây dựng nền tảng Web quản lý thông tin du lịch và đề xuất lịch trình cá nhân hóa.
-            </p>
+          <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur-sm sm:p-6">
+            <span className="eyebrow text-accent-300"><TripIcon name="sparkles" size={14} />Bắt đầu từ đây</span>
+            <h2 className="mt-3 text-2xl font-bold leading-tight text-white">Chuyến đi tiếp theo đang chờ bạn đặt tên.</h2>
+            <Link to={ROUTES.PREFERENCES} className="mt-5 inline-flex h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-extrabold text-navy-900 shadow-lg transition hover:-translate-y-0.5 hover:bg-primary-50 hover:text-primary-900">
+              Tạo lịch trình <TripIcon name="arrow-right" size={16} />
+            </Link>
           </div>
         </div>
 
-        {/* Bottom copyright bar */}
-        <div className="border-t border-stone-800/80 mt-12 pt-8 text-center text-xs text-stone-500">
-          <p>© {currentYear} TravelGo. Nền tảng du lịch thông minh Việt Nam. All rights reserved.</p>
+        <div className="flex flex-col gap-3 py-6 text-xs text-white/40 sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} TravelGo. Made for journeys across Vietnam.</p>
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-secondary-400" />
+            Trải nghiệm du lịch Việt Nam hiện đại
+          </div>
         </div>
       </div>
     </footer>

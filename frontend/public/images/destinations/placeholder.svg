@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f1f5f9" />
+      <stop offset="100%" stop-color="#e2e8f0" />
+    </linearGradient>
+    <linearGradient id="pin-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0e7490" />
+      <stop offset="100%" stop-color="#155e75" />
+    </linearGradient>
+    <filter id="subtle-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0f172a" flood-opacity="0.08" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="600" fill="url(#bg-grad)" />
+
+  <!-- Center Card Badge -->
+  <g transform="translate(400, 270)" filter="url(#subtle-shadow)">
+    <!-- Pin Icon Container -->
+    <circle cx="0" cy="-30" r="48" fill="#ffffff" />
+    <path d="M-14 -46 C-24 -46 -32 -38 -32 -28 C-32 -14 0 12 0 12 C0 12 32 -14 32 -28 C32 -38 24 -46 14 -46 Z" fill="url(#pin-grad)" />
+    <circle cx="0" cy="-28" r="8" fill="#ffffff" />
+
+    <!-- Text -->
+    <text x="0" y="55" font-family="'Be Vietnam Pro', system-ui, sans-serif" font-size="20" font-weight="700" fill="#0f172a" text-anchor="middle">
+      Hình ảnh đang được cập nhật
+    </text>
+    <text x="0" y="82" font-family="'Be Vietnam Pro', system-ui, sans-serif" font-size="14" font-weight="500" fill="#64748b" text-anchor="middle">
+      TravelGo Destination
+    </text>
+  </g>
+</svg>

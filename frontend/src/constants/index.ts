@@ -20,6 +20,7 @@ export const ROUTES = {
   PROFILE: '/profile',
   FAVORITES: '/favorites',
   PREFERENCES: '/preferences',
+  AI_CHAT: '/ai-chat',
   TRIPS: '/trips',
   TRIP_DETAIL: (id: number | string = ':id') => `/trips/${id}`,
 
@@ -41,7 +42,6 @@ export const USER_ROLES = {
 } as const;
 
 export type UserRole = (typeof USER_ROLES)[keyof typeof USER_ROLES];
-
 
 // ================================================================
 // PAGINATION DEFAULTS

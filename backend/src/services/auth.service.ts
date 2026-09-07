@@ -171,3 +171,19 @@ export const logout = async (rawRefreshToken: string | undefined): Promise<void>
     throw err;
   }
 };
+
+export const replaceAllSessionsForUser = async (user: User): Promise<AuthResult> => {
+  const jti = randomUUID();
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user.id, jti);
+  await setSession(jti, user.id);
+  return { user: sanitise(user), accessToken, refreshToken };
+};
+
+export const authService = {
+  register,
+  login,
+  refreshAccessToken,
+  logout,
+  replaceAllSessionsForUser,
+};

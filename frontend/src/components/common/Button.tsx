@@ -2,7 +2,7 @@ import { forwardRef } from 'react';
 import type { ButtonHTMLAttributes } from 'react';
 import Loading from './Loading';
 
-export type ButtonVariant = 'primary' | 'accent' | 'secondary' | 'outline' | 'danger' | 'ghost';
+export type ButtonVariant = 'primary' | 'secondary' | 'accent' | 'outline' | 'danger' | 'ghost';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -22,42 +22,25 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-primary-700 text-white hover:bg-primary-800 active:bg-primary-900 focus-visible:ring-primary-600/30 border-transparent shadow-sm',
-  accent:
-    'bg-accent-600 text-white hover:bg-accent-700 active:bg-accent-800 focus-visible:ring-accent-500/30 border-transparent shadow-sm',
+    'bg-primary-600 text-white shadow-sm shadow-primary-900/15 hover:-translate-y-0.5 hover:bg-primary-700 hover:shadow-lg active:translate-y-0 active:scale-[0.98] focus:ring-primary-400 border-transparent',
   secondary:
-    'bg-white text-stone-700 border-line hover:bg-stone-50 active:bg-stone-100 focus-visible:ring-primary-600/20 shadow-sm',
+    'bg-white text-gray-700 border-gray-200 shadow-sm hover:-translate-y-0.5 hover:border-primary-200 hover:bg-primary-50 hover:text-primary-800 active:translate-y-0 active:scale-[0.98] focus:ring-primary-400',
+  accent:
+    'bg-accent-500 text-white shadow-sm shadow-accent-900/15 hover:-translate-y-0.5 hover:bg-accent-600 hover:shadow-lg active:translate-y-0 active:scale-[0.98] focus:ring-accent-300 border-transparent',
   outline:
-    'bg-transparent text-primary-700 border-primary-600 hover:bg-primary-50 active:bg-primary-100 focus-visible:ring-primary-600/20',
+    'bg-transparent text-primary-700 border-primary-600 hover:bg-primary-50 active:bg-primary-100 focus:ring-primary-400',
   danger:
-    'bg-error-600 text-white hover:bg-error-700 active:bg-error-800 focus-visible:ring-error-500/30 border-transparent shadow-sm',
+    'bg-error text-white shadow-sm hover:-translate-y-0.5 hover:bg-red-700 active:translate-y-0 active:scale-[0.98] focus:ring-red-400 border-transparent',
   ghost:
-    'bg-transparent text-stone-600 hover:bg-stone-100 active:bg-stone-200 focus-visible:ring-stone-400 border-transparent',
+    'bg-transparent text-gray-600 hover:bg-primary-50 hover:text-primary-800 active:scale-[0.98] focus:ring-primary-300 border-transparent',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'h-8 px-3 text-xs gap-1.5 rounded-lg',
-  md: 'h-10 px-4 text-sm gap-2 rounded-xl',
-  lg: 'h-12 px-6 text-base gap-2.5 rounded-xl font-semibold',
+  sm: 'h-8 px-3 text-xs gap-1.5',
+  md: 'h-10 px-4 text-sm gap-2',
+  lg: 'h-12 px-6 text-base gap-2.5 font-semibold',
 };
 
-/**
- * Button dùng chung cho TravelGo.
- *
- * ```tsx
- * <Button variant="primary" size="md" onClick={handleClick}>
- *   Lưu thay đổi
- * </Button>
- *
- * <Button variant="accent" leftIcon={<SparklesIcon />}>
- *   AI Tạo lịch trình
- * </Button>
- *
- * <Button variant="danger" isLoading={isDeleting}>
- *   Xóa
- * </Button>
- * ```
- */
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
@@ -82,16 +65,16 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={isDisabled}
         className={`
           inline-flex items-center justify-center
-          font-medium border
-          transition-[background-color,border-color,color,box-shadow,transform] duration-150
-          focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
-          disabled:opacity-55 disabled:cursor-not-allowed disabled:shadow-none
-          active:scale-[0.98]
+          font-bold rounded-xl border
+          transition-all duration-200 ease-travel
+          focus:outline-none focus:ring-2 focus:ring-offset-2
+          disabled:opacity-60 disabled:cursor-not-allowed
           ${fullWidth ? 'w-full' : ''}
           ${variantClasses[variant]}
           ${sizeClasses[size]}
           ${className}
         `}
+        aria-busy={isLoading || undefined}
         {...props}
       >
         {isLoading ? (

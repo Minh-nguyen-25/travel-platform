@@ -1,24 +1,31 @@
-import { useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import TripIcon from '@/components/trip/TripIcon';
+import TravelGoLogo from '@/components/common/TravelGoLogo';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/constants';
-import TravelGoLogo from '@/components/common/TravelGoLogo';
 
-/**
- * Header / Navbar chung cho Client (User) website TravelGo.
- * Đặt trong MainLayout.
- *
- * Nav links:
- * - Home / Destinations / AI Planner (public)
- * - My Trips / Favorites (chỉ khi đã đăng nhập)
- * - Nút Login + Register (chưa đăng nhập)
- * - Avatar dropdown: Profile, Logout, Admin (đã đăng nhập)
- */
 export default function Header() {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const isHome = pathname === ROUTES.HOME;
+  const transparent = isHome && !scrolled && !menuOpen;
+
+  useEffect(() => {
+    const updateHeader = () => setScrolled(window.scrollY > 24);
+    updateHeader();
+    window.addEventListener('scroll', updateHeader, { passive: true });
+    return () => window.removeEventListener('scroll', updateHeader);
+  }, []);
+
+  useEffect(() => {
+    setMenuOpen(false);
+    setDropdownOpen(false);
+  }, [pathname]);
 
   const handleLogout = async () => {
     await logout();
@@ -26,206 +33,131 @@ export default function Header() {
     navigate(ROUTES.HOME);
   };
 
-  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `text-sm font-medium transition-colors px-2 py-1 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 ${
-      isActive
-        ? 'text-primary-700 font-semibold'
-        : 'text-stone-600 hover:text-stone-900'
-    }`;
+  const navLinkClass = ({ isActive }: { isActive: boolean }) => {
+    const idle = transparent
+      ? 'text-white/82 hover:bg-white/10 hover:text-white'
+      : 'text-gray-600 hover:bg-primary-50 hover:text-primary-800';
+    const active = transparent
+      ? 'bg-white/14 text-white shadow-sm'
+      : 'bg-primary-50 text-primary-800';
+    return `relative rounded-full px-3.5 py-2 text-[0.82rem] font-bold transition-all duration-300 ${isActive ? active : idle}`;
+  };
+
+  const links = [
+    { to: ROUTES.HOME, label: 'Trang chủ', end: true },
+    { to: ROUTES.DESTINATIONS, label: 'Khám phá' },
+    { to: ROUTES.PREFERENCES, label: 'AI Planner' },
+    ...(isAuthenticated
+      ? [
+          { to: ROUTES.AI_CHAT, label: 'AI Chat' },
+          { to: ROUTES.TRIPS, label: 'Chuyến đi' },
+          { to: ROUTES.FAVORITES, label: 'Yêu thích' },
+        ]
+      : []),
+  ];
 
   return (
-    <header className="sticky top-0 z-40 h-16 bg-white/95 backdrop-blur-md border-b border-line shadow-sm">
-      <div className="container h-full flex items-center justify-between gap-4">
-
-        {/* Brand Logo */}
+    <header
+      className={`${isHome ? 'fixed' : 'sticky'} inset-x-0 top-0 z-40 h-[72px] border-b transition-all duration-500 ${
+        transparent
+          ? 'border-transparent bg-transparent'
+          : 'border-white/70 bg-sand-50/90 shadow-[0_10px_35px_rgba(7,28,44,0.07)] backdrop-blur-xl'
+      }`}
+    >
+      <div className="container flex h-full items-center justify-between gap-4">
         <Link
           to={ROUTES.HOME}
-          className="flex items-center flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 rounded-lg p-0.5"
-          aria-label="TravelGo — Về trang chủ"
+          aria-label="TravelGo - Trang chủ"
         >
-          <TravelGoLogo variant="dark" />
+          <TravelGoLogo
+            variant={transparent ? 'light' : 'dark'}
+            showTagline={false}
+            className="transition-opacity hover:opacity-85"
+          />
         </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-5" aria-label="Điều hướng chính">
-          <NavLink to={ROUTES.HOME} end className={navLinkClass}>
-            Trang chủ
-          </NavLink>
-          <NavLink to={ROUTES.DESTINATIONS} className={navLinkClass}>
-            Địa điểm
-          </NavLink>
-          <NavLink to={ROUTES.PREFERENCES} className={navLinkClass}>
-            AI Lập lịch
-          </NavLink>
-          {isAuthenticated && (
-            <>
-              <NavLink to={ROUTES.TRIPS} className={navLinkClass}>
-                Chuyến đi
-              </NavLink>
-              <NavLink to={ROUTES.FAVORITES} className={navLinkClass}>
-                Yêu thích
-              </NavLink>
-            </>
-          )}
+        <nav className="hidden items-center gap-1 rounded-full md:flex" aria-label="Điều hướng chính">
+          {links.map(({ to, label, end }) => (
+            <NavLink key={to} to={to} end={end} className={navLinkClass}>{label}</NavLink>
+          ))}
         </nav>
 
-        {/* Auth Actions / User Menu */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {isAuthenticated && user ? (
-            /* Avatar Dropdown */
             <div className="relative">
               <button
-                onClick={() => setDropdownOpen((o) => !o)}
-                className="flex items-center gap-2 p-1 rounded-xl hover:bg-stone-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
+                type="button"
+                onClick={() => setDropdownOpen((open) => !open)}
+                className={`flex items-center gap-2 rounded-2xl border p-1.5 transition ${
+                  transparent
+                    ? 'border-white/20 bg-white/10 text-white hover:bg-white/15'
+                    : 'border-transparent text-gray-700 hover:border-gray-100 hover:bg-white'
+                }`}
                 aria-expanded={dropdownOpen}
-                aria-haspopup="true"
-                aria-label="Menu tài khoản người dùng"
+                aria-haspopup="menu"
+                aria-label="Mở menu tài khoản"
               >
                 {user.avatarUrl ? (
-                  <img
-                    src={user.avatarUrl}
-                    alt={user.fullName}
-                    className="w-8 h-8 rounded-full object-cover border border-line"
-                  />
+                  <img src={user.avatarUrl} alt="" className="h-8 w-8 rounded-xl object-cover" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-sm border border-primary-200">
+                  <span className={`flex h-8 w-8 items-center justify-center rounded-xl text-sm font-extrabold ${transparent ? 'bg-white/20 text-white' : 'bg-primary-100 text-primary-800'}`}>
                     {user.fullName.charAt(0).toUpperCase()}
-                  </div>
+                  </span>
                 )}
-                <svg className="w-4 h-4 text-stone-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
+                <span className="hidden max-w-28 truncate text-xs font-bold lg:block">{user.fullName}</span>
+                <TripIcon name="chevron-down" size={14} className="opacity-65" />
               </button>
 
               {dropdownOpen && (
                 <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setDropdownOpen(false)}
-                    aria-hidden="true"
-                  />
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-elevated border border-line z-20 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-4 py-3 border-b border-line bg-stone-50/50">
-                      <p className="text-sm font-bold text-stone-900 truncate">{user.fullName}</p>
-                      <p className="text-xs text-stone-500 truncate mt-0.5">{user.email}</p>
+                  <button type="button" className="fixed inset-0 z-10 cursor-default" onClick={() => setDropdownOpen(false)} aria-label="Đóng menu" />
+                  <div className="trip-modal-enter absolute right-0 z-20 mt-2 w-60 overflow-hidden rounded-2xl border border-white bg-white/95 py-1.5 text-gray-700 shadow-float backdrop-blur-xl" role="menu">
+                    <div className="border-b border-gray-100 px-4 py-3">
+                      <p className="truncate text-sm font-bold text-gray-900">{user.fullName}</p>
+                      <p className="mt-0.5 truncate text-xs text-gray-500">{user.email}</p>
                     </div>
-                    <div className="py-1">
-                      <Link
-                        to={ROUTES.PROFILE}
-                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50 hover:text-primary-700 transition-colors"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        Tài khoản của tôi
-                      </Link>
-                      {user.role === 'ADMIN' && (
-                        <Link
-                          to={ROUTES.ADMIN_DASHBOARD}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-primary-700 hover:bg-primary-50 transition-colors"
-                          onClick={() => setDropdownOpen(false)}
-                        >
-                          Quản trị hệ thống
-                        </Link>
-                      )}
-                    </div>
-                    <div className="border-t border-line pt-1">
-                      <button
-                        onClick={() => void handleLogout()}
-                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-error-700 hover:bg-error-50 transition-colors"
-                      >
-                        Đăng xuất
-                      </button>
-                    </div>
+                    <Link to={ROUTES.PROFILE} className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-800" role="menuitem"><TripIcon name="users" size={15} />Tài khoản của tôi</Link>
+                    <Link to={ROUTES.TRIPS} className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-800" role="menuitem"><TripIcon name="suitcase" size={15} />Chuyến đi của tôi</Link>
+                    {user.role === 'ADMIN' && (
+                      <Link to={ROUTES.ADMIN_DASHBOARD} className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-primary-800 hover:bg-primary-50" role="menuitem"><TripIcon name="compass" size={15} />Quản trị hệ thống</Link>
+                    )}
+                    <button type="button" onClick={() => void handleLogout()} className="mt-1 w-full border-t border-gray-100 px-4 py-2.5 text-left text-sm font-bold text-red-600 hover:bg-red-50" role="menuitem">Đăng xuất</button>
                   </div>
                 </>
               )}
             </div>
           ) : (
-            /* Login / Register Buttons */
-            <div className="hidden sm:flex items-center gap-2">
-              <Link
-                to={ROUTES.LOGIN}
-                className="px-3.5 py-2 text-sm font-medium text-stone-700 hover:text-primary-700 transition-colors rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
-              >
-                Đăng nhập
-              </Link>
-              <Link
-                to={ROUTES.REGISTER}
-                className="px-4 py-2 text-sm font-semibold bg-primary-700 text-white rounded-xl hover:bg-primary-800 active:bg-primary-900 shadow-sm transition-[background-color,box-shadow,transform] duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
-              >
-                Đăng ký
-              </Link>
+            <div className="hidden items-center gap-1 sm:flex">
+              <Link to={ROUTES.LOGIN} className={`rounded-xl px-3 py-2 text-sm font-bold ${transparent ? 'text-white hover:bg-white/10 hover:text-white' : 'text-gray-700 hover:bg-primary-50 hover:text-primary-800'}`}>Đăng nhập</Link>
+              <Link to={ROUTES.REGISTER} className={`rounded-xl px-4 py-2.5 text-sm font-bold shadow-lg transition hover:-translate-y-0.5 ${transparent ? 'bg-white text-navy-900 hover:bg-primary-50 hover:text-navy-900' : 'bg-primary-600 text-white shadow-primary-900/15 hover:bg-primary-700 hover:text-white'}`}>Đăng ký</Link>
             </div>
           )}
 
-          {/* Mobile menu button */}
           <button
-            className="md:hidden p-2 rounded-xl text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
-            onClick={() => setMenuOpen((o) => !o)}
-            aria-expanded={menuOpen}
+            type="button"
+            className={`flex h-10 w-10 items-center justify-center rounded-xl transition md:hidden ${transparent ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-primary-50'}`}
+            onClick={() => setMenuOpen((open) => !open)}
             aria-label={menuOpen ? 'Đóng menu' : 'Mở menu'}
+            aria-expanded={menuOpen}
           >
-            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              {menuOpen ? (
-                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-              ) : (
-                <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-              )}
-            </svg>
+            <TripIcon name={menuOpen ? 'x' : 'menu'} size={22} />
           </button>
         </div>
       </div>
 
-      {/* Mobile Nav Drawer */}
       {menuOpen && (
-        <nav
-          className="md:hidden bg-white border-t border-line py-3 px-4 flex flex-col gap-1 shadow-lg animate-in slide-in-from-top-2 duration-150"
-          aria-label="Menu di động"
-        >
-          {[
-            { to: ROUTES.HOME, label: 'Trang chủ' },
-            { to: ROUTES.DESTINATIONS, label: 'Địa điểm' },
-            { to: ROUTES.PREFERENCES, label: 'AI Lập lịch' },
-            ...(isAuthenticated
-              ? [
-                  { to: ROUTES.TRIPS, label: 'Chuyến đi của tôi' },
-                  { to: ROUTES.FAVORITES, label: 'Địa điểm yêu thích' },
-                  { to: ROUTES.PROFILE, label: 'Hồ sơ cá nhân' },
-                  ...(user?.role === 'ADMIN'
-                    ? [{ to: ROUTES.ADMIN_DASHBOARD, label: 'Quản trị hệ thống' }]
-                    : []),
-                ]
-              : [
-                  { to: ROUTES.LOGIN, label: 'Đăng nhập' },
-                  { to: ROUTES.REGISTER, label: 'Đăng ký' },
-                ]),
-          ].map(({ to, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === ROUTES.HOME}
-              className={({ isActive }) =>
-                `px-3 py-2.5 text-sm font-medium rounded-xl transition-colors ${
-                  isActive
-                    ? 'bg-primary-50 text-primary-700 font-semibold'
-                    : 'text-stone-700 hover:bg-stone-100 hover:text-stone-900'
-                }`
-              }
-              onClick={() => setMenuOpen(false)}
-            >
-              {label}
-            </NavLink>
-          ))}
-          {isAuthenticated && (
-            <button
-              onClick={() => {
-                setMenuOpen(false);
-                void handleLogout();
-              }}
-              className="w-full text-left px-3 py-2.5 text-sm font-medium text-error-700 hover:bg-error-50 rounded-xl transition-colors mt-1 border-t border-line pt-2"
-            >
-              Đăng xuất
-            </button>
-          )}
+        <nav className="trip-fade-in border-t border-white/70 bg-sand-50/95 px-4 py-3 shadow-float backdrop-blur-xl md:hidden" aria-label="Điều hướng di động">
+          <div className="mx-auto flex max-w-container flex-col gap-1">
+            {links.map(({ to, label, end }) => (
+              <NavLink key={to} to={to} end={end} className={({ isActive }) => `rounded-xl px-3.5 py-3 text-sm font-bold ${isActive ? 'bg-primary-100 text-primary-900' : 'text-gray-700 hover:bg-primary-50'}`}>{label}</NavLink>
+            ))}
+            {!isAuthenticated && (
+              <div className="mt-2 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
+                <Link to={ROUTES.LOGIN} className="rounded-xl border border-gray-200 px-3 py-2.5 text-center text-sm font-bold text-gray-700">Đăng nhập</Link>
+                <Link to={ROUTES.REGISTER} className="rounded-xl bg-primary-600 px-3 py-2.5 text-center text-sm font-bold text-white hover:text-white">Đăng ký</Link>
+              </div>
+            )}
+          </div>
         </nav>
       )}
     </header>
