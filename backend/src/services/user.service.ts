@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { HTTP_STATUS } from '../constants';
+import { HTTP_STATUS, AUTH_PROVIDER } from '../constants';
 import {
   AdminUserRecord,
   userRepository,
@@ -57,9 +57,9 @@ export const userService = {
   async changePassword(userId: number, input: ChangePasswordInput) {
     const user = await userRepository.findById(userId);
     if (!user) throw new AppError(USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
-    if (!user.passwordHash) {
+    if (!user.passwordHash || user.authProvider !== AUTH_PROVIDER.LOCAL) {
       throw new AppError(
-        'Tài khoản Google chưa thiết lập mật khẩu đăng nhập',
+        'Tài khoản đăng nhập qua mạng xã hội không hỗ trợ đổi mật khẩu',
         HTTP_STATUS.BAD_REQUEST
       );
     }

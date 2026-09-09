@@ -5,7 +5,7 @@ export interface ApiResponse<T> {
 }
 
 export type UserRole = 'USER' | 'ADMIN';
-export type AuthProvider = 'LOCAL' | 'GOOGLE' | string;
+export type AuthProvider = 'LOCAL' | 'GOOGLE' | 'FACEBOOK' | string;
 
 export interface User {
   id: number;
@@ -16,6 +16,8 @@ export interface User {
   role: UserRole;
   isActive: boolean;
   authProvider: AuthProvider;
+  provider?: string;
+  hasPassword?: boolean;
   createdAt: string;
   updatedAt: string;
 }

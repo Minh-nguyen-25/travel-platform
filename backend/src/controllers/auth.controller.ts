@@ -5,6 +5,8 @@ import { HTTP_STATUS } from '../constants';
 import env from '../config/env';
 import * as authService from '../services/auth.service';
 import * as userRepo from '../repositories/user.repository';
+import { serializeUser } from '../utils/user.utils';
+import { passwordResetService } from '../services/password-reset.service';
 
 // ─── Cookie name ──────────────────────────────────────────────────────────────
 const REFRESH_COOKIE = 'refreshToken';
@@ -99,11 +101,46 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
 export const getMe = async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
 
-  const user = await userRepo.findById(userId);
+  const user = await userRepo.userRepository.findById(userId);
 
   if (!user || !user.isActive) {
     throw new AppError('Tài khoản không tồn tại hoặc đã bị khóa', HTTP_STATUS.UNAUTHORIZED);
   }
 
-  sendSuccess(res, { user }, 'Lấy thông tin người dùng thành công');
+  sendSuccess(res, { user: serializeUser(user) }, 'Lấy thông tin người dùng thành công');
+};
+
+/**
+ * POST /auth/forgot-password
+ * Yêu cầu gửi email đặt lại mật khẩu (chống dò quét tài khoản).
+ * Body: { email }
+ */
+export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
+  const result = await passwordResetService.requestPasswordReset(req.body);
+  sendSuccess(res, null, result.message);
+};
+
+/**
+ * POST /auth/reset-password/validate
+ * Kiểm tra tính hợp lệ của reset token mà không tiêu thụ token.
+ * Body: { token }
+ */
+export const validateResetToken = async (req: Request, res: Response): Promise<void> => {
+  const { token } = req.body;
+  const result = await passwordResetService.validateResetToken(token);
+  sendSuccess(
+    res,
+    result,
+    result.valid ? 'Liên kết hợp lệ' : 'Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn'
+  );
+};
+
+/**
+ * POST /auth/reset-password
+ * Đặt lại mật khẩu với token một lần duy nhất.
+ * Body: { token, password, confirmPassword }
+ */
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+  const result = await passwordResetService.resetPassword(req.body);
+  sendSuccess(res, null, result.message);
 };

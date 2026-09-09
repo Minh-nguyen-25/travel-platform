@@ -43,3 +43,48 @@ export const loginSchema = z
   .strict();
 
 export type LoginDto = z.infer<typeof loginSchema>;
+
+// ─── Forgot Password ──────────────────────────────────────────────────────────
+export const forgotPasswordSchema = z
+  .object({
+    email: z
+      .string({ required_error: 'Email là bắt buộc' })
+      .trim()
+      .toLowerCase()
+      .email('Email không hợp lệ'),
+  })
+  .strict();
+
+export type ForgotPasswordDto = z.infer<typeof forgotPasswordSchema>;
+
+// ─── Reset Password ───────────────────────────────────────────────────────────
+export const resetPasswordSchema = z
+  .object({
+    token: z
+      .string({ required_error: 'Mã đặt lại mật khẩu là bắt buộc' })
+      .trim()
+      .min(1, 'Mã đặt lại mật khẩu không được để trống'),
+    password: passwordSchema,
+    confirmPassword: z
+      .string({ required_error: 'Mật khẩu xác nhận là bắt buộc' })
+      .min(1, 'Mật khẩu xác nhận không được để trống'),
+  })
+  .strict()
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Mật khẩu xác nhận không khớp',
+    path: ['confirmPassword'],
+  });
+
+export type ResetPasswordDto = z.infer<typeof resetPasswordSchema>;
+
+// ─── Validate Reset Token ───────────────────────────────────────────────────
+export const validateResetTokenSchema = z
+  .object({
+    token: z
+      .string({ required_error: 'Mã đặt lại mật khẩu là bắt buộc' })
+      .trim()
+      .min(1, 'Mã đặt lại mật khẩu không được để trống'),
+  })
+  .strict();
+
+export type ValidateResetTokenDto = z.infer<typeof validateResetTokenSchema>;

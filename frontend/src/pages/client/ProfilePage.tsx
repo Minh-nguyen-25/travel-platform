@@ -44,6 +44,13 @@ const initials = (name: string): string =>
     .map((part) => part.charAt(0).toUpperCase())
     .join('');
 
+const getLoginMethodLabel = (user: { provider?: string; authProvider?: string }): string => {
+  const p = (user.provider || user.authProvider || '').toUpperCase();
+  if (p === 'GOOGLE') return 'Google';
+  if (p === 'FACEBOOK') return 'Facebook';
+  return 'Email và mật khẩu';
+};
+
 export default function ProfilePage() {
   const {
     changePassword,
@@ -254,7 +261,7 @@ export default function ProfilePage() {
           <dl className="space-y-3 border-t border-gray-100 px-6 py-5 text-sm">
             <div className="flex items-center justify-between gap-3">
               <dt className="text-gray-500">Đăng nhập bằng</dt>
-              <dd className="font-bold text-gray-700">{user.authProvider === 'GOOGLE' ? 'Google' : 'Email'}</dd>
+              <dd className="font-bold text-gray-700">{getLoginMethodLabel(user)}</dd>
             </div>
             <div className="flex items-center justify-between gap-3">
               <dt className="text-gray-500">Tham gia</dt>
@@ -363,14 +370,14 @@ export default function ProfilePage() {
 
           <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
             <SectionTitle title="Đổi mật khẩu" description="Đổi mật khẩu sẽ đăng xuất các phiên cũ để bảo vệ tài khoản của bạn." />
-            {user.authProvider === 'GOOGLE' ? (
+            {user.hasPassword === false || user.authProvider === 'GOOGLE' || user.authProvider === 'FACEBOOK' ? (
               <div className="px-6 py-6 sm:px-7">
                 <div className="flex gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-800">
                   <svg className="mt-0.5 h-5 w-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="9" />
                     <path d="M12 11v5M12 8h.01" strokeLinecap="round" />
                   </svg>
-                  Tài khoản này đăng nhập bằng Google nên không sử dụng mật khẩu TravelGo.
+                  Tài khoản này đăng nhập bằng {getLoginMethodLabel(user)} nên không sử dụng mật khẩu TravelGo.
                 </div>
               </div>
             ) : (

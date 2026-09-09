@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES, USER_ROLES } from '@/constants';
 import Loading from '@/components/common/Loading';
+import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
 
 /** Reusable eye icon (open) */
 function EyeIcon() {
@@ -398,6 +399,32 @@ export default function RegisterPage() {
               )}
             </button>
           </div>
+
+          {/* Divider — social buttons placed after submit button */}
+          <div className="flex items-center gap-3 pt-1">
+            <div className="flex-1 h-px bg-stone-200" />
+            <span className="text-[12px] text-stone-400 font-medium tracking-wide">
+              hoặc tiếp tục với
+            </span>
+            <div className="flex-1 h-px bg-stone-200" />
+          </div>
+
+          {/*
+            Social Auth Buttons with Terms Gate:
+            - termsAccepted: reflects agreeTerms state
+            - onTermsRequired: fires setTermsError when button clicked without terms
+            - This ensures the same validation that blocks form submit also blocks
+              social auth — no way to create an account without accepting terms.
+          */}
+          <SocialAuthButtons
+            termsAccepted={agreeTerms}
+            onTermsRequired={() =>
+              setTermsError('Bạn phải đồng ý với Điều khoản & Chính sách để tiếp tục')
+            }
+            from={from}
+            disabled={isSubmitting}
+          />
+
         </form>
       </div>
 

@@ -10,8 +10,28 @@ export type Role = (typeof ROLE)[keyof typeof ROLE];
 export const AUTH_PROVIDER = {
   LOCAL: 'LOCAL',
   GOOGLE: 'GOOGLE',
+  FACEBOOK: 'FACEBOOK',
 } as const;
 export type AuthProvider = (typeof AUTH_PROVIDER)[keyof typeof AUTH_PROVIDER];
+
+/**
+ * Fixed allowlist of error codes that may appear in OAuth failure redirect URLs.
+ * Backend ONLY uses these values — raw provider messages, tokens, and stack traces
+ * are never placed in URLs. Frontend maps these codes to Vietnamese messages.
+ */
+export const OAUTH_ERROR_CODES = {
+  STATE_INVALID:           'STATE_INVALID',
+  STATE_EXPIRED:           'STATE_EXPIRED',
+  EMAIL_NOT_VERIFIED:      'EMAIL_NOT_VERIFIED',
+  EMAIL_MISSING:           'EMAIL_MISSING',
+  FACEBOOK_EMAIL_REQUIRED: 'FACEBOOK_EMAIL_REQUIRED',
+  ACCOUNT_LOCKED:          'ACCOUNT_LOCKED',
+  EMAIL_CONFLICT_LOCAL:    'EMAIL_CONFLICT_LOCAL',
+  EMAIL_CONFLICT_PROVIDER: 'EMAIL_CONFLICT_PROVIDER',
+  PROVIDER_ERROR:          'PROVIDER_ERROR',
+  CONFIG_ERROR:            'CONFIG_ERROR',
+} as const;
+export type OAuthErrorCode = (typeof OAUTH_ERROR_CODES)[keyof typeof OAUTH_ERROR_CODES];
 
 export const TRAVEL_MODE = {
   WALKING: 'WALKING',

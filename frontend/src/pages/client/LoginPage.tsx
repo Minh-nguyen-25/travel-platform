@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation, Navigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '@/hooks/useAuth';
-import { ROUTES, USER_ROLES } from '@/constants';
+import { ROUTES, USER_ROLES, getOAuthErrorMessage } from '@/constants';
 import Loading from '@/components/common/Loading';
+import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
 
 /**
  * LoginPage — Form đăng nhập bên trong AuthLayout.
@@ -22,6 +23,13 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isWarning, setIsWarning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Read OAuth error code from ?error= query param and map to Vietnamese message.
+  // getOAuthErrorMessage only accepts fixed allowlisted codes — unknown codes
+  // return a generic message; raw backend text is never shown.
+  const [searchParams] = useSearchParams();
+  const oauthErrorCode = searchParams.get('error');
+  const oauthError = getOAuthErrorMessage(oauthErrorCode);
 
   const from = (location.state as { from?: { pathname: string } | string })?.from
     ? typeof (location.state as { from: unknown }).from === 'string'
@@ -85,6 +93,21 @@ export default function LoginPage() {
             Đăng nhập để tiếp tục hành trình của bạn.
           </p>
         </div>
+
+        {/* OAuth error banner (from ?error= redirect) */}
+        {oauthError && !error && (
+          <div
+            id="login-oauth-error"
+            role="alert"
+            aria-live="polite"
+            className="auth-alert-enter mb-5 p-3.5 rounded-xl border text-[13px] flex items-start gap-2.5 bg-amber-50 border-amber-200/80 text-amber-800 motion-reduce:transition-none"
+          >
+            <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <span className="leading-relaxed">{oauthError}</span>
+          </div>
+        )}
 
         {/* Alert Banner */}
         {error && (
@@ -152,9 +175,17 @@ export default function LoginPage() {
 
           {/* Password */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="login-password" className="text-[13px] font-semibold text-stone-700">
-              Mật khẩu <span className="text-red-500" aria-hidden="true">*</span>
-            </label>
+            <div className="flex items-center justify-between">
+              <label htmlFor="login-password" className="text-[13px] font-semibold text-stone-700">
+                Mật khẩu <span className="text-red-500" aria-hidden="true">*</span>
+              </label>
+              <Link
+                to={ROUTES.FORGOT_PASSWORD}
+                className="text-[12px] font-medium text-teal-700 hover:text-teal-800 hover:underline transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
+              >
+                Quên mật khẩu?
+              </Link>
+            </div>
             <div className="relative">
               <input
                 id="login-password"
@@ -252,6 +283,22 @@ export default function LoginPage() {
             </button>
           </div>
         </form>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3 my-5">
+          <div className="flex-1 h-px bg-stone-200" />
+          <span className="text-[12px] text-stone-400 font-medium tracking-wide">
+            hoặc tiếp tục với
+          </span>
+          <div className="flex-1 h-px bg-stone-200" />
+        </div>
+
+        {/* Social Auth Buttons — terms always accepted on login */}
+        <SocialAuthButtons
+          termsAccepted={true}
+          from={from}
+          disabled={isSubmitting}
+        />
       </div>
 
       {/* Footer link to Register */}
