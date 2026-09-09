@@ -5,6 +5,8 @@ export interface UserResponse {
   fullName: string;
   email: string;
   authProvider: string;
+  provider: string;
+  hasPassword: boolean;
   avatarUrl: string | null;
   role: string;
   isActive: boolean;

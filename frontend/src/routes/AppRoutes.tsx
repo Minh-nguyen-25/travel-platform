@@ -17,6 +17,8 @@ const DestinationsPage = lazy(() => import('@/pages/client/DestinationsPage'));
 const DestinationDetailPage = lazy(() => import('@/pages/client/DestinationDetailPage'));
 const LoginPage = lazy(() => import('@/pages/client/LoginPage'));
 const RegisterPage = lazy(() => import('@/pages/client/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('@/pages/client/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('@/pages/client/ResetPasswordPage'));
 const SharedTripPage = lazy(() => import('@/pages/client/SharedTripPage'));
 const NotFoundPage = lazy(() => import('@/pages/client/NotFoundPage'));
 const ProfilePage = lazy(() => import('@/pages/client/ProfilePage'));
@@ -30,18 +32,28 @@ const UsersPage = lazy(() => import('@/pages/admin/UsersPage'));
 const DestinationsAdminPage = lazy(() => import('@/pages/admin/DestinationsAdminPage'));
 const CategoriesPage = lazy(() => import('@/pages/admin/CategoriesPage'));
 const ReviewsAdminPage = lazy(() => import('@/pages/admin/ReviewsAdminPage'));
+const OAuthCallbackPage = lazy(() => import('@/pages/client/OAuthCallbackPage'));
 
 export default function AppRoutes() {
   return (
     <Suspense fallback={<Loading fullPage message="Đang mở hành trình..." />}>
       <Routes>
         {/* ======================================================
-            AUTH ROUTES — Login & Register (trong AuthLayout)
+            AUTH ROUTES — Login, Register, Forgot & Reset (trong AuthLayout)
             ====================================================== */}
         <Route element={<AuthLayout />}>
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="reset-password" element={<ResetPasswordPage />} />
         </Route>
+
+        {/* ======================================================
+            OAUTH CALLBACK — Public, no layout wrapper
+            Backend redirects here after successful OAuth exchange.
+            Page calls restoreSession() then navigates to returnPath.
+            ====================================================== */}
+        <Route path="oauth/callback" element={<OAuthCallbackPage />} />
 
         {/* ======================================================
             PUBLIC ROUTES — Ai cũng vào được (trong MainLayout)

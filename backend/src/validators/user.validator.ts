@@ -36,7 +36,7 @@ export const adminUserListQuerySchema = z
     limit: z.coerce.number().int().min(1).max(100).default(20),
     search: z.string().trim().min(1).max(255).optional(),
     role: z.enum(['ADMIN', 'USER']).optional(),
-    authProvider: z.enum(['LOCAL', 'GOOGLE']).optional(),
+    authProvider: z.enum(['LOCAL', 'GOOGLE', 'FACEBOOK']).optional(),
     isActive: optionalBoolean,
     sortBy: z.enum(['createdAt', 'fullName', 'email']).default('createdAt'),
     sortOrder: z.enum(['asc', 'desc']).default('desc'),

@@ -26,6 +26,7 @@ model User {
   trips            Trip[]
   travelPreference TravelPreference? // Quan hệ 1-1
   refreshTokens     RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
 
   @@unique([authProvider, providerId])
   @@map("users")
@@ -43,6 +44,21 @@ model RefreshToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    Int       @map("user_id")
+  tokenHash String    @unique @map("token_hash") @db.Char(64)
+  expiresAt DateTime  @map("expires_at") @db.Timestamp()
+  usedAt    DateTime? @map("used_at") @db.Timestamp()
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp()
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }
 
 // 2. categories — Danh mục du lịch

@@ -11,11 +11,22 @@ import type { RegisterDto, LoginDto } from '../validators/auth.validator';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Returns a sanitised user object with passwordHash stripped. */
-const sanitise = (user: User): Omit<User, 'passwordHash'> => {
+export interface SafeUser extends Omit<User, 'passwordHash'> {
+  provider: string;
+  hasPassword: boolean;
+}
+
+/** Returns a sanitised user object with passwordHash stripped and safe auth metadata. */
+const sanitise = (
+  user: Omit<User, 'passwordHash'> & { passwordHash?: string | null; hasPassword?: boolean }
+): SafeUser => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { passwordHash: _omitted, ...safe } = user;
-  return safe;
+  return {
+    ...safe,
+    provider: user.authProvider.toLowerCase(),
+    hasPassword: typeof user.hasPassword === 'boolean' ? user.hasPassword : Boolean(user.passwordHash),
+  };
 };
 
 /**
@@ -28,7 +39,7 @@ const invalidCredentials = () =>
 // ─── Register ─────────────────────────────────────────────────────────────────
 
 export interface AuthResult {
-  user: Omit<User, 'passwordHash'>;
+  user: SafeUser;
   accessToken: string;
   refreshToken: string;
 }
@@ -71,7 +82,7 @@ export const register = async (dto: RegisterDto): Promise<AuthResult> => {
   const refreshToken = generateRefreshToken(user.id, jti);
   await setSession(jti, user.id);
 
-  return { user, accessToken, refreshToken };
+  return { user: sanitise({ ...user, hasPassword: true }), accessToken, refreshToken };
 };
 
 // ─── Login ────────────────────────────────────────────────────────────────────

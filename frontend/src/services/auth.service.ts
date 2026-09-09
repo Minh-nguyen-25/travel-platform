@@ -25,7 +25,27 @@ export const authApi = {
 
   getMe: (): Promise<AxiosResponse<ApiResponse<{ user: User }>>> =>
     axiosClient.get<ApiResponse<{ user: User }>>('/auth/me'),
+
+  consumeOAuthTicket: (ticket: string): Promise<AxiosResponse<ApiResponse<{ returnPath: string }>>> =>
+    axiosClient.post<ApiResponse<{ returnPath: string }>>('/auth/oauth/consume-ticket', { ticket }),
+
+  forgotPassword: (data: { email: string }): Promise<AxiosResponse<ApiResponse<null>>> =>
+    axiosClient.post<ApiResponse<null>>('/auth/forgot-password', data),
+
+  validateResetToken: (
+    data: { token: string },
+    signal?: AbortSignal
+  ): Promise<AxiosResponse<ApiResponse<{ valid: boolean }>>> =>
+    axiosClient.post<ApiResponse<{ valid: boolean }>>('/auth/reset-password/validate', data, { signal }),
+
+  resetPassword: (data: {
+    token: string;
+    password: string;
+    confirmPassword: string;
+  }): Promise<AxiosResponse<ApiResponse<null>>> =>
+    axiosClient.post<ApiResponse<null>>('/auth/reset-password', data),
 };
+
 
 export const authService = {
   async login(input: LoginRequest): Promise<AuthTokenResponse> {
@@ -78,5 +98,33 @@ export const authService = {
       input,
     );
     return response.data.data;
+  },
+
+  async consumeOAuthTicket(ticket: string): Promise<string> {
+    try {
+      const response = await authApi.consumeOAuthTicket(ticket);
+      return response.data.data.returnPath || '/';
+    } catch {
+      return '/';
+    }
+  },
+
+  async forgotPassword(email: string): Promise<string> {
+    const response = await authApi.forgotPassword({ email });
+    return response.data.message || 'Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu.';
+  },
+
+  async validateResetToken(token: string, signal?: AbortSignal): Promise<boolean> {
+    const response = await authApi.validateResetToken({ token }, signal);
+    return Boolean(response.data?.data?.valid);
+  },
+
+  async resetPassword(data: {
+    token: string;
+    password: string;
+    confirmPassword: string;
+  }): Promise<string> {
+    const response = await authApi.resetPassword(data);
+    return response.data.message || 'Mật khẩu đã được đặt lại thành công.';
   },
 };

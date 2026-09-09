@@ -65,6 +65,52 @@ function validateEnv() {
   const PORT                   = process.env['PORT']                   || '3000';
   const FRONTEND_URL           = process.env['FRONTEND_URL']           || 'http://localhost:5173';
 
+  // ─── Optional OAuth configuration ────────────────────────────────────────────
+  // These are entirely optional — the server and email/password auth start normally
+  // whether or not OAuth credentials are present. Only the OAuth endpoints for a
+  // given provider will reject with CONFIG_ERROR when that provider is not configured.
+  // configuredValue rejects undefined, empty strings, and placeholder 'your_*' values.
+  const configuredValue = (v?: string): v is string =>
+    Boolean(v?.trim()) && !v!.trim().startsWith('your_');
+
+  const GOOGLE_CLIENT_ID        = process.env['GOOGLE_CLIENT_ID']     ?? '';
+  const GOOGLE_CLIENT_SECRET    = process.env['GOOGLE_CLIENT_SECRET'] ?? '';
+  const GOOGLE_CALLBACK_URL     =
+    process.env['GOOGLE_CALLBACK_URL'] ??
+    `http://localhost:${process.env['PORT'] ?? '3000'}/api/v1/auth/google/callback`;
+  const GOOGLE_OAUTH_CONFIGURED =
+    configuredValue(process.env['GOOGLE_CLIENT_ID']) &&
+    configuredValue(process.env['GOOGLE_CLIENT_SECRET']);
+
+  const FACEBOOK_APP_ID          = process.env['FACEBOOK_APP_ID']     ?? '';
+  const FACEBOOK_APP_SECRET      = process.env['FACEBOOK_APP_SECRET'] ?? '';
+  const FACEBOOK_CALLBACK_URL    =
+    process.env['FACEBOOK_CALLBACK_URL'] ??
+    `http://localhost:${process.env['PORT'] ?? '3000'}/api/v1/auth/facebook/callback`;
+  const FACEBOOK_OAUTH_CONFIGURED =
+    configuredValue(process.env['FACEBOOK_APP_ID']) &&
+    configuredValue(process.env['FACEBOOK_APP_SECRET']);
+
+  // After a successful OAuth callback, backend redirects to this frontend page.
+  // The frontend page calls restoreSession() to load the access token into memory.
+  const OAUTH_SUCCESS_REDIRECT =
+    process.env['OAUTH_SUCCESS_REDIRECT'] ??
+    `${FRONTEND_URL}/oauth/callback`;
+
+  // When OAuth fails, backend redirects here with ?error=<FIXED_CODE>
+  const OAUTH_FAILURE_REDIRECT =
+    process.env['OAUTH_FAILURE_REDIRECT'] ??
+    `${FRONTEND_URL}/login`;
+
+  // ─── Resend / Email configuration ───────────────────────────────────────────
+  const RESEND_API_KEY = process.env['RESEND_API_KEY'] ?? '';
+  const MAIL_FROM      = process.env['MAIL_FROM'] || 'TravelGo <onboarding@resend.dev>';
+  const rawResetMinutes = parseInt(process.env['PASSWORD_RESET_EXPIRES_MINUTES'] || '15', 10);
+  const PASSWORD_RESET_EXPIRES_MINUTES =
+    Number.isFinite(rawResetMinutes) && rawResetMinutes > 0 ? rawResetMinutes : 15;
+  const PASSWORD_RESET_EXPIRES_SECONDS = PASSWORD_RESET_EXPIRES_MINUTES * 60;
+  const RESEND_CONFIGURED = configuredValue(process.env['RESEND_API_KEY']);
+
   // Derived — computed once, consistent across all consumers
   let REFRESH_TTL_SECONDS: number;
   try {
@@ -88,6 +134,25 @@ function validateEnv() {
     PORT,
     FRONTEND_URL,
     IS_PRODUCTION: NODE_ENV === 'production',
+    // Google OAuth
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    GOOGLE_CALLBACK_URL,
+    GOOGLE_OAUTH_CONFIGURED,
+    // Facebook OAuth
+    FACEBOOK_APP_ID,
+    FACEBOOK_APP_SECRET,
+    FACEBOOK_CALLBACK_URL,
+    FACEBOOK_OAUTH_CONFIGURED,
+    // OAuth redirects
+    OAUTH_SUCCESS_REDIRECT,
+    OAUTH_FAILURE_REDIRECT,
+    // Resend / Email
+    RESEND_API_KEY,
+    MAIL_FROM,
+    PASSWORD_RESET_EXPIRES_MINUTES,
+    PASSWORD_RESET_EXPIRES_SECONDS,
+    RESEND_CONFIGURED,
   };
 }
 
