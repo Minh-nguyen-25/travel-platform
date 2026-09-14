@@ -6,10 +6,15 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "test": "npm run build && node --test tests/backend.smoke.test.cjs",
+    "test": "npm run build && node --test tests/*.test.cjs",
     "start": "node dist/src/server.js",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
+    "map:data:refresh": "npm run build && node dist/scripts/refresh-map-data.js",
+    "map:data:preview": "npm run build && node dist/prisma/import-map-data.js",
+    "map:data:import": "npm run build && node dist/prisma/import-map-data.js --apply",
+    "photos:preview": "npm run build && node dist/prisma/import-destination-photos.js",
+    "photos:import": "npm run build && node dist/prisma/import-destination-photos.js --apply",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset --force"
   },

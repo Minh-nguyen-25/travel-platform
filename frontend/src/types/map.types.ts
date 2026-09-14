@@ -32,6 +32,7 @@ export interface GeoJsonLineString {
 }
 
 export interface MapRouteResult {
+  cache?: { status: 'fresh' | 'hit' | 'stale'; fetchedAt: string };
   profile: RoutingProfile;
   distanceMeters: number;
   distanceKm: number;

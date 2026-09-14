@@ -1,6 +1,9 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Reveal from '@/components/common/Reveal';
+import DestinationSearch from '@/components/destination/DestinationSearch';
+import useHomeScrollMotion from '@/hooks/useHomeScrollMotion';
+import './HomePage.css';
 import CategoryCard from '@/components/destination/CategoryCard';
 import DestinationCard, { DestinationCardSkeleton } from '@/components/destination/DestinationCard';
 import TripIcon from '@/components/trip/TripIcon';
@@ -9,7 +12,7 @@ import { destinationService } from '@/services/destination.service';
 import type { Category, Destination } from '@/types/destination.types';
 import { getApiErrorMessage } from '@/utils/trip.utils';
 
-const HERO_IMAGE = '/images/vietnam-ha-giang-hero.jpg';
+const HERO_IMAGE = '/images/destinations/ha-giang.jpg';
 
 function CategorySkeleton() {
   return (
@@ -30,6 +33,7 @@ const destinationGridClass = (index: number): string => {
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const { pageRef, heroRef, progressRef } = useHomeScrollMotion();
   const [search, setSearch] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [topDestinations, setTopDestinations] = useState<Destination[]>([]);
@@ -71,100 +75,74 @@ export default function HomePage() {
     return () => { active = false; };
   }, [retryKey]);
 
-  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const query = search.trim();
+  const submitSearch = (query: string) => {
     navigate(query ? `${ROUTES.DESTINATIONS}?search=${encodeURIComponent(query)}` : ROUTES.DESTINATIONS);
   };
-
   return (
-    <div className="min-h-screen overflow-x-hidden bg-sand-50">
-      <section className="relative isolate flex min-h-[760px] items-end overflow-hidden bg-navy-950 text-white sm:min-h-[820px] lg:min-h-[min(920px,100svh)] lg:items-center">
-        <img
-          src={HERO_IMAGE}
-          alt="Đèo núi Hà Giang trong ánh bình minh"
-          className="hero-ken-burns absolute inset-0 -z-30 h-full w-full object-cover object-[68%_50%]"
-          fetchPriority="high"
-        />
-        <div className="absolute inset-0 -z-20 bg-gradient-to-r from-navy-950/95 via-navy-950/64 to-navy-950/5" />
-        <div className="absolute inset-0 -z-20 bg-gradient-to-t from-navy-950/88 via-transparent to-navy-950/22" />
-        <div className="absolute inset-x-0 bottom-0 -z-10 h-36 bg-gradient-to-t from-sand-50 to-transparent" />
-
-        <div className="container relative grid items-center gap-12 pb-24 pt-32 lg:grid-cols-[minmax(0,1fr)_21rem] lg:pb-28 lg:pt-36 xl:grid-cols-[minmax(0,1fr)_24rem]">
-          <div className="max-w-4xl">
-            <div className="animate-hero-reveal inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-2 text-[0.68rem] font-extrabold uppercase tracking-[0.2em] text-primary-100 backdrop-blur-md">
-              <TripIcon name="compass" size={15} />
-              Travel Platform Vietnam
-            </div>
-
-            <h1 className="display-title mt-6 max-w-4xl text-[clamp(3.25rem,8.5vw,7.6rem)] text-white">
-              <span className="hero-title-line">Chạm vào</span>
-              <span className="hero-title-line text-primary-100">Việt Nam.</span>
-              <span className="hero-title-line accent-script -mt-1 text-[0.62em] font-semibold tracking-normal text-accent-300 sm:-mt-3">Theo cách của riêng bạn.</span>
-            </h1>
-
-            <p className="mt-7 max-w-2xl animate-hero-reveal text-sm leading-7 text-white/72 [animation-delay:300ms] sm:text-base lg:text-lg lg:leading-8">
-              Từ cung đường trong mây đến phố cổ lên đèn — khám phá nơi bạn muốn đến, lưu điều khiến bạn rung động và tạo một hành trình thật sự thuộc về mình.
-            </p>
-
-            <div className="mt-8 flex animate-hero-reveal flex-wrap gap-3 [animation-delay:390ms]">
-              <Link to={ROUTES.PREFERENCES} className="group inline-flex h-12 items-center gap-2 rounded-2xl bg-accent-500 px-5 text-sm font-extrabold text-white shadow-xl shadow-accent-900/20 transition hover:-translate-y-1 hover:bg-accent-600 hover:text-white">
-                <TripIcon name="sparkles" size={17} />
-                Tạo lịch trình
-                <TripIcon name="arrow-right" size={16} className="transition group-hover:translate-x-1" />
-              </Link>
-              <Link to={ROUTES.DESTINATIONS} className="inline-flex h-12 items-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-5 text-sm font-extrabold text-white backdrop-blur-md transition hover:-translate-y-1 hover:bg-white/20 hover:text-white">
-                <TripIcon name="globe" size={17} />Khám phá ngay
-              </Link>
-            </div>
-
-            <form onSubmit={submitSearch} className="mt-9 flex max-w-2xl animate-hero-reveal flex-col gap-2 rounded-2xl border border-white/20 bg-white/95 p-2 shadow-float [animation-delay:480ms] sm:flex-row">
-              <label htmlFor="home-destination-search" className="sr-only">Tìm kiếm địa điểm</label>
-              <div className="relative min-w-0 flex-1">
-                <TripIcon name="search" size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-600" />
-                <input
-                  id="home-destination-search"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  className="h-12 w-full rounded-xl border-0 bg-transparent pl-12 pr-4 text-sm font-semibold text-gray-900 outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-primary-200"
-                  placeholder="Hôm nay bạn muốn đi đâu?"
-                  maxLength={200}
-                />
+    <div ref={pageRef} className="home-page min-h-screen bg-sand-50">
+      <div ref={progressRef} className="home-scroll-progress" aria-hidden="true" />
+      <section ref={heroRef} className="home-hero">
+        <div className="home-hero__backdrop" aria-hidden="true" />
+        <div className="container relative">
+          <div className="home-hero__grid">
+            <div className="home-hero__copy">
+              <p className="home-hero__eyebrow"><span />ĐI ĐỂ THẤY. ĐI ĐỂ NHỚ.</p>
+              <h1 className="display-title home-hero__title text-white">
+                <span className="hero-title-line">Việt Nam,</span>
+                <span className="hero-title-line text-primary-100">đi để thấy,</span>
+                <span className="hero-title-line accent-script text-accent-300">ở lại để yêu.</span>
+              </h1>
+              <p className="home-hero__description">Một sớm giữa núi rừng. Một chiều bên phố cổ. Tìm nơi khiến bạn muốn lên đường — và viết nên hành trình của riêng mình.</p>
+              <div className="mt-7 flex flex-wrap items-center gap-5">
+                <Link to={ROUTES.PREFERENCES} className="home-primary-link"><TripIcon name="sparkles" size={17} />Lên kế hoạch cùng AI<TripIcon name="arrow-right" size={17} /></Link>
+                <a href="#home-search" className="inline-flex items-center gap-2 text-sm font-bold text-white/80 hover:text-white">Tìm địa điểm<TripIcon name="arrow-down" size={16} /></a>
               </div>
-              <button type="submit" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary-700 px-6 text-sm font-extrabold text-white transition hover:bg-primary-800 active:scale-[0.98]">
-                Tìm cảm hứng <TripIcon name="arrow-right" size={16} />
-              </button>
-            </form>
+              <div className="home-hero__note"><TripIcon name="route" size={18} /><span>Chọn điểm đến. Lưu điều bạn thích.<br /><strong>Để mỗi chuyến đi mang dấu ấn của bạn.</strong></span></div>
+            </div>
+            <div className="home-hero__visual">
+              <div className="home-hero__photo">
+                <img src={HERO_IMAGE} alt="Cung đường uốn lượn giữa núi rừng Hà Giang" fetchPriority="high" className="home-hero__image" />
+                <div className="home-hero__photo-veil" />
+                <span className="home-hero__photo-tag"><TripIcon name="map-pin" size={14} />HÀ GIANG · VIỆT NAM</span>
+                <div className="home-hero__caption"><p>Những cung đường<br />dẫn đến tự do.</p><Link to={`${ROUTES.DESTINATIONS}?search=${encodeURIComponent('Hà Giang')}`} aria-label="Khám phá Hà Giang"><TripIcon name="arrow-right" size={23} /></Link></div>
+              </div>
+              <div className="home-hero__postcard">
+                <img src="/images/destinations/hoi-an.jpg" alt="Phố cổ Hội An, ảnh chụp thực tế" width="76" height="88" />
+                <div><p>Một nhịp đi khác</p><strong>Chậm lại ở Hội An</strong><Link to={`${ROUTES.DESTINATIONS}?search=${encodeURIComponent('Hội An')}`}>Ghé thăm phố cổ <TripIcon name="arrow-right" size={13} /></Link></div>
+              </div>
+              <span className="home-hero__index" aria-hidden="true">01 / KHÁM PHÁ</span>
+            </div>
           </div>
-
-          <aside className="animate-soft-float hidden overflow-hidden rounded-[2rem] border border-white/20 bg-navy-950/45 p-5 text-white shadow-float backdrop-blur-xl lg:block" aria-label="Cách TravelPlatform tạo hành trình">
-            <div className="flex items-center justify-between">
-              <span className="text-[0.65rem] font-extrabold uppercase tracking-[0.18em] text-primary-200">Hành trình thông minh</span>
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10"><TripIcon name="route" size={18} /></span>
-            </div>
-            <h2 className="mt-5 font-sans text-xl font-extrabold leading-snug text-white">Từ cảm hứng đến lịch trình trong vài phút.</h2>
-            <div className="mt-5 space-y-3">
-              {[
-                ['heart', 'Chọn gu của bạn'],
-                ['sparkles', 'Để AI tối ưu'],
-                ['suitcase', 'Lưu và lên đường'],
-              ].map(([icon, label], index) => (
-                <div key={label} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.07] p-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-300/15 text-primary-100"><TripIcon name={icon as 'heart' | 'sparkles' | 'suitcase'} size={16} /></span>
-                  <div><p className="text-[0.62rem] font-bold uppercase tracking-wider text-white/45">Bước {index + 1}</p><p className="mt-0.5 text-xs font-extrabold text-white">{label}</p></div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-5 flex items-center gap-2 border-t border-white/10 pt-4 text-[0.68rem] font-semibold text-white/55"><TripIcon name="check" size={14} className="text-secondary-300" />Dữ liệu thật, kế hoạch của riêng bạn</div>
-          </aside>
+          <div id="home-search" className="home-search-dock">
+            <div className="home-search-dock__heading"><TripIcon name="compass" size={22} /><div><h2>Chuyến đi tiếp theo, bạn muốn đến đâu?</h2><p>Tìm theo địa điểm, thành phố hoặc trải nghiệm bạn yêu thích.</p></div></div>
+            <DestinationSearch value={search} onChange={setSearch} onSearch={submitSearch} buttonLabel="Khám phá ngay" />
+            <div className="home-search-dock__suggestions"><span>Thử khám phá:</span>{['Hà Giang', 'Hội An', 'Đà Lạt', 'Ninh Bình'].map((place) => <Link key={place} to={`${ROUTES.DESTINATIONS}?search=${encodeURIComponent(place)}`}><TripIcon name="map-pin" size={12} />{place}</Link>)}</div>
+          </div>
         </div>
-
-        <a href="#inspiration" className="absolute bottom-8 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-[0.6rem] font-extrabold uppercase tracking-[0.2em] text-navy-900/55 hover:text-primary-800 lg:flex">
-          Cuộn để khám phá
-          <span className="flex h-9 w-6 justify-center rounded-full border border-navy-900/25 p-1"><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary-700" /></span>
-        </a>
       </section>
 
+      <section className="home-escapes bg-sand-50">
+        <div className="container">
+          <Reveal className="flex flex-wrap items-end justify-between gap-5">
+            <div><p className="eyebrow"><TripIcon name="globe" size={15} />Mỗi nơi, một câu chuyện</p><h2 className="display-title mt-4 text-4xl text-navy-900 sm:text-5xl">Đổi khung cảnh. Đổi nhịp sống.</h2></div>
+            <Link to={ROUTES.DESTINATIONS} className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-800">Tất cả điểm đến<TripIcon name="arrow-right" size={16} /></Link>
+          </Reveal>
+          <div className="mt-9 grid gap-5 md:grid-cols-3">
+            {[
+              { place: 'Ninh Bình', image: '/images/destinations/ninh-binh.jpg', title: 'Giữa miền non nước', subtitle: 'Một khoảng xanh để thở sâu.', label: 'THIÊN NHIÊN' },
+              { place: 'Hội An', image: '/images/destinations/hoi-an.jpg', title: 'Chạm vào ký ức', subtitle: 'Phố nhỏ, những câu chuyện dài.', label: 'VĂN HÓA' },
+              { place: 'Đà Lạt', image: '/images/destinations/da-lat.jpg', title: 'Hẹn với bình yên', subtitle: 'Đi tìm một sáng mai thật chậm.', label: 'NGHỈ DƯỠNG' },
+            ].map((escape, index) => <Reveal key={escape.place} delay={index * 100} variant="scale">
+              <Link to={`${ROUTES.DESTINATIONS}?search=${encodeURIComponent(escape.place)}`} className="home-escape-card group">
+                <img src={escape.image} alt={`Khung cảnh ${escape.place}`} loading="lazy" />
+                <span className="home-escape-card__label">{escape.label}</span>
+                <div className="home-escape-card__copy"><span>{escape.place}</span><h3>{escape.title}</h3><p>{escape.subtitle}</p></div>
+                <span className="home-escape-card__arrow"><TripIcon name="arrow-right" size={20} /></span>
+              </Link>
+            </Reveal>)}
+          </div>
+        </div>
+      </section>
       <section id="inspiration" className="section bg-sand-50">
         <div className="container">
           <Reveal className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
@@ -218,7 +196,7 @@ export default function HomePage() {
             {isLoading
               ? Array.from({ length: 6 }).map((_, index) => <div key={index} className={destinationGridClass(index)}><DestinationCardSkeleton /></div>)
               : topDestinations.map((destination, index) => (
-                  <DestinationCard key={destination.id} destination={destination} priority={index < 2} className={destinationGridClass(index)} />
+                  <Reveal key={destination.id} delay={(index % 3) * 90} variant="up" className={destinationGridClass(index)}><DestinationCard destination={destination} priority={index < 2} /></Reveal>
                 ))}
           </div>
 

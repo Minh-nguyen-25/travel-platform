@@ -29,6 +29,8 @@ export const serializeDestination = (
   phoneNumber: destination.phoneNumber,
   latitude: destination.latitude.toFixed(7),
   longitude: destination.longitude.toFixed(7),
+  coordinateSourceUrl: destination.coordinateSourceUrl ?? null,
+  coordinatesVerifiedAt: destination.coordinatesVerifiedAt?.toISOString() ?? null,
   ticketPrice: destination.ticketPrice.toFixed(2),
   openingHoursNote: destination.openingHoursNote,
   visitDuration: destination.visitDuration,

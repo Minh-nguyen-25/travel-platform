@@ -1,0 +1,25 @@
+/* Keep the suggestion panel above the following results section. */
+.destinations-page .editorial-hero {
+  overflow: visible;
+  z-index: 20;
+}
+
+.destinations-page .editorial-hero__media {
+  animation: none;
+  transform: none;
+  will-change: auto;
+}
+
+.destinations-page .editorial-hero__content {
+  animation: none;
+}
+
+.destination-search__results {
+  max-height: min(440px, 65svh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .destination-search .animate-spin { animation: none; }
+}

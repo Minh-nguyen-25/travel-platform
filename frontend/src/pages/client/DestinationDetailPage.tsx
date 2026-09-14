@@ -181,6 +181,11 @@ export default function DestinationDetailPage() {
 
         <div className="mt-8">
           <DestinationGallery destinationName={destination.name} images={destination.images} />
+          {coverImage?.startsWith('/images/destinations/') && (
+            <a href={`/images/destinations/credits.html#${coverImage.split('/').pop()?.replace('.jpg', '')}`} className="mt-3 inline-block text-xs font-semibold text-primary-700 underline">
+              Nguồn ảnh &amp; tác giả
+            </a>
+          )}
         </div>
 
         <div className="mt-10 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_23rem] lg:gap-12">
@@ -219,6 +224,17 @@ export default function DestinationDetailPage() {
                   ariaLabel={`Bản đồ vị trí ${destination.name}`}
                 />
               </Suspense>
+              <p className="mt-3 text-xs leading-5 text-gray-500">
+                {destination.coordinateSourceUrl && destination.coordinatesVerifiedAt ? (
+                  <>
+                    Tọa độ đối chiếu từ{' '}
+                    <a href={destination.coordinateSourceUrl} target="_blank" rel="noreferrer" className="font-semibold text-primary-700 underline">
+                      Wikidata
+                    </a>
+                    {' '}ngày {new Date(destination.coordinatesVerifiedAt).toLocaleDateString('vi-VN')}.
+                  </>
+                ) : 'Tọa độ do dự án cung cấp, chưa có nguồn đối chiếu.'}
+              </p>
             </section>
           </div>
 

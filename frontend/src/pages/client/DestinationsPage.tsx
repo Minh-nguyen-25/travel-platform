@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import EditorialPageHero from '@/components/common/EditorialPageHero';
+import DestinationSearch from '@/components/destination/DestinationSearch';
+import { removeDestinationFilter } from '@/utils/destination-search';
 import DestinationCard, { DestinationCardSkeleton } from '@/components/destination/DestinationCard';
 import TripIcon from '@/components/trip/TripIcon';
 import { destinationService } from '@/services/destination.service';
@@ -60,6 +62,7 @@ export default function DestinationsPage() {
   const [error, setError] = useState('');
   const [retryKey, setRetryKey] = useState(0);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [priceError, setPriceError] = useState('');
   const [keyword, setKeyword] = useState(searchParams.get('search') ?? '');
   const [filterDraft, setFilterDraft] = useState<FilterDraft>({
     categoryIds: parseCategoryIds(searchParams),
@@ -90,6 +93,7 @@ export default function DestinationsPage() {
 
   useEffect(() => {
     setKeyword(searchParams.get('search') ?? '');
+    setPriceError('');
     setFilterDraft({
       categoryIds: parseCategoryIds(searchParams),
       categoryMatch: searchParams.get('categoryMatch') === 'all' ? 'all' : 'any',
@@ -117,11 +121,12 @@ export default function DestinationsPage() {
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
     const loadDestinations = async () => {
       setIsLoading(true);
       setError('');
       try {
-        const result = await destinationService.getDestinations(query);
+        const result = await destinationService.getDestinations(query, controller.signal);
         if (!active) return;
         setDestinations(result.data);
         setPagination(result.pagination);
@@ -135,7 +140,7 @@ export default function DestinationsPage() {
       }
     };
     void loadDestinations();
-    return () => { active = false; };
+    return () => { active = false; controller.abort(); };
   }, [query, retryKey]);
 
   const updateUrl = (updates: Record<string, string | undefined>) => {
@@ -147,9 +152,8 @@ export default function DestinationsPage() {
     setSearchParams(next);
   };
 
-  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    updateUrl({ search: keyword.trim() || undefined, page: undefined });
+  const submitSearch = (value: string) => {
+    updateUrl({ search: value.trim() || undefined, page: undefined });
   };
 
   const toggleCategory = (categoryId: number) => {
@@ -163,6 +167,11 @@ export default function DestinationsPage() {
 
   const applyFilters = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (filterDraft.minPrice && filterDraft.maxPrice && Number(filterDraft.minPrice) > Number(filterDraft.maxPrice)) {
+      setPriceError('Giá tối đa cần lớn hơn hoặc bằng giá tối thiểu.');
+      return;
+    }
+    setPriceError('');
     const next = new URLSearchParams(searchParams);
     next.delete('categoryId');
     if (filterDraft.categoryIds.length) next.set('categoryIds', filterDraft.categoryIds.join(','));
@@ -211,6 +220,13 @@ export default function DestinationsPage() {
       + Number(query.maxPrice !== undefined)
       + Number(query.minRating !== undefined);
   const sortValue = `${query.sortBy}-${query.sortOrder}`;
+  const filterChips: Array<{ key: string; label: string; categoryId?: number }> = [
+    ...(query.search ? [{ key: 'search', label: `Từ khóa: ${query.search}` }] : []),
+    ...(query.categoryIds ?? []).map((id) => ({ key: 'categoryIds', categoryId: id, label: categories.find((category) => category.id === id)?.name ?? `Danh mục #${id}` })),
+    ...(query.minPrice !== undefined ? [{ key: 'minPrice', label: `Từ ${query.minPrice.toLocaleString('vi-VN')} ₫` }] : []),
+    ...(query.maxPrice !== undefined ? [{ key: 'maxPrice', label: query.maxPrice === 0 ? 'Miễn phí' : `Đến ${query.maxPrice.toLocaleString('vi-VN')} ₫` }] : []),
+    ...(query.minRating !== undefined ? [{ key: 'minRating', label: `Đánh giá ${query.minRating}+` }] : []),
+  ];
 
   const filterPanel = (
     <form onSubmit={applyFilters} className="space-y-6">
@@ -292,6 +308,8 @@ export default function DestinationsPage() {
         </div>
       </fieldset>
 
+      {priceError && <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">{priceError}</p>}
+
       <fieldset>
         <legend className="text-sm font-extrabold text-gray-800">Đánh giá tối thiểu</legend>
         <div className="mt-3 grid grid-cols-2 gap-2">
@@ -325,7 +343,7 @@ export default function DestinationsPage() {
   );
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-gray-50 pb-20">
+    <div className="destinations-page min-h-screen bg-gray-50 pb-20">
       <EditorialPageHero
         eyebrow="Khám phá Việt Nam"
         title={<>Tìm một nơi khiến bạn <span className="text-primary-100">muốn lên đường.</span></>}
@@ -337,23 +355,7 @@ export default function DestinationsPage() {
         imagePosition="object-[64%_50%]"
         compact
       >
-          <form onSubmit={submitSearch} className="flex w-full min-w-0 max-w-3xl gap-2 rounded-2xl border border-white/25 bg-white/95 p-2 shadow-float backdrop-blur-xl">
-            <div className="relative min-w-0 flex-1">
-              <TripIcon name="search" size={19} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-              <label htmlFor="destination-search" className="sr-only">Từ khóa tìm kiếm</label>
-              <input
-                id="destination-search"
-                value={keyword}
-                onChange={(event) => setKeyword(event.target.value)}
-                placeholder="Tên địa điểm, thành phố hoặc trải nghiệm..."
-                maxLength={200}
-                className="h-11 w-full rounded-xl border-0 pl-11 pr-3 text-sm font-medium outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-primary-100"
-              />
-            </div>
-            <button type="submit" className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 text-sm font-extrabold text-white transition hover:bg-primary-700 sm:px-6">
-              <span className="hidden sm:inline">Tìm kiếm</span><TripIcon name="search" size={17} />
-            </button>
-          </form>
+        <DestinationSearch value={keyword} onChange={setKeyword} onSearch={submitSearch} className="w-full max-w-3xl" />
       </EditorialPageHero>
 
       <div className="container py-8">
@@ -388,7 +390,7 @@ export default function DestinationsPage() {
           <main className="min-w-0">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-bold text-gray-900">
+                <p role="status" aria-live="polite" className="text-sm font-bold text-gray-900">
                   {isLoading ? 'Đang tìm địa điểm...' : `${pagination.total} địa điểm phù hợp`}
                 </p>
                 {query.search && <p className="mt-1 text-xs text-gray-500">Kết quả cho “{query.search}”</p>}
@@ -406,6 +408,29 @@ export default function DestinationsPage() {
                 <option value="name-asc">Tên A–Z</option>
               </select>
             </div>
+
+            <div className="mb-5 flex flex-wrap items-center gap-2" aria-label="Lọc nhanh">
+              <span className="mr-1 text-xs font-semibold text-gray-500">Khám phá nhanh:</span>
+              {[
+                { label: 'Miễn phí', key: 'maxPrice', value: '0', icon: 'wallet' as const },
+                { label: 'Đánh giá 4+', key: 'minRating', value: '4', icon: 'star' as const },
+              ].map((preset) => <button key={preset.key} type="button"
+                aria-pressed={searchParams.get(preset.key) === preset.value}
+                onClick={() => updateUrl({ [preset.key]: searchParams.get(preset.key) === preset.value ? undefined : preset.value, ...(preset.key === 'maxPrice' ? { minPrice: undefined } : {}), page: undefined })}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-bold transition ${searchParams.get(preset.key) === preset.value ? 'border-primary-200 bg-primary-50 text-primary-800' : 'border-gray-200 bg-white text-gray-600 hover:border-primary-300'}`}>
+                <TripIcon name={preset.icon} size={13} />{preset.label}
+              </button>)}
+            </div>
+
+            {filterChips.length > 0 && <div className="mb-6 flex flex-wrap items-center gap-2" aria-label="Điều kiện tìm kiếm đang áp dụng">
+              {filterChips.map((chip) => <button key={`${chip.key}-${chip.categoryId ?? ''}`} type="button"
+                onClick={() => setSearchParams(removeDestinationFilter(searchParams, chip.key, chip.categoryId))}
+                aria-label={`Xóa ${chip.label}`}
+                className="inline-flex max-w-full items-center gap-2 rounded-full bg-primary-50 px-3 py-2 text-xs font-bold text-primary-800 transition hover:bg-primary-100">
+                <span className="truncate">{chip.label}</span><TripIcon name="x" size={13} className="flex-none" />
+              </button>)}
+              <button type="button" onClick={() => setSearchParams(new URLSearchParams())} className="px-2 py-1 text-xs font-bold text-gray-500 hover:text-primary-700">Xóa tất cả</button>
+            </div>}
 
             {error && !isLoading && (
               <div className="rounded-3xl border border-red-100 bg-white px-6 py-12 text-center shadow-sm" role="alert">
@@ -431,7 +456,7 @@ export default function DestinationsPage() {
                 <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50 text-primary-500"><TripIcon name="compass" size={26} /></span>
                 <h2 className="mt-4 text-xl font-extrabold text-gray-900">Chưa tìm thấy địa điểm phù hợp</h2>
                 <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">Hãy thử từ khóa rộng hơn hoặc bỏ bớt một vài điều kiện lọc.</p>
-                <button type="button" onClick={resetFilters} className="mt-5 text-sm font-extrabold text-primary-700">Xóa bộ lọc và thử lại</button>
+                <button type="button" onClick={() => setSearchParams(new URLSearchParams())} className="mt-5 text-sm font-extrabold text-primary-700">Xóa từ khóa và bộ lọc</button>
               </div>
             )}
 

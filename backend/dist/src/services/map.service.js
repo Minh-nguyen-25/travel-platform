@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.mapService = exports.OsrmMapService = void 0;
+const node_crypto_1 = require("node:crypto");
 const constants_1 = require("../constants");
 const map_1 = require("../config/map");
 const app_error_1 = require("../utils/app-error");
@@ -165,12 +166,18 @@ const parseMatrix = (value, label) => {
 class OsrmMapService {
     configFactory;
     fetchImpl;
-    constructor(configFactory = map_1.getOsrmConfig, fetchImpl = globalThis.fetch.bind(globalThis)) {
+    now;
+    routeCache = new Map();
+    pendingRoutes = new Map();
+    freshMs = 15 * 60_000;
+    staleMs = 24 * 60 * 60_000;
+    maxCachedRoutes = 256;
+    constructor(configFactory = map_1.getOsrmConfig, fetchImpl = globalThis.fetch.bind(globalThis), now = Date.now) {
         this.configFactory = configFactory;
         this.fetchImpl = fetchImpl;
+        this.now = now;
     }
-    async request(path, params, externalSignal) {
-        const config = this.configFactory();
+    async request(path, params, externalSignal, config = this.configFactory()) {
         const url = new URL(`${config.baseUrl}${path}`);
         params.forEach((value, key) => url.searchParams.set(key, value));
         if (config.apiKey) {
@@ -270,6 +277,68 @@ class OsrmMapService {
     }
     async calculateRoute(request, signal) {
         assertCoordinates(request.coordinates, 2);
+        validateProfile(request.profile ?? 'driving');
+        if (signal?.aborted)
+            throw new app_error_1.AppError('Yêu cầu định tuyến đã bị hủy', UPSTREAM_TIMEOUT_STATUS);
+        const config = this.configFactory();
+        // Include every result-changing option and upstream identity; never store the API key itself.
+        const key = (0, node_crypto_1.createHash)('sha256').update(JSON.stringify([
+            config.baseUrl, config.profiles, config.apiKey, config.apiKeyQueryParam,
+            coordinatePath(request.coordinates), request.profile ?? 'driving',
+            request.geometries ?? 'polyline', request.overview ?? false,
+            request.alternatives ?? false, request.steps ?? false,
+        ])).digest('hex');
+        const cached = this.routeCache.get(key);
+        const age = cached ? this.now() - cached.fetchedAt : Infinity;
+        const withCache = (entry, status) => ({
+            ...structuredClone(entry.route),
+            cache: { status, fetchedAt: new Date(entry.fetchedAt).toISOString() },
+        });
+        if (cached && age >= 0 && age < this.freshMs) {
+            this.routeCache.delete(key);
+            this.routeCache.set(key, cached);
+            return withCache(cached, 'hit');
+        }
+        // Requests with a caller-owned signal stay independent so one cancellation cannot abort another.
+        const pending = !signal && this.pendingRoutes.get(key);
+        if (pending)
+            return structuredClone(await pending);
+        const calculation = (async () => {
+            try {
+                const route = await this.fetchRoute(request, config, signal);
+                if (signal?.aborted)
+                    throw new app_error_1.AppError('Yêu cầu định tuyến đã bị hủy', UPSTREAM_TIMEOUT_STATUS);
+                const entry = { route, fetchedAt: this.now() };
+                this.routeCache.delete(key);
+                this.routeCache.set(key, entry);
+                while (this.routeCache.size > this.maxCachedRoutes) {
+                    this.routeCache.delete(this.routeCache.keys().next().value);
+                }
+                return withCache(entry, 'fresh');
+            }
+            catch (error) {
+                if (error instanceof app_error_1.AppError && error.statusCode === constants_1.HTTP_STATUS.UNPROCESSABLE) {
+                    this.routeCache.delete(key);
+                }
+                if (cached && this.routeCache.get(key) === cached && age >= 0 && this.now() - cached.fetchedAt <= this.staleMs
+                    && !signal?.aborted && error instanceof app_error_1.AppError && [502, 503, 504].includes(error.statusCode)) {
+                    return withCache(cached, 'stale');
+                }
+                throw error;
+            }
+        })();
+        if (!signal)
+            this.pendingRoutes.set(key, calculation);
+        try {
+            return await calculation;
+        }
+        finally {
+            if (this.pendingRoutes.get(key) === calculation)
+                this.pendingRoutes.delete(key);
+        }
+    }
+    async fetchRoute(request, config, signal) {
+        assertCoordinates(request.coordinates, 2);
         const profile = request.profile ?? 'driving';
         validateProfile(profile);
         const geometryFormat = request.geometries ?? 'polyline';
@@ -279,7 +348,6 @@ class OsrmMapService {
             (!Number.isInteger(alternatives) || alternatives < 1 || alternatives > 3)) {
             throw new app_error_1.AppError('alternatives phải nằm trong khoảng 1 đến 3', constants_1.HTTP_STATUS.UNPROCESSABLE);
         }
-        const config = this.configFactory();
         const serverProfile = config.profiles[profile];
         const params = new URLSearchParams({
             alternatives: String(alternatives),
@@ -287,7 +355,7 @@ class OsrmMapService {
             overview: String(overview),
             geometries: geometryFormat,
         });
-        const payload = await this.request(`/route/v1/${encodeURIComponent(serverProfile)}/${coordinatePath(request.coordinates)}`, params, signal);
+        const payload = await this.request(`/route/v1/${encodeURIComponent(serverProfile)}/${coordinatePath(request.coordinates)}`, params, signal, config);
         const code = getErrorCode(payload);
         if (code !== 'Ok') {
             const message = getErrorMessage(payload);

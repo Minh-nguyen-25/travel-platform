@@ -4,9 +4,10 @@ interface RevealProps {
   children: ReactNode;
   className?: string;
   delay?: number;
+  variant?: 'up' | 'left' | 'right' | 'scale';
 }
 
-export default function Reveal({ children, className = '', delay = 0 }: RevealProps) {
+export default function Reveal({ children, className = '', delay = 0, variant = 'up' }: RevealProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -14,7 +15,7 @@ export default function Reveal({ children, className = '', delay = 0 }: RevealPr
     const element = ref.current;
     if (!element) return undefined;
 
-    if (!('IntersectionObserver' in window)) {
+    if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       setIsVisible(true);
       return undefined;
     }
@@ -35,7 +36,7 @@ export default function Reveal({ children, className = '', delay = 0 }: RevealPr
   return (
     <div
       ref={ref}
-      className={`reveal-section ${isVisible ? 'is-visible' : ''} ${className}`}
+      className={`reveal-section reveal-section--${variant} ${isVisible ? 'is-visible' : ''} ${className}`}
       style={{ '--reveal-delay': `${Math.max(0, delay)}ms` } as CSSProperties}
     >
       {children}

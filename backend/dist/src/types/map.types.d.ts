@@ -49,6 +49,10 @@ export interface RouteRequest {
     geometries?: RouteGeometryFormat;
 }
 export interface RouteResult extends RouteAlternative {
+    cache?: {
+        status: 'fresh' | 'hit' | 'stale';
+        fetchedAt: string;
+    };
     profile: RoutingProfile;
     waypoints: SnappedWaypoint[];
     alternatives: RouteAlternative[];

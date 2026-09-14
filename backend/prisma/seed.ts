@@ -1,6 +1,10 @@
 import 'dotenv/config';
 import { PrismaClient, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { planVerifiedCoordinates } from '../src/utils/verified-map-data';
+import { planDestinationPhotos } from '../src/utils/destination-photos';
 
 const prisma = new PrismaClient();
 
@@ -93,13 +97,15 @@ async function seedSampleTrip(userId: number, input: SampleTrip) {
 async function seedSampleDestination(input: SampleDestination) {
   const existing = await prisma.destination.findFirst({
     where: { name: input.name },
-    select: { id: true },
+    select: { id: true, coordinateSourceUrl: true },
   });
   const destinationData = {
     description: input.description,
     address: input.address,
-    latitude: new Prisma.Decimal(input.latitude),
-    longitude: new Prisma.Decimal(input.longitude),
+    ...(!existing?.coordinateSourceUrl && {
+      latitude: new Prisma.Decimal(input.latitude),
+      longitude: new Prisma.Decimal(input.longitude),
+    }),
     ticketPrice: new Prisma.Decimal(input.ticketPrice),
     openingHoursNote: input.openingHoursNote,
     visitDuration: input.visitDuration,
@@ -116,6 +122,8 @@ async function seedSampleDestination(input: SampleDestination) {
         data: {
           name: input.name,
           ...destinationData,
+          latitude: new Prisma.Decimal(input.latitude),
+          longitude: new Prisma.Decimal(input.longitude),
         },
       });
 
@@ -395,31 +403,22 @@ async function main() {
   for (const sampleDestination of sampleDestinations) {
     destinations.push(await seedSampleDestination(sampleDestination));
   }
+  const coordinateDocument: unknown = JSON.parse(await readFile(resolve(process.cwd(), 'data/verified-destinations.json'), 'utf8'));
+  const coordinatePlan = planVerifiedCoordinates(coordinateDocument, destinations.filter(item => !item.coordinateSourceUrl));
+  await prisma.$transaction(coordinatePlan.updates.map(({ id, ...data }) => prisma.destination.update({ where: { id }, data })));
+  console.log(`Applied ${coordinatePlan.updates.length} source-backed landmark coordinates from the local snapshot`);
   console.log(`✅ Tạo/cập nhật ${destinations.length} địa điểm mẫu cho AI Planner`);
 
-  // Ảnh seed là URL công khai, vì seed database không nên phụ thuộc Cloudinary credentials.
-  const seedImageUrls = [
-    'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1600&q=80',
-    'https://images.unsplash.com/photo-1528181304800-259b08848526?auto=format&fit=crop&w=1600&q=80',
-    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80',
-    'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=1600&q=80',
-    'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=1600&q=80',
-  ];
-  for (const [index, destination] of destinations.entries()) {
-    const imageCount = await prisma.destinationImage.count({
-      where: { destinationId: destination.id },
-    });
-    if (imageCount === 0) {
-      await prisma.destinationImage.create({
-        data: {
-          destinationId: destination.id,
-          imageUrl: seedImageUrls[index % seedImageUrls.length],
-          isPrimary: true,
-          displayOrder: 0,
-        },
-      });
-    }
-  }
+  // Each landmark has its own source-backed photo stored with the frontend.
+  const photoDocument: unknown = JSON.parse(await readFile(resolve(process.cwd(), 'data/destination-photos.json'), 'utf8'));
+  const photoRecords = await prisma.destination.findMany({
+    where: { id: { in: destinations.map(destination => destination.id) } },
+    select: { id: true, name: true, images: true },
+  });
+  const photoPlan = planDestinationPhotos(photoDocument, photoRecords);
+  await prisma.$transaction(photoPlan.operations.map(({ destinationId, imageId, ...data }) => imageId
+    ? prisma.destinationImage.update({ where: { id: imageId }, data })
+    : prisma.destinationImage.create({ data: { destinationId, ...data } })));
 
   await prisma.travelPreference.upsert({
     where: { userId: testUser.id },

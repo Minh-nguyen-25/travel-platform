@@ -52,16 +52,20 @@ const categoryIdsSchema = zod_1.z.preprocess(parseIdList, zod_1.z
     .min(1, 'Địa điểm phải thuộc ít nhất một danh mục')
     .max(20, 'Một địa điểm chỉ được thuộc tối đa 20 danh mục')
     .transform((ids) => [...new Set(ids)]));
-const latitudeSchema = zod_1.z.coerce
+const requiredCoordinate = zod_1.z.union([
+    zod_1.z.number(),
+    zod_1.z.string().trim().min(1, 'Tọa độ là bắt buộc'),
+]);
+const latitudeSchema = requiredCoordinate.pipe(zod_1.z.coerce
     .number({ invalid_type_error: 'Vĩ độ phải là số' })
     .finite('Vĩ độ phải là số hữu hạn')
     .min(-90, 'Vĩ độ phải từ -90 đến 90')
-    .max(90, 'Vĩ độ phải từ -90 đến 90');
-const longitudeSchema = zod_1.z.coerce
+    .max(90, 'Vĩ độ phải từ -90 đến 90'));
+const longitudeSchema = requiredCoordinate.pipe(zod_1.z.coerce
     .number({ invalid_type_error: 'Kinh độ phải là số' })
     .finite('Kinh độ phải là số hữu hạn')
     .min(-180, 'Kinh độ phải từ -180 đến 180')
-    .max(180, 'Kinh độ phải từ -180 đến 180');
+    .max(180, 'Kinh độ phải từ -180 đến 180'));
 const moneySchema = zod_1.z
     .number({ invalid_type_error: 'Giá vé phải là số' })
     .finite('Giá vé phải là số hữu hạn')

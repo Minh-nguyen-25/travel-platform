@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.destinationRepository = void 0;
 const client_1 = require("@prisma/client");
 const db_1 = __importDefault(require("../config/db"));
+const verified_map_data_1 = require("../utils/verified-map-data");
 const destinationInclude = {
     categories: {
         include: { category: true },
@@ -168,10 +169,16 @@ exports.destinationRepository = {
                     data: { isPrimary: false },
                 });
             }
+            const currentCoordinates = await tx.destination.findUniqueOrThrow({
+                where: { id }, select: { name: true, latitude: true, longitude: true },
+            });
             const destination = await tx.destination.update({
                 where: { id },
                 data: {
                     ...buildUpdateData(input),
+                    ...((0, verified_map_data_1.coordinateIdentityChanged)(input, currentCoordinates) && {
+                        coordinateSourceUrl: null, coordinatesVerifiedAt: null,
+                    }),
                     ...(images.length > 0 && {
                         images: {
                             create: images.map((image, index) => ({

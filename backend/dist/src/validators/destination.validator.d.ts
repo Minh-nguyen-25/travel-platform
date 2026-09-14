@@ -5,8 +5,8 @@ export declare const createDestinationSchema: z.ZodObject<{
     description: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodString>>, string | null | undefined, unknown>;
     address: z.ZodString;
     phoneNumber: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodString>>, string | null | undefined, unknown>;
-    latitude: z.ZodNumber;
-    longitude: z.ZodNumber;
+    latitude: z.ZodPipeline<z.ZodUnion<[z.ZodNumber, z.ZodString]>, z.ZodNumber>;
+    longitude: z.ZodPipeline<z.ZodUnion<[z.ZodNumber, z.ZodString]>, z.ZodNumber>;
     ticketPrice: z.ZodEffects<z.ZodOptional<z.ZodPipeline<z.ZodNumber, z.ZodType<number, z.ZodTypeDef, number>>>, number | undefined, unknown>;
     openingHoursNote: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodString>>, string | null | undefined, unknown>;
     visitDuration: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodNumber>>, number | null | undefined, unknown>;
@@ -28,8 +28,8 @@ export declare const createDestinationSchema: z.ZodObject<{
 }, {
     name: string;
     address: string;
-    latitude: number;
-    longitude: number;
+    latitude: string | number;
+    longitude: string | number;
     isActive?: unknown;
     description?: unknown;
     phoneNumber?: unknown;
@@ -44,8 +44,8 @@ export declare const updateDestinationSchema: z.ZodObject<{
     description: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodString>>, string | null | undefined, unknown>;
     address: z.ZodOptional<z.ZodString>;
     phoneNumber: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodString>>, string | null | undefined, unknown>;
-    latitude: z.ZodOptional<z.ZodNumber>;
-    longitude: z.ZodOptional<z.ZodNumber>;
+    latitude: z.ZodOptional<z.ZodPipeline<z.ZodUnion<[z.ZodNumber, z.ZodString]>, z.ZodNumber>>;
+    longitude: z.ZodOptional<z.ZodPipeline<z.ZodUnion<[z.ZodNumber, z.ZodString]>, z.ZodNumber>>;
     ticketPrice: z.ZodEffects<z.ZodOptional<z.ZodPipeline<z.ZodNumber, z.ZodType<number, z.ZodTypeDef, number>>>, number | undefined, unknown>;
     openingHoursNote: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodString>>, string | null | undefined, unknown>;
     visitDuration: z.ZodEffects<z.ZodOptional<z.ZodNullable<z.ZodNumber>>, number | null | undefined, unknown>;
@@ -71,8 +71,8 @@ export declare const updateDestinationSchema: z.ZodObject<{
     description?: unknown;
     address?: string | undefined;
     phoneNumber?: unknown;
-    latitude?: number | undefined;
-    longitude?: number | undefined;
+    latitude?: string | number | undefined;
+    longitude?: string | number | undefined;
     ticketPrice?: unknown;
     openingHoursNote?: unknown;
     visitDuration?: unknown;

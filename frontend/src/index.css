@@ -191,6 +191,12 @@
     transform: translate3d(0, 0, 0);
   }
 
+  .reveal-section--left { transform: translate3d(-36px, 0, 0); }
+  .reveal-section--right { transform: translate3d(36px, 0, 0); }
+  .reveal-section--scale { transform: translate3d(0, 18px, 0) scale(0.96); }
+  .reveal-section.is-visible,
+  .reveal-section:focus-within { opacity: 1; transform: none; }
+
   .hero-title-line {
     display: block;
     opacity: 0;
@@ -657,6 +663,7 @@
   .page-enter,
   .reveal-section,
   .hero-title-line,
+  .animate-hero-reveal,
   .hero-ken-burns,
   .editorial-hero__media,
   .editorial-hero__content,
