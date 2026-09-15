@@ -115,7 +115,18 @@ export default function AdminSidebar({
         </nav>
 
         <div className="border-t border-white/10 p-3">
-          <div className={`mb-2 flex items-center gap-3 rounded-xl bg-white/[0.05] p-3 ${collapsed ? 'lg:justify-center lg:p-2' : ''}`}>
+          <NavLink
+            to={ROUTES.ADMIN_PROFILE}
+            onClick={onCloseMobile}
+            title={collapsed ? 'Hồ sơ cá nhân' : undefined}
+            className={({ isActive }) =>
+              `mb-2 flex items-center gap-3 rounded-xl p-3 transition ${
+                isActive
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/30'
+                  : 'bg-white/[0.05] text-slate-300 hover:bg-white/10 hover:text-white'
+              } ${collapsed ? 'lg:justify-center lg:p-2' : ''}`
+            }
+          >
             {user?.avatarUrl ? (
               <img src={user.avatarUrl} alt="" className="h-9 w-9 flex-none rounded-xl object-cover" />
             ) : (
@@ -125,9 +136,9 @@ export default function AdminSidebar({
             )}
             <div className={`min-w-0 ${collapsed ? 'lg:hidden' : ''}`}>
               <p className="truncate text-xs font-bold text-white">{user?.fullName}</p>
-              <p className="truncate text-[10px] text-slate-500">Quản trị viên</p>
+              <p className="truncate text-[10px] text-slate-400">Quản trị viên</p>
             </div>
-          </div>
+          </NavLink>
           <NavLink to={ROUTES.HOME} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-400 hover:bg-white/[0.07] hover:text-white ${collapsed ? 'lg:justify-center' : ''}`} title="Về trang chính">
             <svg className="h-5 w-5 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m3 11 9-8 9 8M5 10v10h14V10M9 20v-6h6v6" strokeLinejoin="round" /></svg>
             <span className={collapsed ? 'lg:hidden' : ''}>Về trang chính</span>
