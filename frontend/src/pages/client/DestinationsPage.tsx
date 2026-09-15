@@ -93,6 +93,7 @@ export default function DestinationsPage() {
 
   useEffect(() => {
     setKeyword(searchParams.get('search') ?? '');
+    setPriceError('');
     setFilterDraft({
       categoryIds: parseCategoryIds(searchParams),
       categoryMatch: searchParams.get('categoryMatch') === 'all' ? 'all' : 'any',
@@ -120,25 +121,29 @@ export default function DestinationsPage() {
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
     const loadDestinations = async () => {
       setIsLoading(true);
       setError('');
       try {
-        const result = await destinationService.getDestinations(query);
+        const result = await destinationService.getDestinations(query, controller.signal);
         if (!active) return;
         setDestinations(result.data);
         setPagination(result.pagination);
       } catch (requestError: unknown) {
-        if (!active) return;
+        if (!active || controller.signal.aborted) return;
         setDestinations([]);
         setPagination(emptyPagination);
         setError(getApiErrorMessage(requestError, 'Không thể tải danh sách địa điểm.'));
       } finally {
-        if (active) setIsLoading(false);
+        if (active && !controller.signal.aborted) setIsLoading(false);
       }
     };
     void loadDestinations();
-    return () => { active = false; };
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [query, retryKey]);
 
   const updateUrl = (updates: Record<string, string | undefined>) => {
@@ -150,12 +155,8 @@ export default function DestinationsPage() {
     setSearchParams(next);
   };
 
-  const submitSearch = (value?: string | FormEvent<HTMLFormElement>) => {
-    if (typeof value === 'object' && value !== null && 'preventDefault' in value) {
-      value.preventDefault();
-    }
-    const nextKeyword = typeof value === 'string' ? value : keyword;
-    updateUrl({ search: nextKeyword.trim() || undefined, page: undefined });
+  const submitSearch = (value: string) => {
+    updateUrl({ search: value.trim() || undefined, page: undefined });
   };
 
   const toggleCategory = (categoryId: number) => {
@@ -392,7 +393,7 @@ export default function DestinationsPage() {
           <main className="min-w-0">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-bold text-gray-900">
+                <p role="status" aria-live="polite" className="text-sm font-bold text-gray-900">
                   {isLoading ? 'Đang tìm địa điểm...' : `${pagination.total} địa điểm phù hợp`}
                 </p>
                 {query.search && <p className="mt-1 text-xs text-gray-500">Kết quả cho “{query.search}”</p>}
@@ -458,7 +459,7 @@ export default function DestinationsPage() {
                 <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50 text-primary-500"><TripIcon name="compass" size={26} /></span>
                 <h2 className="mt-4 text-xl font-extrabold text-gray-900">Chưa tìm thấy địa điểm phù hợp</h2>
                 <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">Hãy thử từ khóa rộng hơn hoặc bỏ bớt một vài điều kiện lọc.</p>
-                <button type="button" onClick={resetFilters} className="mt-5 text-sm font-extrabold text-primary-700">Xóa bộ lọc và thử lại</button>
+                <button type="button" onClick={() => setSearchParams(new URLSearchParams())} className="mt-5 text-sm font-extrabold text-primary-700">Xóa từ khóa và bộ lọc</button>
               </div>
             )}
 

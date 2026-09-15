@@ -2,7 +2,7 @@
 
 Đã đối chiếu địa danh qua mô tả nguồn và xem trực quan từng ảnh. Tệp ảnh lưu trong frontend/public/images/destinations; dữ liệu nguồn nằm ở backend/data/destination-photos.json.
 
-Mở trang `/images/destinations/credits.html` trên web để xem đủ ảnh, tác giả, nguồn và giấy phép.
+Thông tin tác giả, nguồn và giấy phép được hiển thị trực tiếp ngay dưới ảnh chính trên trang chi tiết địa danh (DestinationDetailPage).
 
 ## Hồ Hoàn Kiếm
 

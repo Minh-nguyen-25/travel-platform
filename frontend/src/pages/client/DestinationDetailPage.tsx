@@ -15,6 +15,7 @@ import {
   getMapUrl,
 } from '@/utils/destination.utils';
 import { getApiErrorMessage } from '@/utils/trip.utils';
+import { getDestinationPhotoCredit } from '@/data/destination-photo-credits';
 
 const InteractiveItineraryMap = lazy(() => import('@/components/map/InteractiveItineraryMap'));
 
@@ -138,6 +139,7 @@ export default function DestinationDetailPage() {
   const coverImage = destination.images.find((image) => image.isPrimary)?.imageUrl
     ?? destination.images[0]?.imageUrl
     ?? '/images/vietnam-ninh-binh-discovery.jpg';
+  const photoCredit = getDestinationPhotoCredit(coverImage);
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-white pb-20">
@@ -181,10 +183,39 @@ export default function DestinationDetailPage() {
 
         <div className="mt-8">
           <DestinationGallery destinationName={destination.name} images={destination.images} />
-          {coverImage?.startsWith('/images/destinations/') && (
-            <a href={`/images/destinations/credits.html#${coverImage.split('/').pop()?.replace('.jpg', '')}`} className="mt-3 inline-block text-xs font-semibold text-primary-700 underline">
-              Nguồn ảnh &amp; tác giả
-            </a>
+          {photoCredit && (
+            <p className="mt-2 text-xs text-gray-500">
+              Ảnh:{' '}
+              <a
+                href={photoCredit.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-gray-700 hover:text-primary-700 hover:underline"
+              >
+                {photoCredit.author}
+              </a>
+              {' · '}
+              <a
+                href={photoCredit.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-500 hover:text-primary-700 hover:underline"
+              >
+                {photoCredit.sourceName}
+              </a>
+              {' · '}
+              <a
+                href={photoCredit.licenseUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-gray-700 hover:text-primary-700 hover:underline"
+              >
+                {photoCredit.license}
+              </a>
+              {photoCredit.modificationNote && (
+                <span className="text-gray-400"> ({photoCredit.modificationNote})</span>
+              )}
+            </p>
           )}
         </div>
 
