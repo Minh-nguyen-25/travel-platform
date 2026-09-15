@@ -33,6 +33,7 @@ export const ROUTES = {
   ADMIN_DESTINATIONS: '/admin/destinations',
   ADMIN_CATEGORIES: '/admin/categories',
   ADMIN_REVIEWS: '/admin/reviews',
+  ADMIN_PROFILE: '/admin/profile',
 
   // OAuth
   OAUTH_CALLBACK: '/oauth/callback',

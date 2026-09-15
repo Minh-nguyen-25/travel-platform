@@ -13,6 +13,7 @@ const pageMeta: Record<string, { title: string; description: string; image: stri
   [ROUTES.ADMIN_DESTINATIONS]: { title: 'Địa điểm', description: 'Quản lý nội dung điểm đến', image: '/images/vietnam-ninh-binh-discovery.jpg', imageAlt: 'Sông núi Ninh Bình', motion: 'pan' },
   [ROUTES.ADMIN_CATEGORIES]: { title: 'Danh mục', description: 'Tổ chức danh mục du lịch', image: '/images/vietnam-ha-giang-hero.jpg', imageAlt: 'Núi non Hà Giang', motion: 'rise' },
   [ROUTES.ADMIN_REVIEWS]: { title: 'Đánh giá', description: 'Kiểm duyệt nội dung cộng đồng', image: '/images/vietnam-dalat-roadtrip.jpg', imageAlt: 'Hành trình qua Đà Lạt', motion: 'drift' },
+  [ROUTES.ADMIN_PROFILE]: { title: 'Hồ sơ cá nhân', description: 'Quản lý thông tin và bảo mật tài khoản quản trị', image: '/images/vietnam-hoi-an-journal.jpg', imageAlt: 'Quản lý thông tin tài khoản', motion: 'focus' },
 };
 
 export default function AdminHeader({ onOpenSidebar }: AdminHeaderProps) {
@@ -68,7 +69,7 @@ export default function AdminHeader({ onOpenSidebar }: AdminHeaderProps) {
                   <p className="truncate text-sm font-bold text-slate-900">{user?.fullName}</p>
                   <p className="truncate text-xs text-slate-500">{user?.email}</p>
                 </div>
-                <Link to={ROUTES.PROFILE} onClick={() => setMenuOpen(false)} className="flex px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Hồ sơ cá nhân</Link>
+                <Link to={ROUTES.ADMIN_PROFILE} onClick={() => setMenuOpen(false)} className="flex px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Hồ sơ cá nhân</Link>
                 <Link to={ROUTES.HOME} onClick={() => setMenuOpen(false)} className="flex px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Về trang chính</Link>
                 <button type="button" onClick={() => void handleLogout()} className="mt-1 w-full border-t border-slate-100 px-4 py-2.5 text-left text-sm font-bold text-rose-600 hover:bg-rose-50">Đăng xuất</button>
               </div>

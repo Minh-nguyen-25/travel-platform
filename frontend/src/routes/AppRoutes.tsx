@@ -32,6 +32,7 @@ const UsersPage = lazy(() => import('@/pages/admin/UsersPage'));
 const DestinationsAdminPage = lazy(() => import('@/pages/admin/DestinationsAdminPage'));
 const CategoriesPage = lazy(() => import('@/pages/admin/CategoriesPage'));
 const ReviewsAdminPage = lazy(() => import('@/pages/admin/ReviewsAdminPage'));
+const AdminProfilePage = lazy(() => import('@/pages/admin/AdminProfilePage'));
 const OAuthCallbackPage = lazy(() => import('@/pages/client/OAuthCallbackPage'));
 
 export default function AppRoutes() {
@@ -90,6 +91,7 @@ export default function AppRoutes() {
             <Route path="destinations" element={<DestinationsAdminPage />} />
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="reviews" element={<ReviewsAdminPage />} />
+            <Route path="profile" element={<AdminProfilePage />} />
           </Route>
         </Route>
 

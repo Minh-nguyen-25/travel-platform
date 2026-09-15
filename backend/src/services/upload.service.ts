@@ -19,8 +19,28 @@ const missingConfigurationError = (): AppError => {
 
 const normalizeUploadError = (error: unknown): AppError => {
   if (error instanceof AppError) return error;
-  const cloudinaryError = error as Partial<CloudinarySdkError>;
+  const cloudinaryError = error as Partial<CloudinarySdkError> & { code?: string; name?: string };
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn('[Cloudinary Safe Error Info]', {
+      name: cloudinaryError.name,
+      message: cloudinaryError.message,
+      http_code: cloudinaryError.http_code,
+      code: cloudinaryError.code,
+    });
+  }
+
   const providerMessage = cloudinaryError.message?.toLowerCase() ?? '';
+
+  if (
+    cloudinaryError.http_code === 403
+    || /forbidden|permission|actions=/.test(providerMessage)
+  ) {
+    return new AppError(
+      'Cloudinary từ chối yêu cầu (HTTP 403): API Key thiếu quyền hạn upload ảnh (actions=["create"]). Hãy cấp quyền Create trong Cloudinary Console (Settings -> Access Keys) hoặc sử dụng Master API Key.',
+      HTTP_STATUS.SERVICE_UNAVAILABLE
+    );
+  }
 
   if (
     cloudinaryError.http_code === 401
@@ -61,13 +81,13 @@ export const uploadToCloudinary = (
         public_id: publicId,
         resource_type: 'image',
         transformation: [{ quality: 'auto', fetch_format: 'auto' }],
-
       },
       (error, result) => {
         if (error || !result) return reject(error ?? new Error('Cloudinary không trả về kết quả'));
         resolve(result);
       }
     );
+    stream.on('error', (err) => reject(err));
     stream.end(buffer);
   });
 };
@@ -106,6 +126,16 @@ export const uploadImagesToCloudinary = async (
   files: Express.Multer.File[],
   folder = 'destinations'
 ): Promise<UploadedDestinationImage[]> => {
+  if (process.env.NODE_ENV !== 'production') {
+    files.forEach((file) => {
+      console.log('[Multer File Metadata]', {
+        isBuffer: Boolean(Buffer.isBuffer(file.buffer)),
+        length: file.buffer?.length,
+        mimetype: file.mimetype,
+        originalname: file.originalname,
+      });
+    });
+  }
   const results = await Promise.allSettled(
     files.map((file) => uploadToCloudinary(file.buffer, folder))
   );

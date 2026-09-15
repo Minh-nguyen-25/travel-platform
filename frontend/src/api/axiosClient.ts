@@ -6,9 +6,6 @@ export const API_BASE_URL =
 
 const axiosClient = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
   withCredentials: true,
 });
 
@@ -17,6 +14,9 @@ axiosClient.interceptors.request.use(
     const token = getToken();
     if (token && config.headers) {
       config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    if (config.data instanceof FormData && config.headers) {
+      delete config.headers['Content-Type'];
     }
     return config;
   },
