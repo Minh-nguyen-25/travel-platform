@@ -11,6 +11,7 @@ import type {
   User,
 } from '@/types/auth.types';
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 let restorePromise: Promise<void> | null = null;

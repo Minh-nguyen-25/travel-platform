@@ -65,17 +65,22 @@ const categoryIdsSchema = z.preprocess(
     .transform((ids) => [...new Set(ids)])
 );
 
-const latitudeSchema = z.coerce
+const requiredCoordinate = z.union([
+  z.number(),
+  z.string().trim().min(1, 'Tọa độ là bắt buộc'),
+]);
+
+const latitudeSchema = requiredCoordinate.pipe(z.coerce
   .number({ invalid_type_error: 'Vĩ độ phải là số' })
   .finite('Vĩ độ phải là số hữu hạn')
   .min(-90, 'Vĩ độ phải từ -90 đến 90')
-  .max(90, 'Vĩ độ phải từ -90 đến 90');
+  .max(90, 'Vĩ độ phải từ -90 đến 90'));
 
-const longitudeSchema = z.coerce
+const longitudeSchema = requiredCoordinate.pipe(z.coerce
   .number({ invalid_type_error: 'Kinh độ phải là số' })
   .finite('Kinh độ phải là số hữu hạn')
   .min(-180, 'Kinh độ phải từ -180 đến 180')
-  .max(180, 'Kinh độ phải từ -180 đến 180');
+  .max(180, 'Kinh độ phải từ -180 đến 180'));
 
 const moneySchema = z
   .number({ invalid_type_error: 'Giá vé phải là số' })

@@ -25,9 +25,10 @@ const destinationParams = (params: DestinationListParams) => ({
 });
 
 export const destinationService = {
-  async getDestinations(params: DestinationListParams = {}): Promise<DestinationListResult> {
+  async getDestinations(params: DestinationListParams = {}, signal?: AbortSignal): Promise<DestinationListResult> {
     const response = await axiosClient.get<PaginatedEnvelope<Destination>>('/destinations', {
       params: destinationParams(params),
+      signal,
     });
     return { data: response.data.data, pagination: response.data.pagination };
   },

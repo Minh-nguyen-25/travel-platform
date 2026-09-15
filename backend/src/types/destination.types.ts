@@ -56,6 +56,8 @@ export interface DestinationImageResponse {
 }
 
 export interface DestinationResponse {
+  coordinateSourceUrl: string | null;
+  coordinatesVerifiedAt: string | null;
   id: number;
   name: string;
   description: string | null;

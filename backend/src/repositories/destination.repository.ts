@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import prisma from '../config/db';
+import { coordinateIdentityChanged } from '../utils/verified-map-data';
 import {
   CreateDestinationInput,
   DestinationListQuery,
@@ -213,10 +214,16 @@ export const destinationRepository = {
         });
       }
 
+      const currentCoordinates = await tx.destination.findUniqueOrThrow({
+        where: { id }, select: { name: true, latitude: true, longitude: true },
+      });
       const destination = await tx.destination.update({
         where: { id },
         data: {
           ...buildUpdateData(input),
+          ...(coordinateIdentityChanged(input, currentCoordinates) && {
+            coordinateSourceUrl: null, coordinatesVerifiedAt: null,
+          }),
           ...(images.length > 0 && {
             images: {
               create: images.map((image, index) => ({

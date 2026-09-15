@@ -15,6 +15,7 @@ import {
   getMapUrl,
 } from '@/utils/destination.utils';
 import { getApiErrorMessage } from '@/utils/trip.utils';
+import { getDestinationPhotoCredit } from '@/data/destination-photo-credits';
 
 const InteractiveItineraryMap = lazy(() => import('@/components/map/InteractiveItineraryMap'));
 
@@ -138,6 +139,7 @@ export default function DestinationDetailPage() {
   const coverImage = destination.images.find((image) => image.isPrimary)?.imageUrl
     ?? destination.images[0]?.imageUrl
     ?? '/images/vietnam-ninh-binh-discovery.jpg';
+  const photoCredit = getDestinationPhotoCredit(coverImage);
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-white pb-20">
@@ -181,6 +183,40 @@ export default function DestinationDetailPage() {
 
         <div className="mt-8">
           <DestinationGallery destinationName={destination.name} images={destination.images} />
+          {photoCredit && (
+            <p className="mt-2 text-xs text-gray-500">
+              Ảnh:{' '}
+              <a
+                href={photoCredit.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-gray-700 hover:text-primary-700 hover:underline"
+              >
+                {photoCredit.author}
+              </a>
+              {' · '}
+              <a
+                href={photoCredit.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-500 hover:text-primary-700 hover:underline"
+              >
+                {photoCredit.sourceName}
+              </a>
+              {' · '}
+              <a
+                href={photoCredit.licenseUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-gray-700 hover:text-primary-700 hover:underline"
+              >
+                {photoCredit.license}
+              </a>
+              {photoCredit.modificationNote && (
+                <span className="text-gray-400"> ({photoCredit.modificationNote})</span>
+              )}
+            </p>
+          )}
         </div>
 
         <div className="mt-10 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_23rem] lg:gap-12">
@@ -219,6 +255,17 @@ export default function DestinationDetailPage() {
                   ariaLabel={`Bản đồ vị trí ${destination.name}`}
                 />
               </Suspense>
+              <p className="mt-3 text-xs leading-5 text-gray-500">
+                {destination.coordinateSourceUrl && destination.coordinatesVerifiedAt ? (
+                  <>
+                    Tọa độ đối chiếu từ{' '}
+                    <a href={destination.coordinateSourceUrl} target="_blank" rel="noreferrer" className="font-semibold text-primary-700 underline">
+                      Wikidata
+                    </a>
+                    {' '}ngày {new Date(destination.coordinatesVerifiedAt).toLocaleDateString('vi-VN')}.
+                  </>
+                ) : 'Tọa độ do dự án cung cấp, chưa có nguồn đối chiếu.'}
+              </p>
             </section>
           </div>
 

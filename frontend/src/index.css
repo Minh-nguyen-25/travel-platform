@@ -179,16 +179,33 @@
 
   .reveal-section {
     opacity: 0;
-    transform: translate3d(0, 28px, 0);
+    transform: translate3d(0, 24px, 0);
     transition:
       opacity 700ms var(--ease-travel),
       transform 700ms var(--ease-travel);
     transition-delay: var(--reveal-delay, 0ms);
   }
 
-  .reveal-section.is-visible {
+  .reveal-section--up {
+    transform: translate3d(0, 24px, 0);
+  }
+
+  .reveal-section--left {
+    transform: translate3d(-24px, 0, 0);
+  }
+
+  .reveal-section--right {
+    transform: translate3d(24px, 0, 0);
+  }
+
+  .reveal-section--scale {
+    transform: translate3d(0, 16px, 0) scale(0.98);
+  }
+
+  .reveal-section.is-visible,
+  .reveal-section:focus-within {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: none;
   }
 
   .hero-headline-wrapper {
