@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useReducer, useRef, type CSSProperties } from 'react';
 import { latLngBounds } from 'leaflet';
 import type { CircleMarker as LeafletCircleMarker, LatLngTuple } from 'leaflet';
 import {
@@ -12,6 +12,7 @@ import {
   useMap,
 } from 'react-leaflet';
 import { useItineraryRoute } from '@/hooks/useItineraryRoute';
+import { getMapTileConfig, initialTileState, tileStateReducer } from '@/utils/map-tiles';
 import type {
   ItineraryMapStop,
   ItineraryTravelMode,
@@ -24,17 +25,13 @@ import './InteractiveItineraryMap.css';
 const DEFAULT_CENTER: LatLngTuple = [16.0471, 108.2068];
 const DEFAULT_ZOOM = 5;
 const DEFAULT_HEIGHT = '28rem';
-const OPEN_STREET_MAP_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-const OPEN_STREET_MAP_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+const tileConfig = getMapTileConfig(import.meta.env);
 
 interface NormalizedStop {
   latitude: number;
   longitude: number;
   source: ItineraryMapStop;
 }
-
-type TileStatus = 'loading' | 'ready' | 'error';
 
 export interface InteractiveItineraryMapProps {
   ariaLabel?: string;
@@ -244,8 +241,17 @@ export default function InteractiveItineraryMap({
   title = 'Bản đồ hành trình',
   travelMode,
 }: InteractiveItineraryMapProps) {
-  const [tileAttempt, setTileAttempt] = useState(0);
-  const [tileStatus, setTileStatus] = useState<TileStatus>('loading');
+  const [tileState, dispatchTiles] = useReducer(tileStateReducer, initialTileState);
+  const tileStatus = tileState.status;
+  const tileSource = tileConfig.sources[tileState.source];
+
+  useEffect(() => {
+    if (tileState.status !== 'loading') return undefined;
+    const timeout = window.setTimeout(() => {
+      dispatchTiles({ type: 'timeout', generation: tileState.generation });
+    }, tileConfig.timeoutMs);
+    return () => window.clearTimeout(timeout);
+  }, [tileState.generation, tileState.status]);
   const normalizedStops = useMemo(() => normalizeStops(stops), [stops]);
   const coordinates = useMemo<MapCoordinate[]>(
     () => normalizedStops.map(({ latitude, longitude }) => ({ latitude, longitude })),
@@ -254,6 +260,7 @@ export default function InteractiveItineraryMap({
   const invalidStopCount = stops.length - normalizedStops.length;
   const routingProfile = resolveRoutingProfile(profile, travelMode);
   const {
+    cacheNotice,
     error: routeError,
     retry: retryRoute,
     route,
@@ -289,8 +296,7 @@ export default function InteractiveItineraryMap({
   const isLoading = tileStatus === 'loading' || routeStatus === 'loading';
 
   const retryTiles = () => {
-    setTileStatus('loading');
-    setTileAttempt((value) => value + 1);
+    dispatchTiles({ type: 'retry' });
   };
 
   return (
@@ -322,15 +328,16 @@ export default function InteractiveItineraryMap({
           zoomControl
         >
           <TileLayer
-            key={tileAttempt}
-            attribution={OPEN_STREET_MAP_ATTRIBUTION}
-            url={OPEN_STREET_MAP_TILES}
+            key={tileState.generation}
+            attribution={tileSource.attribution}
+            url={tileSource.url}
+            referrerPolicy="strict-origin-when-cross-origin"
             maxZoom={19}
             minZoom={2}
             eventHandlers={{
-              load: () => setTileStatus((current) => current === 'error' ? current : 'ready'),
-              loading: () => setTileStatus('loading'),
-              tileerror: () => setTileStatus('error'),
+              load: () => dispatchTiles({ type: 'ready', generation: tileState.generation }),
+              loading: () => dispatchTiles({ type: 'loading', generation: tileState.generation }),
+              tileerror: () => dispatchTiles({ type: 'error', generation: tileState.generation }),
             }}
           />
           <ScaleControl imperial={false} metric position="bottomleft" />
@@ -380,8 +387,14 @@ export default function InteractiveItineraryMap({
         )}
       </div>
 
-      {(routeError || tileStatus === 'error' || invalidStopCount > 0) && (
+      {(cacheNotice || routeError || tileStatus === 'error' || invalidStopCount > 0) && (
         <div className="itinerary-map__notices" aria-live="polite">
+          {cacheNotice && (
+            <div className="itinerary-map__notice" role="status">
+              <span>{cacheNotice}</span>
+              <button type="button" onClick={retryRoute}>Cập nhật tuyến đường</button>
+            </div>
+          )}
           {routeError && (
             <div className="itinerary-map__notice itinerary-map__notice--error" role="alert">
               <span>{routeError} Các điểm dừng vẫn được hiển thị trên bản đồ.</span>
@@ -392,7 +405,7 @@ export default function InteractiveItineraryMap({
           )}
           {tileStatus === 'error' && (
             <div className="itinerary-map__notice itinerary-map__notice--error" role="alert">
-              <span>Không thể tải một số ô bản đồ OpenStreetMap.</span>
+              <span>Chưa tải được đầy đủ bản đồ nền. Vui lòng kiểm tra kết nối và thử lại.</span>
               <button type="button" onClick={retryTiles}>Tải lại bản đồ nền</button>
             </div>
           )}

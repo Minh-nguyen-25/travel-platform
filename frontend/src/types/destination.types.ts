@@ -13,6 +13,8 @@ export interface DestinationCategory {
 }
 
 export interface Destination {
+  coordinateSourceUrl?: string | null;
+  coordinatesVerifiedAt?: string | null;
   id: number;
   name: string;
   description: string | null;
