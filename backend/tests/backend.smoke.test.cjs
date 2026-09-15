@@ -17,6 +17,9 @@ console.log = (...args) => {
 };
 
 process.env.JWT_SECRET ||= 'backend-smoke-test-secret';
+process.env.JWT_ACCESS_SECRET ||= 'backend-smoke-access-secret';
+process.env.JWT_REFRESH_SECRET ||= 'backend-smoke-refresh-secret';
+process.env.REDIS_URL ||= 'redis://127.0.0.1:6379';
 
 const { AiService } = require('../dist/src/services/ai.service.js');
 const { OsrmMapService } = require('../dist/src/services/map.service.js');
@@ -317,6 +320,7 @@ test('AI, map and AI-trip request validators accept their documented contracts',
 });
 
 test('OpenAI chat sends bounded conversation and personalized TravelPlatform context', async () => {
+  let retrievalQuery;
   const repository = {
     findPreference: async () => ({
       budgetLevel: 'MEDIUM',
@@ -339,7 +343,9 @@ test('OpenAI chat sends bounded conversation and personalized TravelPlatform con
         tripDays: [],
       },
     ],
-    findDestinationsForChat: async () => [
+    findDestinationsForChat: async (query) => {
+      retrievalQuery = query;
+      return [
       {
         id: 9,
         name: 'Bảo tàng Điêu khắc Chăm',
@@ -351,7 +357,8 @@ test('OpenAI chat sends bounded conversation and personalized TravelPlatform con
         rating: numberLike(4.7),
         categories: [{ category: { name: 'Văn hóa' } }],
       },
-    ],
+      ];
+    },
   };
   const config = {
     provider: 'openai',
@@ -398,6 +405,8 @@ test('OpenAI chat sends bounded conversation and personalized TravelPlatform con
   assert.match(requestBody.input[2].content, /TRAVEL_PLATFORM_CONTEXT/);
   assert.match(requestBody.input[2].content, /Đà Nẵng tháng 9/);
   assert.equal(result.reply, 'Bạn có chuyến Đà Nẵng 3 ngày vào tháng 9.');
+  assert.equal(retrievalQuery, 'Tóm tắt chuyến đi sắp tới của tôi');
+  assert.deepEqual(result.sources, [{ id: 9, name: 'Bảo tàng Điêu khắc Chăm' }]);
   assert.deepEqual(result.context, { tripCount: 1, destinationCount: 1 });
 });
 
@@ -713,7 +722,7 @@ test('Gemini adapter requests JSON schema output through generateContent', async
   const config = {
     provider: 'gemini',
     apiKey: 'gemini-test-key',
-    model: 'gemini-test-model',
+    model: 'gemini-3.5-flash',
     baseUrl: 'https://gemini.example.test/v1beta',
     timeoutMs: 1_000,
     maxRetries: 0,
@@ -777,9 +786,10 @@ test('Gemini adapter requests JSON schema output through generateContent', async
     days: 1,
   });
 
-  assert.match(requestedUrl, /models\/gemini-test-model:generateContent$/);
+  assert.match(requestedUrl, /models\/gemini-3\.5-flash:generateContent$/);
   assert.equal(requestHeaders['x-goog-api-key'], 'gemini-test-key');
   assert.equal(requestBody.generationConfig.responseMimeType, 'application/json');
+  assert.equal(requestBody.generationConfig.thinkingConfig.thinkingLevel, 'low');
   assert.equal(requestBody.generationConfig.responseJsonSchema.type, 'object');
   assert.equal(result.metadata.provider, 'gemini');
   assert.equal(result.tripDraft, null);

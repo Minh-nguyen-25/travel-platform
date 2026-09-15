@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import EditorialPageHero from '@/components/common/EditorialPageHero';
+import AiDraftPreview from '@/components/ai/AiDraftPreview';
 import TripIcon from '@/components/trip/TripIcon';
 import { ROUTES } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,6 +12,8 @@ import { getApiErrorMessage } from '@/utils/trip.utils';
 interface ChatMessage extends AiChatMessage {
   id: string;
   isWelcome?: boolean;
+  sources?: AiChatResult['sources'];
+  draft?: NonNullable<AiChatResult['draft']>;
 }
 
 const quickPrompts = [
@@ -44,6 +47,9 @@ export default function AiChatPage() {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
   const [lastResult, setLastResult] = useState<AiChatResult | null>(null);
+  const [savingDraftId, setSavingDraftId] = useState<string | null>(null);
+  const [savedTripIds, setSavedTripIds] = useState<Record<string, number>>({});
+  const [draftErrors, setDraftErrors] = useState<Record<string, string>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -75,7 +81,11 @@ export default function AiChatPage() {
         history,
         locale: 'vi-VN',
       });
-      setMessages((current) => [...current, createMessage('assistant', result.reply)]);
+      setMessages((current) => [...current, {
+        ...createMessage('assistant', result.reply),
+        sources: result.sources,
+        draft: result.draft ?? undefined,
+      }]);
       setLastResult(result);
     } catch (requestError: unknown) {
       setError(getApiErrorMessage(
@@ -87,12 +97,31 @@ export default function AiChatPage() {
     }
   };
 
+  const saveDraft = async (messageId: string, draft: NonNullable<AiChatResult['draft']>) => {
+    if (savingDraftId) return;
+    setSavingDraftId(messageId);
+    setDraftErrors((current) => ({ ...current, [messageId]: '' }));
+    try {
+      const trip = await aiService.saveTripDraft(draft.tripDraft);
+      setSavedTripIds((current) => ({ ...current, [messageId]: trip.id }));
+    } catch (requestError: unknown) {
+      setDraftErrors((current) => ({
+        ...current,
+        [messageId]: getApiErrorMessage(requestError, 'Chưa thể lưu chuyến đi. Vui lòng thử lại.'),
+      }));
+    } finally {
+      setSavingDraftId(null);
+    }
+  };
+
   const resetConversation = () => {
     if (isSending) return;
     setMessages([welcomeMessage(user?.fullName)]);
     setDraft('');
     setError('');
     setLastResult(null);
+    setSavedTripIds({});
+    setDraftErrors({});
   };
 
   return (
@@ -156,6 +185,41 @@ export default function AiChatPage() {
                     : 'rounded-bl-md border border-gray-100 bg-white text-gray-700'
                   }`}>
                     <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                    {message.role === 'assistant' && message.sources && message.sources.length > 0 && (
+                      <div className="mt-3 border-t border-gray-100 pt-3 text-xs">
+                        <p className="font-bold text-gray-500">Địa điểm trong dữ liệu tham khảo</p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {message.sources.slice(0, 8).map((source) => (
+                            <Link key={source.id} to={ROUTES.DESTINATION_DETAIL(source.id)}
+                              className="rounded-lg bg-primary-50 px-2 py-1 font-semibold text-primary-700 hover:bg-primary-100">
+                              {source.name}
+                            </Link>
+                          ))}
+                        </div>
+                        {message.sources.length > 8 && (
+                          <details className="mt-2">
+                            <summary className="cursor-pointer font-semibold text-primary-700">Xem thêm {message.sources.length - 8} địa điểm</summary>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {message.sources.slice(8).map((source) => (
+                                <Link key={source.id} to={ROUTES.DESTINATION_DETAIL(source.id)}
+                                  className="rounded-lg bg-primary-50 px-2 py-1 font-semibold text-primary-700 hover:bg-primary-100">
+                                  {source.name}
+                                </Link>
+                              ))}
+                            </div>
+                          </details>
+                        )}
+                      </div>
+                    )}
+                    {message.role === 'assistant' && message.draft && (
+                      <AiDraftPreview
+                        draft={message.draft}
+                        onSave={() => void saveDraft(message.id, message.draft!)}
+                        isSaving={savingDraftId === message.id}
+                        savedTripId={savedTripIds[message.id] ?? null}
+                        error={draftErrors[message.id] ?? ''}
+                      />
+                    )}
                   </div>
                 </div>
               ))}
@@ -250,7 +314,7 @@ export default function AiChatPage() {
               </span>
               <h2 className="mt-4 text-lg font-extrabold text-white">Muốn lưu lịch trình?</h2>
               <p className="mt-2 text-xs leading-5 text-white/65">
-                AI Chat phù hợp để hỏi nhanh. AI Planner sẽ tạo lịch trình theo ngày, tính chi phí và cho phép lưu vào chuyến đi.
+                AI Chat có thể chuẩn bị bản nháp khi bạn cho biết điểm đến, số ngày và ngày bắt đầu. Hãy xem rồi lưu ngay tại đây, hoặc mở AI Planner để chọn thêm sở thích và ngân sách.
               </p>
               <Link
                 to={ROUTES.PREFERENCES}

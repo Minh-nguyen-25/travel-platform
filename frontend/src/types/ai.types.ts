@@ -96,6 +96,8 @@ export interface AiChatPayload {
 
 export interface AiChatResult {
   reply: string;
+  sources: Array<{ id: number; name: string }>;
+  draft: { itinerary: GeneratedItinerary; tripDraft: AiTripDraft; warnings: string[]; budgetLevel: 'LOW' | 'MEDIUM' | 'HIGH' | null } | null;
   metadata: {
     provider: 'openai' | 'gemini';
     model: string;

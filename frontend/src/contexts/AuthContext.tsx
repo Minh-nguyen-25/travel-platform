@@ -1,4 +1,4 @@
-import { createContext, useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { authApi, authService } from '@/services/auth.service';
 import { getToken, removeToken, setToken, subscribeToken } from '@/utils/access-token.store';
@@ -10,8 +10,7 @@ import type {
   UpdateProfileRequest,
   User,
 } from '@/types/auth.types';
-
-export const AuthContext = createContext<AuthContextType | null>(null);
+import { AuthContext } from './auth-context';
 
 let restorePromise: Promise<void> | null = null;
 

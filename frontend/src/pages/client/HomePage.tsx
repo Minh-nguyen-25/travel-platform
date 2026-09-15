@@ -1,6 +1,9 @@
-import { useEffect, useState, type FormEvent } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Reveal from '@/components/common/Reveal';
+import DestinationSearch from '@/components/destination/DestinationSearch';
+import useHomeScrollMotion from '@/hooks/useHomeScrollMotion';
+import './HomePage.css';
 import CategoryCard from '@/components/destination/CategoryCard';
 import DestinationCard, { DestinationCardSkeleton } from '@/components/destination/DestinationCard';
 import TripIcon from '@/components/trip/TripIcon';
@@ -39,6 +42,7 @@ const destinationGridClass = (index: number): string => {
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const { pageRef, heroRef, progressRef } = useHomeScrollMotion();
   const [search, setSearch] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [topDestinations, setTopDestinations] = useState<Destination[]>([]);
@@ -80,15 +84,14 @@ export default function HomePage() {
     return () => { active = false; };
   }, [retryKey]);
 
-  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const query = search.trim();
+  const submitSearch = (query: string) => {
     navigate(query ? `${ROUTES.DESTINATIONS}?search=${encodeURIComponent(query)}` : ROUTES.DESTINATIONS);
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-sand-50">
-      <section className="relative isolate flex min-h-[760px] items-end overflow-hidden bg-navy-950 text-white sm:min-h-[820px] lg:min-h-[min(920px,100svh)] lg:items-center">
+    <div ref={pageRef} className="home-page min-h-screen overflow-x-hidden bg-sand-50">
+      <div ref={progressRef} className="home-scroll-progress" aria-hidden="true" />
+      <section ref={heroRef} className="relative isolate flex min-h-[760px] items-end overflow-hidden bg-navy-950 text-white sm:min-h-[820px] lg:min-h-[min(920px,100svh)] lg:items-center">
         <img
           src={HERO_IMAGE}
           alt="Đèo núi Hà Giang trong ánh bình minh"
@@ -135,23 +138,7 @@ export default function HomePage() {
               </Link>
             </div>
 
-            <form onSubmit={submitSearch} className="mt-9 flex max-w-2xl animate-hero-reveal flex-col gap-2 rounded-2xl border border-white/20 bg-white/95 p-2 shadow-float [animation-delay:480ms] sm:flex-row">
-              <label htmlFor="home-destination-search" className="sr-only">Tìm kiếm địa điểm</label>
-              <div className="relative min-w-0 flex-1">
-                <TripIcon name="search" size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-primary-600" />
-                <input
-                  id="home-destination-search"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  className="h-12 w-full rounded-xl border-0 bg-transparent pl-12 pr-4 text-sm font-semibold text-gray-900 outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-primary-200"
-                  placeholder="Hôm nay bạn muốn đi đâu?"
-                  maxLength={200}
-                />
-              </div>
-              <button type="submit" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary-700 px-6 text-sm font-extrabold text-white transition hover:bg-primary-800 active:scale-[0.98]">
-                Tìm cảm hứng <TripIcon name="arrow-right" size={16} />
-              </button>
-            </form>
+            <DestinationSearch value={search} onChange={setSearch} onSearch={submitSearch} buttonLabel="Tìm cảm hứng" className="mt-9 max-w-2xl animate-hero-reveal [animation-delay:480ms]" />
           </div>
 
           <aside className="animate-soft-float hidden overflow-hidden rounded-[2rem] border border-white/20 bg-navy-950/45 p-5 text-white shadow-float backdrop-blur-xl lg:block" aria-label="Cách TravelGo tạo hành trình">

@@ -32,9 +32,11 @@ export default function Modal({
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    if (event.key === 'Escape') onClose();
-  }, [onClose]);
+    if (event.key === 'Escape') onCloseRef.current();
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;

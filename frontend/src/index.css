@@ -197,6 +197,11 @@
     overflow: visible;
   }
 
+  .reveal-section--left { transform: translate3d(-36px, 0, 0); }
+  .reveal-section--right { transform: translate3d(36px, 0, 0); }
+  .reveal-section--scale { transform: translate3d(0, 18px, 0) scale(0.96); }
+  .reveal-section:focus-within { opacity: 1; transform: none; }
+
   .hero-title-line {
     display: block;
     opacity: 0;

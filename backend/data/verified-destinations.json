@@ -1,0 +1,59 @@
+{
+  "fetchedAt": "2026-09-14T18:37:55.956Z",
+  "destinations": [
+    {
+      "name": "Hồ Hoàn Kiếm",
+      "latitude": 21.0288889,
+      "longitude": 105.8525,
+      "sourceUrl": "https://www.wikidata.org/w/index.php?title=Q1151254&oldid=2519101846"
+    },
+    {
+      "name": "Văn Miếu - Quốc Tử Giám",
+      "latitude": 21.028611,
+      "longitude": 105.835556,
+      "sourceUrl": "https://www.wikidata.org/w/index.php?title=Q1202019&oldid=2545631224"
+    },
+    {
+      "name": "Hoàng thành Thăng Long",
+      "latitude": 21.0325,
+      "longitude": 105.83972,
+      "sourceUrl": "https://www.wikidata.org/w/index.php?title=Q206219&oldid=2527493130"
+    },
+    {
+      "name": "Bảo tàng Dân tộc học Việt Nam",
+      "latitude": 21.0405556,
+      "longitude": 105.7983333,
+      "sourceUrl": "https://www.wikidata.org/w/index.php?title=Q1048345&oldid=2477009113"
+    },
+    {
+      "name": "Cầu Rồng Đà Nẵng",
+      "latitude": 16.0611111,
+      "longitude": 108.2266667,
+      "sourceUrl": "https://www.wikidata.org/w/index.php?title=Q5305270&oldid=2484989062"
+    },
+    {
+      "name": "Dinh Độc Lập",
+      "latitude": 10.77705,
+      "longitude": 106.69537,
+      "sourceUrl": "https://www.wikidata.org/w/index.php?title=Q933384&oldid=2527489480"
+    },
+    {
+      "name": "Chợ Bến Thành",
+      "latitude": 10.772521,
+      "longitude": 106.698019,
+      "sourceUrl": "https://www.wikidata.org/w/index.php?title=Q3232879&oldid=2527488626"
+    },
+    {
+      "name": "Phố đi bộ Nguyễn Huệ",
+      "latitude": 10.774112,
+      "longitude": 106.703619,
+      "sourceUrl": "https://www.wikidata.org/w/index.php?title=Q11300021&oldid=2535700132"
+    },
+    {
+      "name": "Bưu điện Trung tâm Sài Gòn",
+      "latitude": 10.78,
+      "longitude": 106.7,
+      "sourceUrl": "https://www.wikidata.org/w/index.php?title=Q2227270&oldid=2485960735"
+    }
+  ]
+}

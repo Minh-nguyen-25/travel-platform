@@ -34,6 +34,8 @@ export interface AiChatInput {
 export interface AiChatResult {
   reply: string;
   metadata: AiGenerationMetadata;
+  sources: Array<{ id: number; name: string }>;
+  draft: { itinerary: GeneratedItinerary; tripDraft: AiTripDraft; warnings: string[]; budgetLevel: BudgetLevel | null } | null;
   context: {
     tripCount: number;
     destinationCount: number;

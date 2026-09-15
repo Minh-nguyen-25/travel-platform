@@ -1,6 +1,10 @@
 import 'dotenv/config';
 import { PrismaClient, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { planVerifiedCoordinates } from '../src/utils/verified-map-data';
+import { planDestinationPhotos } from '../src/utils/destination-photos';
 
 import { CATEGORIES_DATA } from './seed-data/categories.data';
 import { DESTINATIONS_DATA } from './seed-data/destinations.data';
@@ -9,6 +13,27 @@ import { REVIEWS_DATA, FAVORITES_DATA } from './seed-data/reviews.data';
 import { TRIPS_DATA } from './seed-data/trips.data';
 
 const prisma = new PrismaClient();
+
+async function syncDestinationSnapshots() {
+  const coordinateDocument: unknown = JSON.parse(await readFile(resolve(process.cwd(), 'data/verified-destinations.json'), 'utf8'));
+  const coordinateRecords = await prisma.destination.findMany({
+    select: { id: true, name: true, latitude: true, longitude: true, coordinateSourceUrl: true, coordinatesVerifiedAt: true },
+  });
+  const coordinates = planVerifiedCoordinates(coordinateDocument, coordinateRecords);
+  if (coordinates.updates.length) {
+    await prisma.$transaction(coordinates.updates.map(({ id, ...data }) => prisma.destination.update({ where: { id }, data })));
+  }
+
+  const photoDocument: unknown = JSON.parse(await readFile(resolve(process.cwd(), 'data/destination-photos.json'), 'utf8'));
+  const photoRecords = await prisma.destination.findMany({ select: { id: true, name: true, images: true } });
+  const photos = planDestinationPhotos(photoDocument, photoRecords);
+  if (photos.operations.length) {
+    await prisma.$transaction(photos.operations.map(({ destinationId, imageId, ...data }) => imageId
+      ? prisma.destinationImage.update({ where: { id: imageId }, data })
+      : prisma.destinationImage.create({ data: { destinationId, ...data } })));
+  }
+  console.log(`Synced ${coordinates.updates.length} verified coordinates and ${photos.operations.length} local photos.`);
+}
 
 // ─── KIỂM TRA AN TOÀN MÔI TRƯỜNG ─────────────────────────────────────────────
 if (process.env.NODE_ENV === 'production') {
@@ -149,7 +174,7 @@ async function main() {
           ...(dest.aliases ? dest.aliases.map((alias) => ({ name: alias })) : []),
         ],
       },
-      select: { id: true, name: true },
+      select: { id: true, name: true, coordinatesVerifiedAt: true },
     });
 
     const destData = {
@@ -168,7 +193,7 @@ async function main() {
     const destRecord = existing
       ? await prisma.destination.update({
           where: { id: existing.id },
-          data: destData,
+          data: existing.coordinatesVerifiedAt ? { ...destData, latitude: undefined, longitude: undefined } : destData,
         })
       : await prisma.destination.create({
           data: destData,
@@ -244,6 +269,7 @@ async function main() {
 
   // ─── 3. SEED DEMO USERS (TÀI KHOẢN NGƯỜI DÙNG DEMO) ───────────────────────
   console.log('\n👤 [3/8] Seed Tài khoản người dùng demo (Users)...');
+  await syncDestinationSnapshots();
   const userMap = new Map<string, number>();
 
   // Xác minh không ảnh hưởng tài khoản ADMIN hiện có

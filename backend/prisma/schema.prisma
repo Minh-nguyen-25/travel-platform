@@ -83,6 +83,8 @@ model Destination {
   phoneNumber      String?               @map("phone_number") @db.VarChar(20)
   latitude         Decimal               @db.Decimal(10, 7)
   longitude        Decimal               @db.Decimal(10, 7)
+  coordinateSourceUrl String?            @map("coordinate_source_url") @db.Text
+  coordinatesVerifiedAt DateTime?        @map("coordinates_verified_at") @db.Timestamp()
   ticketPrice      Decimal               @default(0) @map("ticket_price") @db.Decimal(12, 2)
   openingHoursNote String?               @map("opening_hours_note") @db.Text
   visitDuration    Int?                  @map("visit_duration")
