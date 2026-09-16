@@ -339,24 +339,29 @@ test('OpenAI chat sends bounded conversation and personalized TravelPlatform con
         tripDays: [],
       },
     ],
-    findDestinationsForChat: async () => [
-      {
-        id: 9,
-        name: 'Bảo tàng Điêu khắc Chăm',
-        address: 'Đà Nẵng',
-        description: 'Bảo tàng văn hóa Chăm',
-        ticketPrice: numberLike(60_000),
-        openingHoursNote: 'Kiểm tra lại trước khi đến',
-        visitDuration: 90,
-        rating: numberLike(4.7),
-        categories: [{ category: { name: 'Văn hóa' } }],
-      },
-    ],
+    findDestinationsForChat: async (query, limit) => {
+      assert.equal(query, 'Tóm tắt chuyến đi sắp tới của tôi');
+      assert.equal(limit, 30);
+      return [
+        {
+          id: 9,
+          name: 'Bảo tàng Điêu khắc Chăm',
+          address: 'Đà Nẵng',
+          description: 'Bảo tàng văn hóa Chăm',
+          ticketPrice: numberLike(60_000),
+          openingHoursNote: 'Kiểm tra lại trước khi đến',
+          visitDuration: 90,
+          rating: numberLike(4.7),
+          categories: [{ category: { name: 'Văn hóa' } }],
+        },
+      ];
+    },
   };
   const config = {
     provider: 'openai',
     apiKey: 'test-key',
     model: 'test-model',
+    chatModel: 'test-model',
     baseUrl: 'https://api.openai.test/v1',
     timeoutMs: 1_000,
     maxRetries: 0,
@@ -398,6 +403,8 @@ test('OpenAI chat sends bounded conversation and personalized TravelPlatform con
   assert.match(requestBody.input[2].content, /TRAVEL_PLATFORM_CONTEXT/);
   assert.match(requestBody.input[2].content, /Đà Nẵng tháng 9/);
   assert.equal(result.reply, 'Bạn có chuyến Đà Nẵng 3 ngày vào tháng 9.');
+  assert.deepEqual(result.sources, [{ id: 9, name: 'Bảo tàng Điêu khắc Chăm' }]);
+  assert.equal(result.draft, null);
   assert.deepEqual(result.context, { tripCount: 1, destinationCount: 1 });
 });
 
