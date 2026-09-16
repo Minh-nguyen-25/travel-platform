@@ -4,6 +4,7 @@ export interface AiConfig {
   provider: AiProvider;
   apiKey: string;
   model: string;
+  chatModel: string;
   baseUrl: string;
   timeoutMs: number;
   maxRetries: number;
@@ -57,7 +58,7 @@ const normalizeBaseUrl = (name: string, value: string): string => {
 };
 
 const getProvider = (): AiProvider => {
-  const provider = (process.env.AI_PROVIDER ?? 'openai').trim().toLowerCase();
+  const provider = (process.env.AI_PROVIDER ?? 'gemini').trim().toLowerCase();
   if (provider !== 'openai' && provider !== 'gemini') {
     throw new Error('AI_PROVIDER must be either openai or gemini');
   }
@@ -75,6 +76,10 @@ export const getAiConfig = (): AiConfig => {
     (isOpenAi ? process.env.OPENAI_MODEL : process.env.GEMINI_MODEL) ??
     (isOpenAi ? 'gpt-5.6-luna' : 'gemini-3.5-flash')
   ).trim();
+  const chatModel = isOpenAi
+    ? model
+    : (process.env.GEMINI_CHAT_MODEL ??
+      (model === 'gemini-3.5-flash' ? 'gemini-3.5-flash-lite' : model)).trim();
   const baseUrl = normalizeBaseUrl(
     isOpenAi ? 'OPENAI_BASE_URL' : 'GEMINI_BASE_URL',
     (
@@ -87,11 +92,15 @@ export const getAiConfig = (): AiConfig => {
   if (!model) {
     throw new Error(`${isOpenAi ? 'OPENAI_MODEL' : 'GEMINI_MODEL'} cannot be empty`);
   }
+  if (!chatModel) {
+    throw new Error('GEMINI_CHAT_MODEL cannot be empty');
+  }
 
   return {
     provider,
     apiKey,
     model,
+    chatModel,
     baseUrl,
     timeoutMs: readInteger('AI_REQUEST_TIMEOUT_MS', 60_000, 1_000, 180_000),
     maxRetries: readInteger('AI_MAX_RETRIES', 0, 0, 2),
