@@ -1065,7 +1065,7 @@ export class AiService {
     const [preference, trips, destinations] = await Promise.all([
       this.repository.findPreference(userId),
       this.repository.findUserTripsForChat(userId, MAX_CHAT_TRIPS),
-      this.repository.findDestinationsForChat(MAX_CHAT_DESTINATIONS),
+      this.repository.findDestinationsForChat(input.message, MAX_CHAT_DESTINATIONS),
     ]);
     const context = buildChatContext(preference, trips, destinations);
     const reply = config.provider === 'openai'
