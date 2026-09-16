@@ -15,10 +15,14 @@ const destination = {
   categories: [{ category: { name: 'Bảo tàng' } }],
 };
 
-test('repository search would regress if matching candidates outside the top-rated pool were omitted', async () => {
+test('repository search would regress if matching candidates outside the top-rated pool skipped normalized, active, bounded SQL retrieval', async () => {
   const calls = [];
+  const rawQueries = [];
   const database = {
-    $queryRaw: async () => [{ id: 7 }],
+    $queryRaw: async (sql) => {
+      rawQueries.push(sql);
+      return [{ id: 7 }];
+    },
     destination: {
       findMany: async (arguments_) => {
         calls.push(arguments_);
@@ -30,6 +34,15 @@ test('repository search would regress if matching candidates outside the top-rat
   const result = await searchChatDestinations(database, 'bao tang dan toc hoc', 10);
 
   assert.equal(result[0].name, 'Bảo tàng Dân tộc học');
+  assert.equal(rawQueries.length, 1);
+  assert.match(
+    rawQueries[0].sql,
+    /translate\s*\(\s*normalize\s*\(\s*lower\s*\(\s*coalesce\s*\(\s*d\.name,\s*''\s*\)\s*\),\s*NFC\s*\)/
+  );
+  assert.match(rawQueries[0].sql, /WHERE\s+d\.is_active\s*=\s*true/);
+  assert.match(rawQueries[0].sql, /LIMIT\s+\?/);
+  assert.ok(rawQueries[0].values.includes('%bao%'));
+  assert.ok(rawQueries[0].values.includes(300));
   assert.equal(calls.length, 1);
   assert.deepEqual(calls[0].where, { isActive: true, id: { in: [7] } });
 });
