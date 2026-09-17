@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import authRoutes from './auth.routes';
+import destinationRoutes from './destination.routes';
+import categoryRoutes from './category.routes';
 
 const router = Router();
 
@@ -17,8 +19,8 @@ router.get('/health', (_req: Request, res: Response) => {
 });
 
 // ─── Feature routes ───────────────────────────────────────────────────────────
-// Add feature routes here as they are implemented.
-// Example: router.use('/destinations', destinationRoutes);
 router.use('/auth', authRoutes);
+router.use('/destinations', destinationRoutes);
+router.use('/categories', categoryRoutes);
 
 export default router;

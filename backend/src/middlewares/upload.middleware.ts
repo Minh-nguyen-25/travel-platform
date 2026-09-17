@@ -1,28 +1,32 @@
 import multer, { FileFilterCallback } from 'multer';
 import { Request } from 'express';
 
-// Lưu file tạm trong memory — upload.service.ts sẽ đẩy lên Cloudinary
+import path from 'path';
+
+// Lưu file tạm trong memory — upload.service.ts sẽ đẩy lên Cloudinary hoặc Local Storage
 const storage = multer.memoryStorage();
 
+const validExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif', '.svg', '.jfif', '.bmp'];
+
 const fileFilter = (_req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
-  const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-  if (allowedMimeTypes.includes(file.mimetype)) {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (file.mimetype.startsWith('image/') || validExtensions.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error('Chỉ chấp nhận file ảnh: jpeg, jpg, png, webp'));
+    cb(new Error('Chỉ chấp nhận file định dạng hình ảnh (jpg, png, webp, avif, svg...)'));
   }
 };
 
-const upload = multer({
+export const uploadMiddleware = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: 10 * 1024 * 1024, // 10MB
   },
 });
 
 // Dùng: router.post('/reviews', authenticate, uploadSingle, reviewController.create)
-export const uploadSingle = upload.single('image');
+export const uploadSingle = uploadMiddleware.single('image');
 
-// Dùng cho upload nhiều ảnh (tối đa 5)
-export const uploadMultiple = upload.array('images', 5);
+// Dùng cho upload nhiều ảnh (mặc định tối đa 20 ảnh)
+export const uploadMultiple = uploadMiddleware.array('images', 20);

@@ -7,3 +7,5 @@ build/
 *.log
 .agents/
 .design-references/
+*.tsbuildinfo
+backend/uploads/

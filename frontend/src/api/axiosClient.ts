@@ -13,8 +13,10 @@ import { getToken, removeToken, setToken } from '@/utils/access-token.store';
 // ================================================================
 // Tạo Instance
 // ================================================================
+const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:3000/api/v1';
+
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL as string,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -34,6 +36,11 @@ axiosClient.interceptors.request.use(
     const token = getToken();
     if (token && config.headers) {
       config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    // Khi gửi FormData (upload file/ảnh), PHẢI xóa Content-Type mặc định ('application/json')
+    // để trình duyệt tự động thiết lập 'multipart/form-data; boundary=...'
+    if (config.data instanceof FormData && config.headers) {
+      delete config.headers['Content-Type'];
     }
     return config;
   },
@@ -126,7 +133,7 @@ axiosClient.interceptors.response.use(
     try {
       // Gọi refresh bằng axios gốc (bare axios) với full URL và withCredentials: true
       // KHÔNG dùng axiosClient để tránh re-enter interceptor stack
-      const fullRefreshUrl = `${import.meta.env.VITE_API_URL as string}/auth/refresh`;
+      const fullRefreshUrl = `${API_BASE_URL}/auth/refresh`;
       const response = await axios.post<{ data: { accessToken: string } }>(
         fullRefreshUrl,
         {},

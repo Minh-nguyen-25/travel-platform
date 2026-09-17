@@ -1,0 +1,1 @@
+export { destinationService as destinationApi, destinationService } from '@/services/destination.service';

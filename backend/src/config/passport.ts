@@ -10,9 +10,10 @@ import prisma from './db';
 passport.use(
   new GoogleStrategy(
     {
-      clientID: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      callbackURL: process.env.GOOGLE_CALLBACK_URL!,
+      // TAO ĐÓNG CỨNG CHỮ VÀO ĐÂY LUÔN, KHÔNG DÙNG ENV NỮA
+      clientID: 'bat_buoc_phai_chay_id',
+      clientSecret: 'bat_buoc_phai_chay_secret',
+      callbackURL: 'http://localhost:3000/api/v1/auth/google/callback',
     },
     async (_accessToken: string, _refreshToken: string, profile: Profile, done: VerifyCallback) => {
       try {

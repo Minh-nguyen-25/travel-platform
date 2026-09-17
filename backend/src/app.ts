@@ -1,4 +1,5 @@
 import 'express-async-errors';
+import path from 'path';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -11,7 +12,11 @@ import { errorHandler } from './middlewares/errorHandler.middleware';
 const app = express();
 
 // ─── Security Middleware ───────────────────────────────────────────────────────
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
 
 // CORS — credential-safe origin allowlist.
 // Split on comma to support multiple origins (e.g. staging + production).
@@ -30,6 +35,16 @@ app.use(cookieParser());
 
 // ─── OAuth (Passport) ─────────────────────────────────────────────────────────
 app.use(passport.initialize());
+
+// ─── Static files (Uploads) ───────────────────────────────────────────────────
+app.use(
+  '/uploads',
+  (_req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  },
+  express.static(path.join(process.cwd(), 'uploads'))
+);
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/v1', router);
