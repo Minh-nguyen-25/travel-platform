@@ -7,6 +7,7 @@ import { ROUTES } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
 import { aiService } from '@/services/ai.service';
 import type { AiChatMessage, AiChatResult } from '@/types/ai.types';
+import { createDraftSaveGuard } from '@/utils/ai-draft-save-guard';
 import { getApiErrorMessage } from '@/utils/trip.utils';
 
 interface ChatMessage extends AiChatMessage {
@@ -51,6 +52,7 @@ export default function AiChatPage() {
   const [savedTripIds, setSavedTripIds] = useState<Record<string, number>>({});
   const [draftErrors, setDraftErrors] = useState<Record<string, string>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const draftSaveGuard = useRef(createDraftSaveGuard()).current;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -98,20 +100,25 @@ export default function AiChatPage() {
   };
 
   const saveDraft = async (messageId: string, messageDraft: NonNullable<AiChatResult['draft']>) => {
-    if (savingDraftId) return;
+    const request = draftSaveGuard.begin();
+    if (!request) return;
     setSavingDraftId(messageId);
     setDraftErrors((current) => ({ ...current, [messageId]: '' }));
 
     try {
       const trip = await aiService.saveTripDraft(messageDraft.tripDraft);
+      if (!draftSaveGuard.isCurrent(request)) return;
       setSavedTripIds((current) => ({ ...current, [messageId]: trip.id }));
     } catch (requestError: unknown) {
+      if (!draftSaveGuard.isCurrent(request)) return;
       setDraftErrors((current) => ({
         ...current,
         [messageId]: getApiErrorMessage(requestError, 'Chưa thể lưu chuyến đi. Vui lòng thử lại.'),
       }));
     } finally {
-      setSavingDraftId(null);
+      if (draftSaveGuard.complete(request)) {
+        setSavingDraftId(null);
+      }
     }
   };
 
@@ -121,6 +128,7 @@ export default function AiChatPage() {
     setDraft('');
     setError('');
     setLastResult(null);
+    draftSaveGuard.reset();
     setSavingDraftId(null);
     setSavedTripIds({});
     setDraftErrors({});

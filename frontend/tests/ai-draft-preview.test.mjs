@@ -8,8 +8,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 const frontendRoot = fileURLToPath(new URL('..', import.meta.url));
 
-test('chat draft preview renders itinerary details and save CTA without proof token', async (t) => {
-  const vite = await createServer({
+const createViteServer = (t) => {
+  const vite = createServer({
     root: frontendRoot,
     configFile: false,
     resolve: { alias: { '@': path.join(frontendRoot, 'src') } },
@@ -17,10 +17,24 @@ test('chat draft preview renders itinerary details and save CTA without proof to
     server: { middlewareMode: true },
     appType: 'custom',
   });
-  t.after(() => vite.close());
+  t.after(async () => (await vite).close());
+  return vite;
+};
+
+const findElement = (element, type) => {
+  if (!React.isValidElement(element)) return undefined;
+  if (element.type === type) return element;
+  return React.Children.toArray(element.props.children)
+    .map((child) => findElement(child, type))
+    .find(Boolean);
+};
+
+test('chat draft preview renders itinerary details and save CTA without proof token', async (t) => {
+  const vite = await createViteServer(t);
 
   const { default: AiDraftPreview } = await vite.ssrLoadModule('/src/components/ai/AiDraftPreview.tsx');
-  const markup = renderToStaticMarkup(React.createElement(AiDraftPreview, {
+  let saveCalls = 0;
+  const props = {
     draft: {
       itinerary: {
         title: 'Ba ngày ở Đà Nẵng',
@@ -58,20 +72,45 @@ test('chat draft preview renders itinerary details and save CTA without proof to
         endDate: '2026-10-16',
         budget: 4200000,
         numberOfPeople: 2,
-        aiRawData: '{}',
+        aiRawData: 'raw-data-must-never-appear',
         aiProofToken: 'proof-token-must-never-appear',
       },
       warnings: ['Kiểm tra giá vé trước khi đi.'],
       budgetLevel: 'MEDIUM',
     },
-    onSave: () => {},
+    onSave: () => { saveCalls += 1; },
     isSaving: false,
     savedTripId: undefined,
     error: undefined,
-  }));
+  };
+  const markup = renderToStaticMarkup(React.createElement(AiDraftPreview, props));
 
   assert.match(markup, /2026-10-14/);
   assert.match(markup, /Bãi biển Mỹ Khê/);
   assert.match(markup, /Lưu chuyến đi/);
   assert.doesNotMatch(markup, /proof-token-must-never-appear/);
+  assert.doesNotMatch(markup, /raw-data-must-never-appear/);
+
+  const preview = AiDraftPreview(props);
+  const saveButton = findElement(preview, 'button');
+  assert.equal(typeof saveButton?.props.onClick, 'function');
+  saveButton.props.onClick();
+  assert.equal(saveCalls, 1);
+});
+
+test('draft save guard keeps a newer save active after reset invalidates an older request', async (t) => {
+  const vite = await createViteServer(t);
+  const { createDraftSaveGuard } = await vite.ssrLoadModule('/src/utils/ai-draft-save-guard.ts');
+  const guard = createDraftSaveGuard();
+
+  const staleRequest = guard.begin();
+  assert.ok(staleRequest);
+  guard.reset();
+
+  const freshRequest = guard.begin();
+  assert.ok(freshRequest);
+  assert.equal(guard.isCurrent(staleRequest), false);
+  assert.equal(guard.complete(staleRequest), false);
+  assert.equal(guard.isCurrent(freshRequest), true);
+  assert.equal(guard.complete(freshRequest), true);
 });
