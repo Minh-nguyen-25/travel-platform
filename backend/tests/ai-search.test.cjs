@@ -33,6 +33,15 @@ test('ranking would regress if Vietnamese diacritic normalization stopped matchi
   assert.equal(ranked[0].name, 'Bảo tàng Dân tộc học');
 });
 
+test('ranking would regress if equally scored and rated destinations kept their input order', () => {
+  const ranked = rankDestinationsForChat([
+    { ...destinations[0], id: 9, rating: { toNumber: () => 4.8 } },
+    { ...destinations[0], id: 3, rating: { toNumber: () => 4.8 } },
+  ], 'bao tang', 10);
+
+  assert.deepEqual(ranked.map(({ id }) => id), [3, 9]);
+});
+
 test('search terms would regress if generic Vietnamese chat wording became a destination term', () => {
   assert.deepEqual(getChatSearchTerms('Gợi ý địa điểm cho mình'), []);
 });

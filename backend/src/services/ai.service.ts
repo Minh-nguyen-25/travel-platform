@@ -200,6 +200,23 @@ const userProvidedStartDate = (input: NormalizedChatInput, startDate: string): b
     .test(input.message);
 };
 
+const normalizePlanningText = (value: string): string => value.toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/đ/g, 'd')
+  .replace(/[^a-z0-9]+/g, ' ')
+  .trim();
+
+const userProvidedDestinationCity = (input: NormalizedChatInput, destinationCity: string): boolean => {
+  const planningText = normalizePlanningText(activePlanningUserText(input));
+  const normalizedCity = normalizePlanningText(destinationCity);
+  return Boolean(normalizedCity) && ` ${planningText} `.includes(` ${normalizedCity} `);
+};
+
+const userProvidedDayCount = (input: NormalizedChatInput, days: number): boolean =>
+  new RegExp(`(?:^|\\D)${days}\\s*(?:ngày|days?)(?=\\D|$)`, 'iu')
+    .test(activePlanningUserText(input));
+
 const geminiThinkingConfig = (model: string): JsonRecord =>
   model === 'gemini-3.5-flash' ? { thinkingConfig: { thinkingLevel: 'low' } } : {};
 
@@ -1111,6 +1128,13 @@ export class AiService {
     }
     if (!PLAN_INTENT_PATTERN.test(activePlanningUserText(input))) {
       return { error: 'Người dùng chưa yêu cầu lập lịch trình.' };
+    }
+    const missingPlanningInputs = [
+      !userProvidedDestinationCity(input, parsed.data.destinationCity) ? 'thành phố' : null,
+      !userProvidedDayCount(input, parsed.data.days) ? 'số ngày' : null,
+    ].filter((value): value is string => value !== null);
+    if (missingPlanningInputs.length > 0) {
+      return { error: `Người dùng chưa cung cấp ${missingPlanningInputs.join(' và ')}. Hãy hỏi thông tin lập lịch trình này.` };
     }
     if (state.draft) return { error: 'Đã tạo một bản nháp trong lượt này.' };
     const planDetails = chatPlanDetails(input);

@@ -52,3 +52,21 @@ test('uses GEMINI_CHAT_MODEL when Gemini is selected', () => {
 
   assert.equal(getAiConfig().chatModel, 'gemini-custom-chat');
 });
+
+test('rejects a blank GEMINI_CHAT_MODEL override', () => {
+  resetEnvironment();
+  process.env.AI_PROVIDER = 'gemini';
+  process.env.GEMINI_CHAT_MODEL = '   ';
+  const { getAiConfig } = require('../dist/src/config/ai.js');
+
+  assert.throws(() => getAiConfig(), /GEMINI_CHAT_MODEL cannot be empty/);
+});
+
+test('uses a customized Gemini planner model as the chat model when no override is set', () => {
+  resetEnvironment();
+  process.env.AI_PROVIDER = 'gemini';
+  process.env.GEMINI_MODEL = 'gemini-custom-planner';
+  const { getAiConfig } = require('../dist/src/config/ai.js');
+
+  assert.equal(getAiConfig().chatModel, 'gemini-custom-planner');
+});

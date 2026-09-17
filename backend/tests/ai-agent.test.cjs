@@ -149,6 +149,8 @@ for (const provider of ['openai', 'gemini']) {
   });
 
   for (const scenario of [
+    { name: 'model-invented city', input: { message: 'Lập lịch trình 1 ngày, bắt đầu 2026-10-20' } },
+    { name: 'model-invented day count', input: { message: 'Lập lịch trình Hà Nội, bắt đầu 2026-10-20' } },
     { name: 'model-invented date', input: { message: 'Lập lịch trình Hà Nội 1 ngày' } },
     { name: 'assistant-only date', input: { message: 'Lập lịch trình Hà Nội 1 ngày', history: [{ role: 'assistant', content: 'Ngày 2026-10-20 nhé' }] } },
     { name: 'old plan date on a new request', input: { message: 'Lập lịch trình Hà Nội 1 ngày', history: [{ role: 'user', content: 'Lập lịch trình Huế 2 ngày từ 2026-10-20' }, { role: 'assistant', content: 'Đây là lịch trình Huế.' }] } },

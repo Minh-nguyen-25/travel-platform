@@ -31,6 +31,7 @@ export const getChatSearchTerms = (query: string): string[] => [
 ].slice(0, 6);
 
 interface SearchableDestination {
+  id: number;
   name: string;
   address: string;
   description: string | null;
@@ -61,7 +62,8 @@ export const rankDestinationsForChat = <T extends SearchableDestination>(
   return scored
     .filter(({ score }) => terms.length === 0 || score > 0)
     .sort((a, b) => b.score - a.score ||
-      b.destination.rating.toNumber() - a.destination.rating.toNumber())
+      b.destination.rating.toNumber() - a.destination.rating.toNumber() ||
+      a.destination.id - b.destination.id)
     .slice(0, limit)
     .map(({ destination }) => destination);
 };
