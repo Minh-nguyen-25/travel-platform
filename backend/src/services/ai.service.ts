@@ -929,6 +929,7 @@ export class AiService {
           max_output_tokens: Math.min(config.maxOutputTokens, 2_000),
           safety_identifier: `travel-user-${userId}`,
           store: false,
+          include: ['reasoning.encrypted_content'],
         }),
       },
       config

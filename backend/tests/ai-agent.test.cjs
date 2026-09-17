@@ -56,7 +56,7 @@ function harness(provider, rounds = [], overrides = {}) {
     const payload = provider === 'openai'
       ? { output: typeof output === 'string'
         ? [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text: output }] }]
-        : output.map((item) => ({ type: 'function_call', name: item.name,
+        : output.map((item) => item.type === 'reasoning' ? item : ({ type: 'function_call', name: item.name,
           arguments: item.rawArguments ?? JSON.stringify(item.args), call_id: item.id })) }
       : { candidates: [{ content: { role: 'model', parts: typeof output === 'string'
         ? [{ text: output }]
@@ -73,6 +73,26 @@ function toolOutputs(provider, request) {
     ? request.body.input.filter((item) => item.type === 'function_call_output').map((item) => JSON.parse(item.output))
     : request.body.contents.flatMap((item) => item.parts).filter((item) => item.functionResponse).map((item) => item.functionResponse.response);
 }
+
+test('OpenAI requests encrypted reasoning and replays it unchanged during stateless tool rounds', async () => {
+  const h = harness('openai', [[{
+    id: 'rs_test_reasoning', type: 'reasoning', summary: [],
+    encrypted_content: 'opaque-provider-encrypted-reasoning',
+  }, call('search_destinations', { query: 'Văn Miếu' })], 'Có Văn Miếu.']);
+
+  const result = await h.service.chat(authenticatedUserId, { message: 'Tìm Văn Miếu' });
+
+  assert.equal(result.reply, 'Có Văn Miếu.');
+  assert.equal(h.requests.length, 2);
+  for (const { body } of h.requests) {
+    assert.equal(body.store, false);
+    assert.deepEqual(body.include, ['reasoning.encrypted_content']);
+  }
+  assert.deepEqual(h.requests[1].body.input.find((item) => item.type === 'reasoning'), {
+    id: 'rs_test_reasoning', type: 'reasoning', summary: [],
+    encrypted_content: 'opaque-provider-encrypted-reasoning',
+  });
+});
 
 for (const provider of ['openai', 'gemini']) {
   test(`${provider}: returns catalog sources and a null draft for plain chat`, async () => {
