@@ -24,7 +24,7 @@ const footerLinks = [
 
 export default function Footer() {
   return (
-    <footer className="relative mt-auto overflow-hidden bg-navy-950 text-white">
+    <footer id="about" className="relative mt-auto scroll-mt-20 overflow-hidden bg-navy-950 text-white">
       <div className="absolute -left-28 top-24 h-80 w-80 rounded-full bg-primary-500/10 blur-3xl" />
       <div className="absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-accent-500/10 blur-3xl" />
 
@@ -38,6 +38,17 @@ export default function Footer() {
               Nền tảng khám phá Việt Nam, lưu giữ cảm hứng và biến những điểm đến mơ ước thành hành trình rõ ràng.
             </p>
             <p className="accent-script mt-5 text-3xl text-primary-200">Đi xa theo cách của bạn.</p>
+            <div className="mt-6 flex flex-wrap gap-2" aria-label="Kênh kết nối TravelGo">
+              {[
+                { label: 'Cộng đồng', icon: 'users' as const },
+                { label: 'Cảm hứng', icon: 'image' as const },
+                { label: 'Chia sẻ', icon: 'share' as const },
+              ].map((item) => (
+                <Link key={item.label} to={ROUTES.HOME} aria-label={item.label} className="inline-flex h-9 items-center gap-2 rounded-full border border-white/12 bg-white/[0.05] px-3 text-xs font-bold text-white/65 hover:border-primary-300/40 hover:text-primary-200">
+                  <TripIcon name={item.icon} size={14} />{item.label}
+                </Link>
+              ))}
+            </div>
           </div>
 
           {footerLinks.map((group) => (
