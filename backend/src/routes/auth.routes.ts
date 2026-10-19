@@ -6,6 +6,7 @@ import { requestOriginGuard } from '../middlewares/origin.middleware';
 import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, validateResetTokenSchema } from '../validators/auth.validator';
 import * as authController from '../controllers/auth.controller';
 import oauthRouter from './oauth.routes';
+import { loginLimiter } from '../middlewares/login-rate-limit.middleware';
 
 const router = Router();
 
@@ -76,7 +77,7 @@ router.post(
 // POST /api/v1/auth/login
 router.post(
   '/login',
-  authLimiter,
+  loginLimiter,
   validate(loginSchema),
   authController.login
 );

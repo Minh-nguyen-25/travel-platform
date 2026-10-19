@@ -5,16 +5,16 @@ import 'dotenv/config';
 // ─── TTL parser ───────────────────────────────────────────────────────────────
 // Supports values like '15m', '30d', '3600s', or plain numeric seconds.
 function parseTtlToSeconds(value: string, varName: string): number {
-  const n = parseInt(value, 10);
-  if (isNaN(n)) {
+  const match = /^([1-9]\d*)([smhd]?)$/.exec(value);
+  if (!match) {
     throw new Error(`${varName}: "${value}" is not a valid duration`);
   }
-  if (value.endsWith('d')) return n * 86400;
-  if (value.endsWith('h')) return n * 3600;
-  if (value.endsWith('m')) return n * 60;
-  if (value.endsWith('s')) return n;
-  // Plain integer — treat as seconds
-  return n;
+  const multiplier = { s: 1, m: 60, h: 3600, d: 86400 }[match[2]] ?? 1;
+  const seconds = Number(match[1]) * multiplier;
+  if (!Number.isSafeInteger(seconds) || seconds * 1000 > Number.MAX_SAFE_INTEGER) {
+    throw new Error(`${varName}: duration is too large`);
+  }
+  return seconds;
 }
 
 // ─── Validation ───────────────────────────────────────────────────────────────
@@ -120,6 +120,15 @@ function validateEnv() {
     process.exit(1);
   }
 
+  let ACCESS_TTL_SECONDS: number;
+  try {
+    ACCESS_TTL_SECONDS = parseTtlToSeconds(JWT_ACCESS_EXPIRES_IN, 'JWT_ACCESS_EXPIRES_IN');
+    if (ACCESS_TTL_SECONDS <= 0 || REFRESH_TTL_SECONDS <= 0) throw new Error('JWT token durations must be positive');
+  } catch (e) {
+    console.error(`❌ [ENV] ${(e as Error).message}`);
+    process.exit(1);
+  }
+
   const COOKIE_MAX_AGE_MS = REFRESH_TTL_SECONDS * 1000;
 
   return {
@@ -127,6 +136,7 @@ function validateEnv() {
     JWT_REFRESH_SECRET:   raw['JWT_REFRESH_SECRET']!,
     REDIS_URL:            raw['REDIS_URL']!,
     JWT_ACCESS_EXPIRES_IN,
+    ACCESS_TTL_SECONDS,
     JWT_REFRESH_EXPIRES_IN,
     REFRESH_TTL_SECONDS,
     COOKIE_MAX_AGE_MS,

@@ -20,7 +20,7 @@ export function getMapTileConfig(env: Record<string, string | undefined>) {
   const readSource = (prefix: string, fallback: typeof osm) => {
     const url = env[`${prefix}_URL`]?.trim() || fallback.url;
     const parsed = new URL(url);
-    if (!['https:', 'http:'].includes(parsed.protocol) || parsed.username || parsed.password
+    if (!['https:', 'http:'].includes(parsed.protocol) || parsed.username || parsed.password || parsed.search || parsed.hash
       || !['{z}', '{x}', '{y}'].every(token => url.includes(token))) {
       throw new Error(`${prefix}_URL must be an HTTP(S) tile template with {z}, {x}, {y} and no embedded credentials`);
     }

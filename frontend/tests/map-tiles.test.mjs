@@ -17,7 +17,7 @@ test('custom tile sources require valid templates and explicit attribution', () 
   });
   assert.equal(custom.sources.osm.url, 'https://maps.example.test/{z}/{x}/{y}.png');
   assert.equal(custom.sources.osm.attribution, 'Map provider');
-  for (const url of ['javascript:alert(1)', 'https://maps.example.test/{z}.png', 'https://user:secret@maps.example.test/{z}/{x}/{y}.png']) {
+  for (const url of ['javascript:alert(1)', 'https://maps.example.test/{z}.png', 'https://user:secret@maps.example.test/{z}/{x}/{y}.png', 'https://maps.example.test/{z}/{x}/{y}.png?token=secret']) {
     assert.throws(() => utility.getMapTileConfig({ VITE_MAP_TILE_URL: url, VITE_MAP_TILE_ATTRIBUTION: 'Provider' }));
   }
   assert.throws(() => utility.getMapTileConfig({ VITE_MAP_TILE_URL: 'https://maps.example.test/{z}/{x}/{y}.png' }));

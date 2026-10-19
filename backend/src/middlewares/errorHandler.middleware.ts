@@ -11,7 +11,10 @@ export const errorHandler = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _next: NextFunction
 ): void => {
-  console.error(`[ERROR] ${err.name}: ${err.message}`);
+  // Expected client errors are not server failures; never log raw request/provider messages.
+  if (!(err instanceof AppError) && !(err instanceof ZodError) && err.name !== 'MulterError') {
+    console.error(`[ERROR] ${err.name}`);
+  }
 
   // Lỗi AppError — business logic có thể dự đoán được (ưu tiên kiểm tra trước)
   if (err instanceof AppError) {
@@ -77,6 +80,6 @@ export const errorHandler = (
   // Lỗi không xác định
   res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
     success: false,
-    message: process.env.NODE_ENV === 'production' ? 'Lỗi hệ thống' : err.message,
+    message: 'Lỗi hệ thống',
   });
 };

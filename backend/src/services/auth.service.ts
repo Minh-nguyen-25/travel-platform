@@ -123,6 +123,7 @@ export const login = async (dto: LoginDto): Promise<AuthResult> => {
 export interface RefreshResult {
   accessToken: string;
   refreshToken: string;
+  expiresAt: Date;
 }
 
 export const refreshAccessToken = async (
@@ -130,6 +131,9 @@ export const refreshAccessToken = async (
 ): Promise<RefreshResult> => {
   // Verify JWT signature, expiry, and type claim
   const payload = verifyRefreshToken(rawRefreshToken);
+  if (!payload.exp) {
+    throw new AppError('Phiên không có thời hạn hợp lệ', HTTP_STATUS.UNAUTHORIZED);
+  }
 
   // Atomically consume the session — only one concurrent caller succeeds
   const storedUserId = await consumeSession(payload.jti);
@@ -152,11 +156,12 @@ export const refreshAccessToken = async (
 
   // Rotate — new JTI for next cycle
   const newJti         = randomUUID();
-  const accessToken    = generateAccessToken(user);
-  const newRefreshToken = generateRefreshToken(userId, newJti);
-  await setSession(newJti, userId);
+  const accessToken    = generateAccessToken(user, payload.exp);
+  const newRefreshToken = generateRefreshToken(userId, newJti, payload.exp);
+  const remainingSeconds = payload.exp - Math.floor(Date.now() / 1000);
+  await setSession(newJti, userId, remainingSeconds);
 
-  return { accessToken, refreshToken: newRefreshToken };
+  return { accessToken, refreshToken: newRefreshToken, expiresAt: new Date(payload.exp * 1000) };
 };
 
 // ─── Logout ───────────────────────────────────────────────────────────────────
