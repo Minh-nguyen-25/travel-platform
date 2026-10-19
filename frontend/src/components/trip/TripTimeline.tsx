@@ -19,12 +19,13 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import TripIcon, { type IconName } from '@/components/trip/TripIcon';
 import type { Itinerary, TravelMode, TripDay } from '@/types/trip.types';
-import { formatCurrency, formatTime } from '@/utils/trip.utils';
+import { formatCurrency, formatTime, getApiErrorMessage } from '@/utils/trip.utils';
 
 interface TripTimelineProps {
   day: TripDay;
   isMutating?: boolean;
   onAdd: () => void;
+  onEdit: (itinerary: Itinerary) => void;
   onDelete: (itinerary: Itinerary) => void | Promise<void>;
   onReorder: (itineraryIds: number[]) => Promise<void>;
   onReorderError: (message: string) => void;
@@ -58,6 +59,7 @@ function TravelConnector({ itinerary }: { itinerary: Itinerary }) {
         <TripIcon name={mode?.icon ?? 'route'} size={13} />
       </span>
       <div className="flex flex-wrap items-center gap-x-2 text-xs font-medium text-gray-500">
+        {itinerary.travelCalculationSource === 'ESTIMATE' && <span className="text-amber-700">Ước tính •</span>}
         {mode && <span>{mode.label}</span>}
         {itinerary.travelDurationMinutes !== null && (
           <>
@@ -79,10 +81,11 @@ function TravelConnector({ itinerary }: { itinerary: Itinerary }) {
 interface SortableTimelineItemProps {
   itinerary: Itinerary;
   index: number;
+  onEdit: (itinerary: Itinerary) => void;
   onDelete: (itinerary: Itinerary) => void | Promise<void>;
 }
 
-function SortableTimelineItem({ itinerary, index, onDelete }: SortableTimelineItemProps) {
+function SortableTimelineItem({ itinerary, index, onDelete, onEdit }: SortableTimelineItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: itinerary.id,
   });
@@ -156,6 +159,7 @@ function SortableTimelineItem({ itinerary, index, onDelete }: SortableTimelineIt
                 </div>
 
                 <div className="flex flex-none items-center gap-1">
+                  <button type="button" onClick={() => onEdit(itinerary)} className="rounded-lg px-2 py-1 text-xs font-bold text-primary-700 hover:bg-primary-50" aria-label={`Chỉnh ${itinerary.destination.name}`}>Chỉnh</button>
                   <button
                     type="button"
                     {...attributes}
@@ -223,6 +227,7 @@ export default function TripTimeline({
   day,
   isMutating = false,
   onAdd,
+  onEdit,
   onDelete,
   onReorder,
   onReorderError,
@@ -240,7 +245,7 @@ export default function TripTimeline({
   }, [day.id, day.itineraries]);
 
   const handleDragEnd = async ({ active, over }: DragEndEvent) => {
-    if (!over || active.id === over.id || isSavingOrder) return;
+    if (!over || active.id === over.id || isSavingOrder || isMutating) return;
 
     const oldIndex = items.findIndex((item) => item.id === active.id);
     const newIndex = items.findIndex((item) => item.id === over.id);
@@ -256,12 +261,20 @@ export default function TripTimeline({
 
     try {
       await onReorder(nextItems.map((item) => item.id));
-    } catch {
+    } catch (error) {
       setItems(previousItems);
-      onReorderError('Không thể lưu thứ tự mới. Lịch trình đã được khôi phục.');
+      onReorderError(getApiErrorMessage(error, 'Không thể lưu thứ tự mới. Lịch trình đã được khôi phục.'));
     } finally {
       setIsSavingOrder(false);
     }
+  };
+
+  const recalculate = async () => {
+    if (isSavingOrder || isMutating) return;
+    setIsSavingOrder(true);
+    try { await onReorder(items.map((item) => item.id)); }
+    catch (error) { onReorderError(getApiErrorMessage(error, 'Không thể tính lại lịch trình.')); }
+    finally { setIsSavingOrder(false); }
   };
 
   if (items.length === 0) {
@@ -291,13 +304,14 @@ export default function TripTimeline({
   }
 
   return (
-    <div className={isMutating ? 'pointer-events-none opacity-70' : ''}>
-      <div className="mb-4 flex items-center justify-between gap-3">
+    <fieldset disabled={isMutating || isSavingOrder} aria-busy={isSavingOrder} className={`min-w-0 ${isMutating || isSavingOrder ? 'pointer-events-none opacity-70' : ''}`}>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs font-medium text-gray-500">
           <span className="hidden sm:inline">Giữ biểu tượng </span>
           <TripIcon name="grip" size={14} className="mx-1 inline text-gray-400" />
           và kéo để đổi thứ tự
         </p>
+        <button type="button" onClick={() => void recalculate()} className="rounded-lg border px-3 py-2 text-xs font-bold text-primary-700">Tính lại giờ & chặng</button>
         {isSavingOrder && (
           <span className="inline-flex items-center gap-2 text-xs font-semibold text-primary-600">
             <TripIcon name="loader" size={14} className="animate-spin" />
@@ -312,7 +326,7 @@ export default function TripTimeline({
             {items.map((itinerary, index) => (
               <div key={itinerary.id}>
                 {index > 0 && <TravelConnector itinerary={itinerary} />}
-                <SortableTimelineItem itinerary={itinerary} index={index} onDelete={onDelete} />
+                <SortableTimelineItem itinerary={itinerary} index={index} onDelete={onDelete} onEdit={onEdit} />
               </div>
             ))}
           </div>
@@ -331,6 +345,6 @@ export default function TripTimeline({
           Thêm điểm dừng
         </button>
       </div>
-    </div>
+    </fieldset>
   );
 }

@@ -38,6 +38,7 @@ export interface Itinerary {
   travelDistanceKm: string | null;
   travelDurationMinutes: number | null;
   travelMode: TravelMode | null;
+  travelCalculationSource?: string | null;
   note: string | null;
   createdAt: string;
   updatedAt: string;
@@ -86,6 +87,7 @@ export interface PublicItinerary {
   travelDistanceKm: string | null;
   travelDurationMinutes: number | null;
   travelMode: TravelMode | null;
+  travelCalculationSource?: string | null;
   note: string | null;
   destination: Destination;
 }

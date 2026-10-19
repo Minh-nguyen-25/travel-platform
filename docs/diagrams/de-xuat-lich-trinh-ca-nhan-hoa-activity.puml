@@ -1,0 +1,43 @@
+@startuml
+title Biểu đồ hoạt động - Đề xuất lịch trình cá nhân hóa
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+
+|Người dùng|
+start
+:Nhập thông tin và sở thích chuyến đi;
+:Chọn tạo lịch trình;
+
+|Hệ thống|
+:Kiểm tra dữ liệu;
+if (Dữ liệu hợp lệ?) then (Có)
+  :Lấy sở thích và địa điểm phù hợp;
+else (Không)
+  :Thông báo lỗi để chỉnh sửa;
+  stop
+endif
+
+if (Có địa điểm phù hợp?) then (Có)
+  :Yêu cầu AI tạo lịch trình;
+  :Tính thời gian và khoảng cách di chuyển;
+  :Trả lịch trình hoàn chỉnh;
+else (Không)
+  :Thông báo chưa có dữ liệu;
+  stop
+endif
+
+|Người dùng|
+:Xem lịch trình cá nhân hóa;
+if (Có lưu chuyến đi?) then (Có)
+  :Xác nhận lưu;
+else (Không)
+  stop
+endif
+
+|Hệ thống|
+:Lưu chuyến đi vào cơ sở dữ liệu;
+:Hiển thị chi tiết chuyến đi;
+
+stop
+@enduml

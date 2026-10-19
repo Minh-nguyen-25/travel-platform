@@ -63,6 +63,7 @@ const chatMessageSchema = z
 export const chatSchema = z
   .object({
     message: z.string().trim().min(1).max(2_000),
+    conversationId: z.string().uuid().optional(),
     history: z.array(chatMessageSchema).max(12).optional(),
     locale: z
       .string()

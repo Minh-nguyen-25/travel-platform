@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { HTTP_STATUS } from '../constants';
+import { conversationService } from '../services/conversation.service';
 import { aiService } from '../services/ai.service';
 import { AiChatInput, GenerateItineraryInput } from '../types/ai.types';
 import { AppError } from '../utils/app-error';
@@ -27,7 +28,7 @@ export const generateItinerary = async (req: Request, res: Response): Promise<vo
 };
 
 export const chat = async (req: Request, res: Response): Promise<void> => {
-  const result = await aiService.chat(
+  const result = await conversationService.chat(
     getAuthenticatedUserId(req),
     req.body as AiChatInput
   );

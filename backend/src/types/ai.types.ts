@@ -1,7 +1,7 @@
 import { BudgetLevel, TravelMode } from '../constants';
 import { CreateTripInput } from './trip.types';
 
-export type AiProvider = 'openai' | 'gemini';
+export type AiProvider = 'openai' | 'gemini' | 'ollama';
 
 export interface GenerateItineraryInput {
   destinationCity: string;
@@ -26,6 +26,7 @@ export interface AiChatMessage {
 }
 
 export interface AiChatInput {
+  conversationId?: string;
   message: string;
   history?: AiChatMessage[];
   locale?: string;
@@ -34,6 +35,13 @@ export interface AiChatInput {
 export interface AiChatResult {
   reply: string;
   metadata: AiGenerationMetadata;
+  sources: Array<{ id: number; name: string }>;
+  draft: {
+    itinerary: GeneratedItinerary;
+    tripDraft: AiTripDraft;
+    warnings: string[];
+    budgetLevel: BudgetLevel | null;
+  } | null;
   context: {
     tripCount: number;
     destinationCount: number;

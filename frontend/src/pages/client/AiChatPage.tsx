@@ -1,16 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import AiDraftPreview from '@/components/ai/AiDraftPreview';
 import EditorialPageHero from '@/components/common/EditorialPageHero';
 import TripIcon from '@/components/trip/TripIcon';
 import { ROUTES } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
 import { aiService } from '@/services/ai.service';
-import type { AiChatMessage, AiChatResult } from '@/types/ai.types';
+import type { AiChatMessage, AiChatResult, AiConversationSummary } from '@/types/ai.types';
+import { createDraftSaveGuard } from '@/utils/ai-draft-save-guard';
 import { getApiErrorMessage } from '@/utils/trip.utils';
 
 interface ChatMessage extends AiChatMessage {
   id: string;
   isWelcome?: boolean;
+  sources?: AiChatResult['sources'];
+  draft?: NonNullable<AiChatResult['draft']>;
 }
 
 const quickPrompts = [
@@ -44,27 +48,78 @@ export default function AiChatPage() {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
   const [lastResult, setLastResult] = useState<AiChatResult | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<AiConversationSummary[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+  const [deletingConversation, setDeletingConversation] = useState(false);
+  const [savingDraftId, setSavingDraftId] = useState<string | null>(null);
+  const [savedTripIds, setSavedTripIds] = useState<Record<string, number>>({});
+  const [draftErrors, setDraftErrors] = useState<Record<string, string>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const draftSaveGuard = useRef(createDraftSaveGuard()).current;
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingHistory(true);
+    setConversations([]); setConversationId(null); setMessages([welcomeMessage(user?.fullName)]);
+    void aiService.listConversations().then(async (items) => {
+      if (cancelled) return;
+      setConversations(items);
+      if (items[0]) {
+        const conversation = await aiService.getConversation(items[0].id);
+        if (cancelled) return;
+        setConversationId(conversation.id);
+        setMessages(conversation.messages.map((item) => ({ ...item,
+          sources: item.result?.sources, draft: item.result?.draft ?? undefined,
+        })));
+      }
+    }).catch((requestError: unknown) => {
+      if (!cancelled) setError(getApiErrorMessage(requestError, 'Không thể tải lịch sử trò chuyện.'));
+    }).finally(() => { if (!cancelled) setLoadingHistory(false); });
+    return () => { cancelled = true; };
+  }, [user?.id, user?.fullName]);
+
+  const openConversation = async (id: string) => {
+    if (isSending || loadingHistory) return;
+    setLoadingHistory(true); setError('');
+    try {
+      const conversation = await aiService.getConversation(id);
+      setConversationId(id);
+      setMessages(conversation.messages.map((item) => ({ ...item,
+        sources: item.result?.sources, draft: item.result?.draft ?? undefined,
+      })));
+      setLastResult(null); setDraft(''); setSavedTripIds({}); setDraftErrors({});
+      setSavingDraftId(null); setDeletingConversation(false);
+      draftSaveGuard.reset();
+    } catch (requestError) { setError(getApiErrorMessage(requestError, 'Không thể mở cuộc trò chuyện.')); }
+    finally { setLoadingHistory(false); }
+  };
+
+  const deleteConversation = async () => {
+    if (!conversationId || isSending || loadingHistory) return;
+    setLoadingHistory(true); setError('');
+    try {
+      await aiService.deleteConversation(conversationId);
+      setConversations((items) => items.filter((item) => item.id !== conversationId));
+      setDeletingConversation(false); resetConversation();
+    } catch (requestError) { setError(getApiErrorMessage(requestError, 'Không thể xóa cuộc trò chuyện.')); }
+    finally { setLoadingHistory(false); }
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [isSending, messages]);
 
-  const conversationHistory = useMemo<AiChatMessage[]>(() => messages
-    .filter((message) => !message.isWelcome)
-    .slice(-12)
-    .map(({ role, content }) => ({ role, content: content.slice(0, 4_000) })), [messages]);
-
   const sendMessage = async (rawMessage: string) => {
     const message = rawMessage.trim();
-    if (!message || isSending) return;
+    if (!message || isSending || loadingHistory) return;
     if (message.length > 2_000) {
       setError('Tin nhắn không được vượt quá 2.000 ký tự.');
       return;
     }
 
-    const history = conversationHistory;
-    setMessages((current) => [...current, createMessage('user', message)]);
+    const optimistic = createMessage('user', message);
+    setMessages((current) => [...current, optimistic]);
     setDraft('');
     setError('');
     setIsSending(true);
@@ -72,12 +127,20 @@ export default function AiChatPage() {
     try {
       const result = await aiService.chat({
         message,
-        history,
+        conversationId: conversationId ?? undefined,
         locale: 'vi-VN',
       });
-      setMessages((current) => [...current, createMessage('assistant', result.reply)]);
+      setMessages((current) => [...current, {
+        ...createMessage('assistant', result.reply),
+        sources: result.sources,
+        draft: result.draft ?? undefined,
+      }]);
       setLastResult(result);
+      setConversationId(result.conversationId);
+      void aiService.listConversations().then(setConversations).catch(() => {});
     } catch (requestError: unknown) {
+      setMessages((current) => current.filter((item) => item.id !== optimistic.id));
+      setDraft(message);
       setError(getApiErrorMessage(
         requestError,
         'AI chưa thể trả lời lúc này. Vui lòng thử lại sau.',
@@ -87,12 +150,41 @@ export default function AiChatPage() {
     }
   };
 
+  const saveDraft = async (messageId: string, messageDraft: NonNullable<AiChatResult['draft']>) => {
+    const request = draftSaveGuard.begin();
+    if (!request) return;
+    setSavingDraftId(messageId);
+    setDraftErrors((current) => ({ ...current, [messageId]: '' }));
+
+    try {
+      const trip = await aiService.saveTripDraft(messageDraft.tripDraft);
+      if (!draftSaveGuard.isCurrent(request)) return;
+      setSavedTripIds((current) => ({ ...current, [messageId]: trip.id }));
+    } catch (requestError: unknown) {
+      if (!draftSaveGuard.isCurrent(request)) return;
+      setDraftErrors((current) => ({
+        ...current,
+        [messageId]: getApiErrorMessage(requestError, 'Chưa thể lưu chuyến đi. Vui lòng thử lại.'),
+      }));
+    } finally {
+      if (draftSaveGuard.complete(request)) {
+        setSavingDraftId(null);
+      }
+    }
+  };
+
   const resetConversation = () => {
     if (isSending) return;
+    setConversationId(null);
+    setDeletingConversation(false);
     setMessages([welcomeMessage(user?.fullName)]);
     setDraft('');
     setError('');
     setLastResult(null);
+    draftSaveGuard.reset();
+    setSavingDraftId(null);
+    setSavedTripIds({});
+    setDraftErrors({});
   };
 
   return (
@@ -118,6 +210,23 @@ export default function AiChatPage() {
       <main className="container py-8 sm:py-10">
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
           <section className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-xl shadow-primary-900/5" aria-label="Trò chuyện với trợ lý AI">
+            <div className="flex flex-wrap items-center gap-3 border-b p-4">
+              <label className="min-w-0 flex-1 text-xs font-bold text-gray-500">Lịch sử đã lưu
+                <select aria-label="Chọn cuộc trò chuyện" value={conversationId ?? ''} disabled={isSending || loadingHistory}
+                  onChange={(event) => { if (event.target.value) void openConversation(event.target.value); else resetConversation(); }}
+                  className="mt-1 w-full rounded-xl border bg-white px-3 py-2 text-sm text-gray-800">
+                  <option value="">Cuộc trò chuyện mới</option>
+                  {conversations.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
+                </select>
+              </label>
+              {conversationId && <button type="button" disabled={isSending || loadingHistory} onClick={() => setDeletingConversation(true)} className="text-xs font-bold text-red-600">Xóa hội thoại</button>}
+              {loadingHistory && <p role="status" className="text-xs text-gray-500">Đang tải lịch sử…</p>}
+              {deletingConversation && <div className="w-full rounded-xl bg-red-50 p-3 text-sm text-red-700">
+                Xóa vĩnh viễn hội thoại này?
+                <button type="button" disabled={loadingHistory} onClick={() => void deleteConversation()} className="ml-3 font-bold">Xác nhận xóa</button>
+                <button type="button" disabled={loadingHistory} onClick={() => setDeletingConversation(false)} className="ml-3 font-bold">Hủy</button>
+              </div>}
+            </div>
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 bg-gradient-to-r from-primary-50 to-white px-5 py-4 sm:px-6">
               <div className="flex items-center gap-3">
                 <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-700 text-white shadow-lg shadow-primary-200">
@@ -132,7 +241,7 @@ export default function AiChatPage() {
               <button
                 type="button"
                 onClick={resetConversation}
-                disabled={isSending}
+                disabled={isSending || loadingHistory}
                 className="inline-flex h-9 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-xs font-bold text-gray-600 transition hover:border-primary-200 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <TripIcon name="refresh" size={14} />
@@ -156,6 +265,49 @@ export default function AiChatPage() {
                     : 'rounded-bl-md border border-gray-100 bg-white text-gray-700'
                   }`}>
                     <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                    {message.role === 'assistant' && message.sources && message.sources.length > 0 && (
+                      <div className="mt-3 border-t border-gray-100 pt-3 text-xs">
+                        <p className="font-bold text-gray-500">Địa điểm trong dữ liệu tham khảo</p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {message.sources.slice(0, 8).map((source) => (
+                            <Link
+                              key={source.id}
+                              to={ROUTES.DESTINATION_DETAIL(source.id)}
+                              className="rounded-lg bg-primary-50 px-2 py-1 font-semibold text-primary-700 hover:bg-primary-100"
+                            >
+                              {source.name}
+                            </Link>
+                          ))}
+                        </div>
+                        {message.sources.length > 8 && (
+                          <details className="mt-2">
+                            <summary className="cursor-pointer font-semibold text-primary-700">
+                              Xem thêm {message.sources.length - 8} địa điểm
+                            </summary>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {message.sources.slice(8).map((source) => (
+                                <Link
+                                  key={source.id}
+                                  to={ROUTES.DESTINATION_DETAIL(source.id)}
+                                  className="rounded-lg bg-primary-50 px-2 py-1 font-semibold text-primary-700 hover:bg-primary-100"
+                                >
+                                  {source.name}
+                                </Link>
+                              ))}
+                            </div>
+                          </details>
+                        )}
+                      </div>
+                    )}
+                    {message.role === 'assistant' && message.draft && (
+                      <AiDraftPreview
+                        draft={message.draft}
+                        onSave={() => void saveDraft(message.id, message.draft!)}
+                        isSaving={savingDraftId === message.id}
+                        savedTripId={savedTripIds[message.id] ?? null}
+                        error={draftErrors[message.id] ?? ''}
+                      />
+                    )}
                   </div>
                 </div>
               ))}
@@ -223,13 +375,13 @@ export default function AiChatPage() {
                       void sendMessage(draft);
                     }
                   }}
-                  disabled={isSending}
+                  disabled={isSending || loadingHistory}
                   placeholder="Ví dụ: Đà Nẵng 3 ngày nên đi đâu?"
                   className="max-h-36 min-h-[52px] flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-6 text-gray-900 outline-none placeholder:text-gray-400 disabled:cursor-not-allowed"
                 />
                 <button
                   type="submit"
-                  disabled={isSending || !draft.trim()}
+                  disabled={isSending || loadingHistory || !draft.trim()}
                   className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-primary-700 text-white shadow-md transition hover:-translate-y-0.5 hover:bg-primary-800 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
                   aria-label="Gửi tin nhắn"
                 >

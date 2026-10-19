@@ -1,3 +1,4 @@
+import { buildSchedule } from '../utils/itinerary-schedule';
 import { Prisma } from '@prisma/client';
 import prisma from '../config/db';
 import { MAX_ITINERARIES_PER_DAY } from '../constants/trip.constants';
@@ -129,6 +130,7 @@ const publicTripSelect = {
           travelDistanceKm: true,
           travelDurationMinutes: true,
           travelMode: true,
+          travelCalculationSource: true,
           note: true,
           destination: { select: destinationSelect },
         },
@@ -376,6 +378,14 @@ export const tripRepository = {
         return null;
       }
 
+      if (input.startDate) {
+        const days = await tx.tripDay.findMany({ where: { tripId }, select: { id: true, dayNumber: true } });
+        for (const day of days) {
+          await tx.tripDay.update({ where: { id: day.id }, data: {
+            date: new Date(input.startDate.getTime() + (day.dayNumber - 1) * 86_400_000),
+          } });
+        }
+      }
       return tx.trip.update({
         where: { id: tripId, userId },
         data: { ...input, updatedAt: claimedAt },
@@ -546,7 +556,7 @@ export const tripRepository = {
           tripDayId: dayId,
           tripDay: { tripId, trip: { userId } },
         },
-        select: { id: true, updatedAt: true },
+        select: { id: true, updatedAt: true, sequenceOrder: true, destinationId: true, travelMode: true },
       });
       if (!existing) {
         return { status: 'not_found' as const, itinerary: null };
@@ -575,11 +585,21 @@ export const tripRepository = {
         return { status: 'conflict' as const, itinerary: null };
       }
 
+      const destinationChanged = input.destinationId !== undefined && input.destinationId !== existing.destinationId;
+      const legChanged = destinationChanged || (input.travelMode !== undefined && input.travelMode !== existing.travelMode);
       const itinerary = await tx.itinerary.update({
         where: { id: itineraryId, tripDayId: dayId },
-        data: { ...input, updatedAt: claimedAt },
+        data: { ...input, updatedAt: claimedAt,
+          ...(legChanged ? { travelDistanceKm: null, travelDurationMinutes: null, travelCalculationSource: null } : {}),
+        },
         include: itineraryDetailInclude,
       });
+      if (destinationChanged) {
+        await tx.itinerary.updateMany({
+          where: { tripDayId: dayId, sequenceOrder: existing.sequenceOrder + 1 },
+          data: { travelDistanceKm: null, travelDurationMinutes: null, travelCalculationSource: null },
+        });
+      }
 
       return { status: 'updated' as const, itinerary };
     });
@@ -601,6 +621,10 @@ export const tripRepository = {
         return false;
       }
 
+      const next = current[current.findIndex((item) => item.id === itineraryId) + 1];
+      if (next) await tx.itinerary.update({ where: { id: next.id },
+        data: { travelDistanceKm: null, travelDurationMinutes: null, travelCalculationSource: null } });
+
       await tx.itinerary.delete({ where: { id: itineraryId, tripDayId: dayId } });
       await applyContiguousOrders(
         tx,
@@ -611,22 +635,39 @@ export const tripRepository = {
     });
   },
 
-  reorderItineraries(userId: number, tripId: number, dayId: number, itineraryIds: number[]) {
+  reorderItineraries(userId: number, tripId: number, dayId: number, itineraryIds: number[],
+    schedule?: ReturnType<typeof buildSchedule>, versions?: Array<{ id: number; updatedAt: Date }>) {
     return runSerializable(async (tx) => {
       const current = await tx.itinerary.findMany({
         where: { tripDayId: dayId, tripDay: { tripId, trip: { userId } } },
-        select: { id: true },
+        select: { id: true, updatedAt: true },
       });
 
       const currentIds = new Set(current.map((item) => item.id));
       const hasExactSet =
         current.length === itineraryIds.length && itineraryIds.every((id) => currentIds.has(id));
 
-      if (!hasExactSet) {
+      if (!hasExactSet || (versions && current.some((item) =>
+        !versions.some((version) => version.id === item.id && version.updatedAt.getTime() === item.updatedAt.getTime())))) {
         return null;
       }
 
       await applyContiguousOrders(tx, dayId, itineraryIds);
+      if (schedule?.length) {
+        const rows = schedule.map((item) => Prisma.sql`(
+          ${item.id}::integer, ${item.startTime.toISOString().slice(11, 19)}::time,
+          ${item.endTime.toISOString().slice(11, 19)}::time, ${item.travelDistanceKm}::numeric,
+          ${item.travelDurationMinutes}::integer, ${item.travelCalculationSource}::varchar
+        )`);
+        await tx.$executeRaw(Prisma.sql`
+          UPDATE "itineraries" AS target
+          SET "start_time" = changed.start_time, "end_time" = changed.end_time,
+              "travel_distance_km" = changed.distance, "travel_duration_minutes" = changed.duration,
+              "travel_calculation_source" = changed.source
+          FROM (VALUES ${Prisma.join(rows)}) AS changed(id, start_time, end_time, distance, duration, source)
+          WHERE target."id" = changed.id AND target."trip_day_id" = ${dayId}
+        `);
+      }
 
       return tx.itinerary.findMany({
         where: { tripDayId: dayId },
