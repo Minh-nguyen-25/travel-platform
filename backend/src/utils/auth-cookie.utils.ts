@@ -16,9 +16,11 @@ export const buildCookieOptions = (): CookieOptions => ({
 export const setRefreshTokenCookie = (
   res: Response,
   token: string,
-  _expiresAt?: Date
+  expiresAt?: Date
 ): void => {
-  res.cookie(REFRESH_COOKIE_NAME, token, buildCookieOptions());
+  const options = buildCookieOptions();
+  if (expiresAt) options.maxAge = Math.max(0, expiresAt.getTime() - Date.now());
+  res.cookie(REFRESH_COOKIE_NAME, token, options);
 };
 
 export const getRefreshTokenFromRequest = (req: Request): string | undefined =>

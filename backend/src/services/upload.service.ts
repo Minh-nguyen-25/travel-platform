@@ -21,15 +21,6 @@ const normalizeUploadError = (error: unknown): AppError => {
   if (error instanceof AppError) return error;
   const cloudinaryError = error as Partial<CloudinarySdkError> & { code?: string; name?: string };
 
-  if (process.env.NODE_ENV !== 'production') {
-    console.warn('[Cloudinary Safe Error Info]', {
-      name: cloudinaryError.name,
-      message: cloudinaryError.message,
-      http_code: cloudinaryError.http_code,
-      code: cloudinaryError.code,
-    });
-  }
-
   const providerMessage = cloudinaryError.message?.toLowerCase() ?? '';
 
   if (
@@ -126,16 +117,6 @@ export const uploadImagesToCloudinary = async (
   files: Express.Multer.File[],
   folder = 'destinations'
 ): Promise<UploadedDestinationImage[]> => {
-  if (process.env.NODE_ENV !== 'production') {
-    files.forEach((file) => {
-      console.log('[Multer File Metadata]', {
-        isBuffer: Boolean(Buffer.isBuffer(file.buffer)),
-        length: file.buffer?.length,
-        mimetype: file.mimetype,
-        originalname: file.originalname,
-      });
-    });
-  }
   const results = await Promise.allSettled(
     files.map((file) => uploadToCloudinary(file.buffer, folder))
   );

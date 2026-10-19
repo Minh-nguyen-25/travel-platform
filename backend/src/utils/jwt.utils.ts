@@ -13,6 +13,7 @@ export interface AccessTokenPayload {
   userId: number;
   email: string;
   role: string;
+  exp?: number;
 }
 
 /** Payload embedded in every refresh token. */
@@ -22,6 +23,8 @@ export interface RefreshTokenPayload {
   sub: string;
   /** Unique session identifier stored in Redis. */
   jti: string;
+  /** Absolute session deadline; rotation must never extend it. */
+  exp?: number;
 }
 
 // ─── Token generators ─────────────────────────────────────────────────────────
@@ -30,7 +33,7 @@ export const generateAccessToken = (user: {
   id: number;
   email: string;
   role: string;
-}): string => {
+}, absoluteExpiresAtSeconds?: number): string => {
   const payload: Omit<AccessTokenPayload, 'iat' | 'exp'> = {
     type: 'access',
     sub: String(user.id),
@@ -38,21 +41,34 @@ export const generateAccessToken = (user: {
     email: user.email,
     role: user.role,
   };
+  if (absoluteExpiresAtSeconds !== undefined) {
+    if (!Number.isInteger(absoluteExpiresAtSeconds) || absoluteExpiresAtSeconds <= Math.floor(Date.now() / 1000)) {
+      throw new AppError('Phiên đã hết hạn', HTTP_STATUS.UNAUTHORIZED);
+    }
+    const accessDeadline = Math.min(absoluteExpiresAtSeconds, Math.floor(Date.now() / 1000) + env.ACCESS_TTL_SECONDS);
+    return jwt.sign({ ...payload, exp: accessDeadline }, env.JWT_ACCESS_SECRET, { algorithm: 'HS256' });
+  }
   return jwt.sign(payload, env.JWT_ACCESS_SECRET, {
     algorithm: 'HS256',
-    expiresIn: env.JWT_ACCESS_EXPIRES_IN as jwt.SignOptions['expiresIn'],
+    expiresIn: env.ACCESS_TTL_SECONDS,
   });
 };
 
-export const generateRefreshToken = (userId: number, jti: string): string => {
+export const generateRefreshToken = (userId: number, jti: string, absoluteExpiresAtSeconds?: number): string => {
   const payload: Omit<RefreshTokenPayload, 'iat' | 'exp'> = {
     type: 'refresh',
     sub: String(userId),
     jti,
   };
+  if (absoluteExpiresAtSeconds !== undefined) {
+    if (!Number.isInteger(absoluteExpiresAtSeconds) || absoluteExpiresAtSeconds <= Math.floor(Date.now() / 1000)) {
+      throw new AppError('Phiên đã hết hạn', HTTP_STATUS.UNAUTHORIZED);
+    }
+    return jwt.sign({ ...payload, exp: absoluteExpiresAtSeconds }, env.JWT_REFRESH_SECRET, { algorithm: 'HS256' });
+  }
   return jwt.sign(payload, env.JWT_REFRESH_SECRET, {
     algorithm: 'HS256',
-    expiresIn: env.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions['expiresIn'],
+    expiresIn: env.REFRESH_TTL_SECONDS,
   });
 };
 

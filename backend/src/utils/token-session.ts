@@ -10,10 +10,13 @@ export const userSessionsKey = (userId: number): string => `user_refresh_session
  * TTL is taken from the validated env config — same source as the JWT expiry.
  * The reverse index Set TTL is kept at least as long as the session.
  */
-export const setSession = async (jti: string, userId: number): Promise<void> => {
+export const setSession = async (jti: string, userId: number, ttlSeconds = env.REFRESH_TTL_SECONDS): Promise<void> => {
+  if (!Number.isInteger(ttlSeconds) || ttlSeconds <= 0 || ttlSeconds > env.REFRESH_TTL_SECONDS) {
+    throw new Error('Invalid refresh session TTL');
+  }
   const uKey = userSessionsKey(userId);
   const pipeline = redisClient.pipeline();
-  pipeline.set(sessionKey(jti), String(userId), 'EX', env.REFRESH_TTL_SECONDS);
+  pipeline.set(sessionKey(jti), String(userId), 'EX', ttlSeconds);
   pipeline.sadd(uKey, jti);
   pipeline.expire(uKey, env.REFRESH_TTL_SECONDS);
   await pipeline.exec();

@@ -28,8 +28,10 @@ function buildCookieOptions(): CookieOptions {
   };
 }
 
-function setRefreshCookie(res: Response, token: string): void {
-  res.cookie(REFRESH_COOKIE, token, buildCookieOptions());
+function setRefreshCookie(res: Response, token: string, expiresAt?: Date): void {
+  const options = buildCookieOptions();
+  if (expiresAt) options.maxAge = Math.max(0, expiresAt.getTime() - Date.now());
+  res.cookie(REFRESH_COOKIE, token, options);
 }
 
 function clearRefreshCookie(res: Response): void {
@@ -74,10 +76,10 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
     throw new AppError('Không có refresh token', HTTP_STATUS.UNAUTHORIZED);
   }
 
-  const { accessToken, refreshToken: newRefreshToken } =
+  const { accessToken, refreshToken: newRefreshToken, expiresAt } =
     await authService.refreshAccessToken(token);
 
-  setRefreshCookie(res, newRefreshToken);
+  setRefreshCookie(res, newRefreshToken, expiresAt);
   sendSuccess(res, { accessToken }, 'Làm mới token thành công');
 };
 
