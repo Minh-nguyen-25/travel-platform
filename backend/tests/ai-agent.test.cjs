@@ -50,10 +50,13 @@ function harness(provider, rounds = [], overrides = {}) {
   };
   const fetchMock = async (url, init) => {
     const body = JSON.parse(init.body);
-    const generation = Boolean(body.text?.format || body.generationConfig?.responseJsonSchema);
+    const generation = Boolean(body.text?.format || body.generationConfig?.responseJsonSchema || body.format);
     requests.push({ url: String(url), body, generation });
     const output = generation ? JSON.stringify(itinerary) : (rounds[chatIndex++] ?? 'Đã kiểm tra dữ liệu.');
-    const payload = provider === 'openai'
+    const payload = provider === 'ollama'
+      ? { message: typeof output === 'string' ? { role: 'assistant', content: output }
+        : { role: 'assistant', content: '', tool_calls: output.map((item) => ({ function: { name: item.name, arguments: item.args } })) } }
+      : provider === 'openai'
       ? { output: typeof output === 'string'
         ? [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text: output }] }]
         : output.map((item) => item.type === 'reasoning' ? item : ({ type: 'function_call', name: item.name,
@@ -69,7 +72,7 @@ function harness(provider, rounds = [], overrides = {}) {
 }
 
 function toolOutputs(provider, request) {
-  return provider === 'openai'
+  return provider === 'ollama' ? request.body.messages.filter((item) => item.role === 'tool').map((item) => JSON.parse(item.content)) : provider === 'openai'
     ? request.body.input.filter((item) => item.type === 'function_call_output').map((item) => JSON.parse(item.output))
     : request.body.contents.flatMap((item) => item.parts).filter((item) => item.functionResponse).map((item) => item.functionResponse.response);
 }
@@ -94,7 +97,7 @@ test('OpenAI requests encrypted reasoning and replays it unchanged during statel
   });
 });
 
-for (const provider of ['openai', 'gemini']) {
+for (const provider of ['openai', 'gemini', 'ollama']) {
   test(`${provider}: returns catalog sources and a null draft for plain chat`, async () => {
     const h = harness(provider);
     const result = await h.service.chat(authenticatedUserId, { message: 'Gợi ý tham quan Hà Nội' });
@@ -118,7 +121,7 @@ for (const provider of ['openai', 'gemini']) {
       assert.ok(h.requests[0].body.tools.some((tool) => tool.name === 'search_destinations'));
       assert.equal(h.requests[1].body.input.find((item) => item.type === 'function_call_output').call_id, 'call-1');
       assert.ok(h.requests[1].body.input.some((item) => item.type === 'function_call'));
-    } else {
+    } else if (provider === 'gemini') {
       assert.ok(h.requests[0].body.tools[0].functionDeclarations.some((tool) => tool.name === 'search_destinations'));
       assert.equal(h.requests[1].body.contents.find((item) => item.role === 'model').parts[0].thoughtSignature, 'provider-thought-signature');
     }
@@ -183,7 +186,8 @@ for (const provider of ['openai', 'gemini']) {
     assert.equal(chatRequests.length, 3);
     assert.equal(toolOutputs(provider, chatRequests[2]).length, 2);
     if (provider === 'openai') assert.equal(chatRequests[2].body.tool_choice, 'none');
-    else assert.equal(chatRequests[2].body.toolConfig.functionCallingConfig.mode, 'NONE');
+    else if (provider === 'gemini') assert.equal(chatRequests[2].body.toolConfig.functionCallingConfig.mode, 'NONE');
+    else assert.equal(chatRequests[2].body.tools, undefined);
     assert.equal(h.saveTripCallCount, 0);
   });
 

@@ -1,3 +1,5 @@
+import { buildSchedule, estimateLeg } from '../utils/itinerary-schedule';
+import { mapService } from './map.service';
 import { randomBytes } from 'crypto';
 import { Prisma } from '@prisma/client';
 import { HTTP_STATUS } from '../constants';
@@ -132,6 +134,7 @@ const serializeItinerary = (
   travelDistanceKm: nullableDecimalString(itinerary.travelDistanceKm),
   travelDurationMinutes: itinerary.travelDurationMinutes,
   travelMode: itinerary.travelMode,
+  travelCalculationSource: itinerary.travelCalculationSource,
   note: itinerary.note,
   createdAt: itinerary.createdAt.toISOString(),
   updatedAt: itinerary.updatedAt.toISOString(),
@@ -213,6 +216,7 @@ const serializePublicTrip = (trip: PublicTripRecord) => {
         travelDistanceKm: nullableDecimalString(itinerary.travelDistanceKm),
         travelDurationMinutes: itinerary.travelDurationMinutes,
         travelMode: itinerary.travelMode,
+        travelCalculationSource: itinerary.travelCalculationSource,
         note: itinerary.note,
         destination: serializeDestination(itinerary.destination),
       })),
@@ -459,19 +463,9 @@ export const tripService = {
     const endDate = update.endDate ?? current.endDate;
     assertValidTripRange(startDate, endDate);
 
-    if (
-      update.startDate &&
-      update.startDate.getTime() !== current.startDate.getTime() &&
-      current.tripDays.length > 0
-    ) {
-      throw new AppError(
-        'Không thể đổi ngày bắt đầu khi chuyến đi đã có lịch trình; hãy xóa các ngày trước',
-        HTTP_STATUS.CONFLICT
-      );
-    }
-
     for (const day of current.tripDays) {
-      validateAndGetDayNumber(day.date, startDate, endDate, day.dayNumber);
+      const shiftedDate = new Date(startDate.getTime() + (day.dayNumber - 1) * MILLISECONDS_PER_DAY);
+      validateAndGetDayNumber(shiftedDate, startDate, endDate, day.dayNumber);
     }
 
     const trip = await tripRepository.updateTrip(userId, tripId, current.updatedAt, update);
@@ -681,11 +675,39 @@ export const tripService = {
       );
     }
 
+    const byId = new Map(existing.map((item) => [item.id, item]));
+    const ordered = input.itineraryIds.map((id) => byId.get(id)!);
+    const deadline = AbortSignal.timeout(12_000);
+    const calculateLeg = async (item: typeof ordered[number], index: number) => {
+      const previous = ordered[index];
+      const fallback = estimateLeg(previous, item);
+      if (item.travelMode === 'TRANSIT' || deadline.aborted) return fallback;
+      try {
+        const profile = item.travelMode === 'WALKING' ? 'walking' : item.travelMode === 'CYCLING' ? 'cycling' : 'driving';
+        const route = await mapService.calculateDistance(
+          { latitude: Number(previous.destination.latitude), longitude: Number(previous.destination.longitude) },
+          { latitude: Number(item.destination.latitude), longitude: Number(item.destination.longitude) }, profile, deadline
+        );
+        return { distanceKm: Math.round(route.distanceKm * 100) / 100,
+          durationMinutes: Math.ceil(route.durationMinutes), source: 'OSRM' as const };
+      } catch { return fallback; }
+    };
+    const legs: Awaited<ReturnType<typeof calculateLeg>>[] = new Array(Math.max(0, ordered.length - 1));
+    let nextLeg = 0;
+    await Promise.all(Array.from({ length: Math.min(3, legs.length) }, async () => {
+      while (nextLeg < legs.length) {
+        const index = nextLeg++;
+        legs[index] = await calculateLeg(ordered[index + 1], index);
+      }
+    }));
+    const schedule = buildSchedule(existing, ordered, legs);
     const reordered = await tripRepository.reorderItineraries(
       userId,
       tripId,
       dayId,
-      input.itineraryIds
+      input.itineraryIds,
+      schedule,
+      existing.map(({ id, updatedAt }) => ({ id, updatedAt }))
     );
     if (!reordered) {
       throw new AppError(

@@ -7,6 +7,9 @@ const relevantEnvironmentKeys = [
   'OPENAI_MODEL',
   'GEMINI_MODEL',
   'GEMINI_CHAT_MODEL',
+  'GEMINI_API_KEY',
+  'OLLAMA_MODEL',
+  'OLLAMA_BASE_URL',
 ];
 const originalEnvironment = Object.fromEntries(
   relevantEnvironmentKeys.map((key) => [key, process.env[key]])
@@ -69,4 +72,26 @@ test('uses a customized Gemini planner model as the chat model when no override 
   const { getAiConfig } = require('../dist/src/config/ai.js');
 
   assert.equal(getAiConfig().chatModel, 'gemini-custom-planner');
+});
+
+test('Ollama defaults to local inference and never inherits a cloud API key', () => {
+  resetEnvironment();
+  process.env.AI_PROVIDER = 'ollama';
+  process.env.GEMINI_API_KEY = 'must-not-forward';
+  const { getAiConfig } = require('../dist/src/config/ai.js');
+  const config = getAiConfig();
+  assert.equal(config.provider, 'ollama');
+  assert.equal(config.baseUrl, 'http://127.0.0.1:11434');
+  assert.equal(config.model, 'qwen2.5:7b');
+  assert.equal(config.apiKey, '');
+});
+
+test('Ollama accepts a configured model and rejects non-HTTP server URLs', () => {
+  resetEnvironment();
+  process.env.AI_PROVIDER = 'ollama';
+  process.env.OLLAMA_MODEL = 'local-model';
+  const { getAiConfig } = require('../dist/src/config/ai.js');
+  assert.equal(getAiConfig().model, 'local-model');
+  process.env.OLLAMA_BASE_URL = 'file:///local-model';
+  assert.throws(() => getAiConfig(), /OLLAMA_BASE_URL must use http or https/);
 });

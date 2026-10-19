@@ -163,6 +163,14 @@ export const tripService = {
     return response.data.data;
   },
 
+  async updateTripDay(tripId: number, dayId: number, payload: { date?: string; note?: string | null }): Promise<TripDay> {
+    return (await axiosClient.patch<ApiEnvelope<TripDay>>(`/trips/${tripId}/days/${dayId}`, payload)).data.data;
+  },
+
+  async deleteTripDay(tripId: number, dayId: number): Promise<void> {
+    await axiosClient.delete(`/trips/${tripId}/days/${dayId}`);
+  },
+
   async createItinerary(
     tripId: number,
     dayId: number,

@@ -1,4 +1,11 @@
 import { Router } from 'express';
+import expenseRoutes from './expense.routes';
+import { z } from 'zod';
+import { rateLimit } from 'express-rate-limit';
+import { tripService } from '../services/trip.service';
+import { mapService } from '../services/map.service';
+import { AppError } from '../utils/app-error';
+import { sendSuccess } from '../utils/response.utils';
 import * as tripController from '../controllers/trip.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validate.middleware';
@@ -18,6 +25,27 @@ import {
 } from '../validators/trip.validator';
 
 const router = Router();
+router.use((_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
+
+// Shared viewers can route only the saved stops of a currently public trip.
+router.post('/shared/:shareToken/days/:dayNumber/route',
+  rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: true, legacyHeaders: false }),
+  validate(z.object({ shareToken: z.string().regex(/^[a-f0-9]{64}$/), dayNumber: z.coerce.number().int().positive() }), 'params'),
+  async (req, res) => {
+    const trip = await tripService.getSharedTrip(String(req.params.shareToken));
+    const day = trip.tripDays.find((item) => item.dayNumber === Number(req.params.dayNumber));
+    if (!day) throw new AppError('Không tìm thấy ngày trong chuyến đi', 404);
+    if (day.itineraries.length < 2) throw new AppError('Cần ít nhất hai điểm dừng', 422);
+    const mode = day.itineraries[1]?.travelMode;
+    const profile = mode === 'WALKING' ? 'walking' : mode === 'CYCLING' ? 'cycling' : 'driving';
+    const result = await mapService.calculateRoute({
+      coordinates: day.itineraries.map(({ destination }) => ({
+        latitude: Number(destination.latitude), longitude: Number(destination.longitude),
+      })), profile, overview: 'full', geometries: 'geojson', steps: false, alternatives: false,
+    });
+    sendSuccess(res, result);
+  }
+);
 
 // Public: token is the only credential required to view a shared trip.
 router.get(
@@ -27,6 +55,7 @@ router.get(
 );
 
 router.use(authenticate);
+router.use('/:tripId/expenses', expenseRoutes);
 
 router.get('/', validate(tripListQuerySchema, 'query'), tripController.getTrips);
 router.post('/', validate(createTripSchema), tripController.createTrip);

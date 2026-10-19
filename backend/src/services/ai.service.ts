@@ -870,6 +870,54 @@ export class AiService {
     throw new AppError('Không thể kết nối nhà cung cấp AI', UPSTREAM_UNAVAILABLE_STATUS);
   }
 
+  private async callOllama(config: AiConfig, messages: JsonRecord[], format?: JsonRecord, useTools = true): Promise<JsonRecord> {
+    const payload = await this.fetchJson(`${config.baseUrl}/api/chat`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: config.model, messages, stream: false,
+        ...(format ? { format } : useTools ? { tools: CHAT_TOOLS.map((tool) => ({
+          type: 'function', function: {
+            name: tool.name, description: tool.description, parameters: tool.parameters,
+          },
+        })) } : {}),
+        options: { temperature: 0.2, num_predict: config.maxOutputTokens },
+      }),
+    }, config);
+    if (!isRecord(payload) || !isRecord(payload.message)) {
+      throw new AppError('Ollama trả về dữ liệu không hợp lệ', UPSTREAM_ERROR_STATUS);
+    }
+    return payload.message;
+  }
+
+  private async callOllamaChat(
+    config: AiConfig, input: NormalizedChatInput, context: JsonRecord,
+    userId: number, state: ChatAgentState
+  ): Promise<ChatAgentResult> {
+    const messages: JsonRecord[] = [
+      { role: 'system', content: CHAT_SYSTEM_INSTRUCTIONS }, ...input.history,
+      { role: 'user', content: buildChatUserMessage(input, context) },
+    ];
+    for (let round = 0; round <= MAX_CHAT_TOOL_ROUNDS; round += 1) {
+      const message = await this.callOllama(config, messages, undefined, round < MAX_CHAT_TOOL_ROUNDS);
+      const calls = Array.isArray(message.tool_calls) ? message.tool_calls : [];
+      if (!calls.length) {
+        const reply = typeof message.content === 'string' ? message.content.trim() : '';
+        if (!reply) throw new AppError('Ollama không trả về nội dung chat', UPSTREAM_ERROR_STATUS);
+        return { reply, sources: chatSourceList(state), draft: state.draft };
+      }
+      this.validateChatToolRound(round, calls.length);
+      messages.push(message);
+      for (const call of calls) {
+        if (!isRecord(call) || !isRecord(call.function) || typeof call.function.name !== 'string') {
+          throw new AppError('Ollama trả về lời gọi công cụ không hợp lệ', UPSTREAM_ERROR_STATUS);
+        }
+        const output = await this.executeChatTool(call.function.name, call.function.arguments, input, userId, state);
+        messages.push({ role: 'tool', tool_name: call.function.name, content: JSON.stringify(output) });
+      }
+    }
+    throw new AppError('AI vượt giới hạn công cụ', UPSTREAM_ERROR_STATUS);
+  }
+
   private async callOpenAi(
     config: AiConfig,
     prompt: string,
@@ -1342,7 +1390,7 @@ export class AiService {
     }
     const input = normalizeChatInput(rawInput);
     const config = this.configFactory();
-    if (!config.apiKey) {
+    if (config.provider !== 'ollama' && !config.apiKey) {
       throw new AppError(
         `Dịch vụ AI chưa được cấu hình ${config.provider === 'openai' ? 'OPENAI_API_KEY' : 'GEMINI_API_KEY'}`,
         UPSTREAM_UNAVAILABLE_STATUS
@@ -1365,7 +1413,9 @@ export class AiService {
       prioritySourceIds: new Set(), draft: null,
       defaultBudgetLevel: normalizeBudgetLevel(preference?.budgetLevel),
     };
-    const agentResult = config.provider === 'openai'
+    const agentResult = config.provider === 'ollama'
+      ? await this.callOllamaChat(config, input, context, userId, state)
+      : config.provider === 'openai'
       ? await this.callOpenAiChat(config, input, context, userId, state)
       : await this.callGeminiChat(config, input, context, userId, state);
 
@@ -1393,7 +1443,7 @@ export class AiService {
       throw new AppError('Người dùng không hợp lệ', HTTP_STATUS.UNAUTHORIZED);
     }
     const config = this.configFactory();
-    if (!config.apiKey) {
+    if (config.provider !== 'ollama' && !config.apiKey) {
       throw new AppError(
         `Dịch vụ AI chưa được cấu hình ${config.provider === 'openai' ? 'OPENAI_API_KEY' : 'GEMINI_API_KEY'}`,
         UPSTREAM_UNAVAILABLE_STATUS
@@ -1418,7 +1468,11 @@ export class AiService {
     const outputSchema = createOutputSchema(normalizedInput, destinations);
     const prompt = buildPrompt(normalizedInput, destinations);
     const responseText =
-      config.provider === 'openai'
+      config.provider === 'ollama'
+        ? String((await this.callOllama(config, [
+          { role: 'system', content: SYSTEM_INSTRUCTIONS }, { role: 'user', content: prompt },
+        ], outputSchema)).content ?? '')
+        : config.provider === 'openai'
         ? await this.callOpenAi(config, prompt, outputSchema)
         : await this.callGemini(config, prompt, outputSchema);
     const raw = validateRawItinerary(

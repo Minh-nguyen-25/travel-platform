@@ -59,7 +59,7 @@ export interface AiItineraryGenerationResult {
   itinerary: GeneratedItinerary;
   tripDraft: AiTripDraft | null;
   metadata: {
-    provider: 'openai' | 'gemini';
+    provider: 'openai' | 'gemini' | 'ollama';
     model: string;
     generatedAt: string;
   };
@@ -89,12 +89,14 @@ export interface AiChatMessage {
 }
 
 export interface AiChatPayload {
+  conversationId?: string;
   message: string;
   history?: AiChatMessage[];
   locale?: string;
 }
 
 export interface AiChatResult {
+  conversationId: string;
   reply: string;
   sources: Array<{ id: number; name: string }>;
   draft: {
@@ -104,7 +106,7 @@ export interface AiChatResult {
     budgetLevel: 'LOW' | 'MEDIUM' | 'HIGH' | null;
   } | null;
   metadata: {
-    provider: 'openai' | 'gemini';
+    provider: 'openai' | 'gemini' | 'ollama';
     model: string;
     generatedAt: string;
   };
@@ -112,4 +114,9 @@ export interface AiChatResult {
     tripCount: number;
     destinationCount: number;
   };
+}
+
+export interface AiConversationSummary { id: string; title: string; createdAt: string; updatedAt: string }
+export interface AiConversation extends AiConversationSummary {
+  messages: Array<AiChatMessage & { id: string; result: AiChatResult | null }>;
 }

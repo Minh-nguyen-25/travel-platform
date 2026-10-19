@@ -1,3 +1,6 @@
+import TripEditorModal, { type TripEditorTarget } from '@/components/trip/TripEditorModal';
+import InteractiveItineraryMap from '@/components/map/InteractiveItineraryMap';
+import TripExpenses from '@/components/trip/TripExpenses';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import AddPlaceModal from '@/components/trip/AddPlaceModal';
@@ -59,6 +62,7 @@ export default function TripDetailPage() {
   const [pageError, setPageError] = useState('');
   const [isAddPlaceOpen, setIsAddPlaceOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [editor, setEditor] = useState<TripEditorTarget | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Itinerary | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isInitializingDays, setIsInitializingDays] = useState(false);
@@ -111,7 +115,7 @@ export default function TripDetailPage() {
         day.id === selectedDay.id ? { ...day, itineraries: reordered } : day,
       ),
     } : current);
-    setToast({ tone: 'success', message: 'Đã lưu thứ tự lịch trình.' });
+    setToast({ tone: 'success', message: 'Đã lưu thứ tự, giờ và chặng di chuyển.' });
   };
 
   const confirmDelete = async () => {
@@ -133,7 +137,7 @@ export default function TripDetailPage() {
     if (!trip) return;
     setIsInitializingDays(true);
     try {
-      for (const date of inclusiveDates(trip.startDate, trip.endDate)) {
+      for (const date of inclusiveDates(trip.startDate, trip.endDate).filter((date) => !trip.tripDays.some((day) => day.date === date))) {
         await tripService.createTripDay(trip.id, { date });
       }
       await loadTrip();
@@ -212,6 +216,11 @@ export default function TripDetailPage() {
       </EditorialPageHero>
 
       <main className="container relative -mt-14">
+        <div className="relative mb-4 flex flex-wrap gap-2 rounded-2xl bg-white p-3 shadow-sm">
+          <button type="button" onClick={() => setEditor({ kind: 'trip' })} className="rounded-xl bg-primary-50 px-4 py-2 text-sm font-bold text-primary-700">Chỉnh chuyến đi</button>
+          <button type="button" disabled={isInitializingDays} onClick={() => void initializeDays()} className="rounded-xl border px-4 py-2 text-sm font-bold disabled:opacity-50">{isInitializingDays ? 'Đang thêm ngày…' : 'Bổ sung các ngày còn thiếu'}</button>
+          {selectedDay && <button type="button" onClick={() => setEditor({ kind: 'day', day: selectedDay })} className="rounded-xl border px-4 py-2 text-sm font-bold">Chỉnh / xóa ngày {selectedDay.dayNumber}</button>}
+        </div>
         {trip.tripDays.length > 0 ? (
           <nav className="rounded-2xl border border-gray-100 bg-white p-2 shadow-xl shadow-gray-200/60" aria-label="Chọn ngày trong lịch trình">
             <div className="flex gap-2 overflow-x-auto">
@@ -253,13 +262,21 @@ export default function TripDetailPage() {
                 </button>
               </div>
               <TripTimeline
+                key={selectedDay.id}
                 day={selectedDay}
                 isMutating={isDeleting}
                 onAdd={() => setIsAddPlaceOpen(true)}
+                onEdit={(activity) => setEditor({ kind: 'activity', day: selectedDay, activity })}
                 onDelete={(itinerary) => setPendingDelete(itinerary)}
                 onReorder={handleReorder}
                 onReorderError={(message) => setToast({ tone: 'error', message })}
               />
+              <div className="mt-6">
+                <InteractiveItineraryMap key={selectedDay.id} title={`Bản đồ ngày ${selectedDay.dayNumber}`} travelMode={selectedDay.itineraries[1]?.travelMode} stops={selectedDay.itineraries.map((item) => ({
+                  id: item.id, destinationId: item.destinationId, name: item.destination.name,
+                  latitude: item.destination.latitude, longitude: item.destination.longitude, address: item.destination.address,
+                }))} />
+              </div>
             </section>
 
             <aside className="space-y-5 lg:sticky lg:top-24">
@@ -287,12 +304,14 @@ export default function TripDetailPage() {
                 </div>
                 {trip.description && <div className="mt-4 border-t border-gray-100 pt-4"><p className="text-xs font-bold text-gray-700">Ghi chú chuyến đi</p><p className="mt-2 line-clamp-4 text-xs leading-5 text-gray-500">{trip.description}</p></div>}
               </div>
-              <div className="rounded-2xl border border-primary-100 bg-primary-50 p-4"><div className="flex gap-3"><span className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-white text-primary-600 shadow-sm"><TripIcon name="info" size={17} /></span><p className="text-xs leading-5 text-primary-800">Kéo thả chỉ thay đổi thứ tự trong ngày đang chọn. Dữ liệu được lưu ngay sau khi thả.</p></div></div>
+              <div className="rounded-2xl border border-primary-100 bg-primary-50 p-4"><div className="flex gap-3"><span className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-white text-primary-600 shadow-sm"><TripIcon name="info" size={17} /></span><p className="text-xs leading-5 text-primary-800">Kéo thả sẽ tính lại giờ và chặng trong ngày, giữ nguyên thời lượng tham quan. Chặng dùng dữ liệu ước tính sẽ được đánh dấu. Bản đồ dùng phương tiện của chặng đầu; tuyến công cộng được xấp xỉ bằng ô tô.</p></div></div>
             </aside>
           </div>
         )}
+        <div className="mt-8"><TripExpenses tripId={trip.id} revision={trip} /></div>
       </main>
 
+      {editor && <TripEditorModal trip={trip} target={editor} onClose={() => setEditor(null)} onSaved={() => loadTrip()} />}
       <AddPlaceModal isOpen={isAddPlaceOpen} tripId={trip.id} day={selectedDay} onClose={() => setIsAddPlaceOpen(false)} onAdded={async () => { await loadTrip(); setToast({ tone: 'success', message: 'Đã thêm địa điểm vào lịch trình.' }); }} />
       <ShareTripModal isOpen={isShareOpen} tripId={trip.id} tripName={trip.name} isPublic={trip.isPublic} shareToken={trip.shareToken} onClose={() => setIsShareOpen(false)} onChanged={(state) => { setTrip((current) => current ? { ...current, ...state } : current); setToast({ tone: 'success', message: state.isPublic ? 'Đã bật chia sẻ công khai.' : 'Đã thu hồi liên kết chia sẻ.' }); }} />
 

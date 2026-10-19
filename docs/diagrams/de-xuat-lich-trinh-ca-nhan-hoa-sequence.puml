@@ -1,0 +1,41 @@
+@startuml
+title Biểu đồ trình tự - Đề xuất lịch trình cá nhân hóa
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+actor "Người dùng" as User
+boundary "Giao diện" as UI
+control "Hệ thống Travel Platform" as System
+database "Cơ sở dữ liệu" as DB
+participant "Dịch vụ AI" as AI
+participant "Dịch vụ bản đồ" as Map
+
+User -> UI: Nhập thông tin và sở thích chuyến đi
+UI -> UI: Kiểm tra dữ liệu
+
+alt Dữ liệu không hợp lệ
+  UI --> User: Hiển thị yêu cầu chỉnh sửa
+else Dữ liệu hợp lệ
+  UI -> System: Yêu cầu đề xuất lịch trình
+  System -> DB: Lấy sở thích và địa điểm phù hợp
+  DB --> System: Trả dữ liệu cá nhân hóa
+  System -> AI: Tạo lịch trình theo yêu cầu
+  AI --> System: Trả lịch trình đề xuất
+  System -> Map: Tính thời gian và khoảng cách
+  Map --> System: Trả thông tin di chuyển
+  System --> UI: Trả lịch trình hoàn chỉnh
+  UI --> User: Hiển thị lịch trình cá nhân hóa
+
+  opt Người dùng chọn lưu chuyến đi
+    User -> UI: Xác nhận lưu
+    UI -> System: Gửi lịch trình cần lưu
+    System -> DB: Lưu chuyến đi
+    DB --> System: Xác nhận thành công
+    System --> UI: Trả thông tin chuyến đi
+    UI --> User: Hiển thị chi tiết chuyến đi
+  end
+end
+
+@enduml

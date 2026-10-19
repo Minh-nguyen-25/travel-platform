@@ -42,6 +42,7 @@ export interface InteractiveItineraryMapProps {
   profile?: RoutingProfile;
   routeColor?: string;
   routeEnabled?: boolean;
+  routeUrl?: string;
   scrollWheelZoom?: boolean;
   showSummary?: boolean;
   stops: ItineraryMapStop[];
@@ -235,6 +236,7 @@ export default function InteractiveItineraryMap({
   profile,
   routeColor = '#0e7490',
   routeEnabled = true,
+  routeUrl,
   scrollWheelZoom = false,
   showSummary = true,
   stops,
@@ -265,7 +267,7 @@ export default function InteractiveItineraryMap({
     retry: retryRoute,
     route,
     status: routeStatus,
-  } = useItineraryRoute({ coordinates, enabled: routeEnabled, profile: routingProfile });
+  } = useItineraryRoute({ coordinates, enabled: routeEnabled, profile: routingProfile, routeUrl });
 
   const fitPoints = useMemo<LatLngTuple[]>(() => {
     const points: LatLngTuple[] = normalizedStops.map(

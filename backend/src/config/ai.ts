@@ -59,8 +59,8 @@ const normalizeBaseUrl = (name: string, value: string): string => {
 
 const getProvider = (): AiProvider => {
   const provider = (process.env.AI_PROVIDER ?? 'gemini').trim().toLowerCase();
-  if (provider !== 'openai' && provider !== 'gemini') {
-    throw new Error('AI_PROVIDER must be either openai or gemini');
+  if (provider !== 'openai' && provider !== 'gemini' && provider !== 'ollama') {
+    throw new Error('AI_PROVIDER must be openai, gemini or ollama');
   }
   return provider;
 };
@@ -68,29 +68,31 @@ const getProvider = (): AiProvider => {
 export const getAiConfig = (): AiConfig => {
   const provider = getProvider();
   const isOpenAi = provider === 'openai';
+  const isLocal = provider === 'ollama';
   const apiKey = (
-    isOpenAi ? process.env.OPENAI_API_KEY : process.env.GEMINI_API_KEY
+    isLocal ? '' : isOpenAi ? process.env.OPENAI_API_KEY : process.env.GEMINI_API_KEY
   )?.trim() ?? '';
   const model = (
     process.env.AI_MODEL ??
-    (isOpenAi ? process.env.OPENAI_MODEL : process.env.GEMINI_MODEL) ??
+    (isLocal ? process.env.OLLAMA_MODEL : isOpenAi ? process.env.OPENAI_MODEL : process.env.GEMINI_MODEL) ??
+    (isLocal ? 'qwen2.5:7b' : undefined) ??
     (isOpenAi ? 'gpt-5.6-luna' : 'gemini-3.5-flash')
   ).trim();
-  const chatModel = isOpenAi
+  const chatModel = isOpenAi || isLocal
     ? model
     : (process.env.GEMINI_CHAT_MODEL ??
       (model === 'gemini-3.5-flash' ? 'gemini-3.5-flash-lite' : model)).trim();
   const baseUrl = normalizeBaseUrl(
-    isOpenAi ? 'OPENAI_BASE_URL' : 'GEMINI_BASE_URL',
+    isLocal ? 'OLLAMA_BASE_URL' : isOpenAi ? 'OPENAI_BASE_URL' : 'GEMINI_BASE_URL',
     (
-      isOpenAi
+      isLocal ? process.env.OLLAMA_BASE_URL ?? 'http://127.0.0.1:11434' : isOpenAi
         ? process.env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1'
         : process.env.GEMINI_BASE_URL ?? 'https://generativelanguage.googleapis.com/v1beta'
     ).trim()
   );
 
   if (!model) {
-    throw new Error(`${isOpenAi ? 'OPENAI_MODEL' : 'GEMINI_MODEL'} cannot be empty`);
+    throw new Error(`${isLocal ? 'OLLAMA_MODEL' : isOpenAi ? 'OPENAI_MODEL' : 'GEMINI_MODEL'} cannot be empty`);
   }
   if (!chatModel) {
     throw new Error('GEMINI_CHAT_MODEL cannot be empty');

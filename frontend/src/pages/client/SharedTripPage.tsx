@@ -1,3 +1,4 @@
+import InteractiveItineraryMap from '@/components/map/InteractiveItineraryMap';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import TripIcon, { type IconName } from '@/components/trip/TripIcon';
@@ -46,6 +47,7 @@ function SharedStop({ itinerary, index }: { itinerary: PublicItinerary; index: n
               <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-extrabold text-gray-800 shadow-sm">Điểm {index + 1}</span>
             </div>
             <div className="min-w-0 flex-1 p-5">
+              {itinerary.travelCalculationSource === 'ESTIMATE' && <p className="mb-2 text-xs font-semibold text-amber-700">Chặng đến điểm này dùng dữ liệu ước tính</p>}
               <div className="flex flex-wrap items-center gap-2"><h3 className="text-lg font-extrabold text-gray-900">{itinerary.destination.name}</h3>{Number(itinerary.destination.rating) > 0 && <span className="inline-flex items-center gap-1 rounded-full bg-accent-50 px-2 py-1 text-[11px] font-bold text-accent-600"><TripIcon name="star" size={12} className="text-warning" />{Number(itinerary.destination.rating).toFixed(1)}</span>}</div>
               <p className="mt-1 flex items-start gap-1.5 text-xs leading-5 text-gray-500"><TripIcon name="map-pin" size={14} className="mt-0.5 flex-none" />{itinerary.destination.address}</p>
               {itinerary.destination.categories.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{itinerary.destination.categories.slice(0, 3).map((category) => <span key={category.id} className="rounded-md bg-gray-100 px-2 py-1 text-[10px] font-bold uppercase tracking-normal text-gray-500">{category.name}</span>)}</div>}
@@ -139,6 +141,13 @@ export default function SharedTripPage() {
           <div className="min-w-0 space-y-10">
             {trip.tripDays.map((day) => (
               <section key={day.dayNumber} id={`shared-day-${day.dayNumber}`} className="trip-print-section scroll-mt-28">
+                {day.dayNumber === activeDay && <div className="trip-print-hide mb-5"><InteractiveItineraryMap
+                  title={`Bản đồ ngày ${day.dayNumber}`}
+                  routeUrl={`/trips/shared/${token}/days/${day.dayNumber}/route`}
+                  travelMode={day.itineraries[1]?.travelMode}
+                  stops={day.itineraries.map((item) => ({ id: item.sequenceOrder, name: item.destination.name,
+                    latitude: item.destination.latitude, longitude: item.destination.longitude, address: item.destination.address }))}
+                /><p className="mt-2 text-xs text-gray-500">Tuyến bản đồ dùng phương tiện của chặng đầu. Di chuyển công cộng được xấp xỉ bằng ô tô.</p></div>}
                 <div className="mb-5"><p className="text-xs font-extrabold uppercase tracking-normal text-primary-600">Ngày {day.dayNumber}</p><h2 className="mt-1 text-2xl font-extrabold capitalize text-gray-900">{formatDate(day.date, { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</h2>{day.note && <p className="mt-2 text-sm text-gray-500">{day.note}</p>}</div>
                 {day.itineraries.length > 0 ? <div>{day.itineraries.map((itinerary, index) => <div key={`${day.dayNumber}-${itinerary.sequenceOrder}`}><SharedStop itinerary={itinerary} index={index} />{index < day.itineraries.length - 1 && <div className="ml-[71px] flex min-h-12 items-center border-l-2 border-dashed border-primary-200 pl-5 sm:ml-[87px]"><span className="-ml-8 mr-3 flex h-6 w-6 items-center justify-center rounded-full border border-primary-100 bg-primary-50 text-primary-600"><TripIcon name={travelIcon(day.itineraries[index + 1].travelMode)} size={13} /></span><p className="text-xs font-medium text-gray-500">{getTravelModeLabel(day.itineraries[index + 1].travelMode)}{day.itineraries[index + 1].travelDurationMinutes ? ` · ${day.itineraries[index + 1].travelDurationMinutes} phút` : ''}{day.itineraries[index + 1].travelDistanceKm ? ` · ${Number(day.itineraries[index + 1].travelDistanceKm).toLocaleString('vi-VN')} km` : ''}</p></div>}</div>)}</div> : <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-5 py-10 text-center"><TripIcon name="compass" size={25} className="mx-auto text-gray-300" /><p className="mt-3 text-sm font-bold text-gray-700">Ngày này chưa có điểm dừng</p></div>}
               </section>

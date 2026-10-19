@@ -25,6 +25,7 @@ const getErrorMessage = (error: unknown): string => {
 interface UseItineraryRouteOptions {
   coordinates: MapCoordinate[];
   enabled?: boolean;
+  routeUrl?: string;
   profile?: RoutingProfile;
 }
 
@@ -40,6 +41,7 @@ export function useItineraryRoute({
   coordinates,
   enabled = true,
   profile = 'driving',
+  routeUrl = '/maps/route',
 }: UseItineraryRouteOptions): UseItineraryRouteResult {
   const coordinatesKey = useMemo(
     () => JSON.stringify(coordinates.map(({ latitude, longitude }) => ({ latitude, longitude }))),
@@ -50,7 +52,7 @@ export function useItineraryRoute({
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [cacheNotice, setCacheNotice] = useState<string | null>(null);
-  const requestKey = JSON.stringify([axiosClient.defaults.baseURL, profile, coordinatesKey]);
+  const requestKey = JSON.stringify([axiosClient.defaults.baseURL, routeUrl, profile, coordinatesKey]);
   const retryTarget = useRef<string | null>(null);
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export function useItineraryRoute({
       force,
       fetchRoute: async () => {
         const response = await axiosClient.post<ApiEnvelope<unknown>>(
-          '/maps/route',
+          routeUrl,
           {
             coordinates: requestCoordinates,
             profile,
@@ -111,7 +113,7 @@ export function useItineraryRoute({
     });
 
     return () => controller.abort();
-  }, [attempt, coordinatesKey, enabled, profile, requestKey]);
+  }, [attempt, coordinatesKey, enabled, profile, requestKey, routeUrl]);
 
   const retry = useCallback(() => {
     retryTarget.current = requestKey;
