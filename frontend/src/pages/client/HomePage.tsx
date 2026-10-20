@@ -20,7 +20,7 @@ const QUICK_SEARCH_SUGGESTIONS = ['Hà Giang', 'Hội An', 'Đà Lạt', 'Ninh B
 
 function CategorySkeleton() {
   return (
-    <div className="skeleton-shimmer relative min-h-[300px] overflow-hidden rounded-[1.4rem] bg-primary-100" aria-hidden="true">
+    <div className="category-skeleton skeleton-shimmer relative overflow-hidden" aria-hidden="true">
       <div className="absolute inset-x-5 bottom-5 space-y-3">
         <div className="h-6 w-2/3 rounded bg-white/60" />
         <div className="h-3.5 w-full rounded bg-white/40" />
@@ -151,17 +151,34 @@ export default function HomePage() {
       </section>
 
       {/* Categories Bento Grid */}
-      <section id="inspiration" className="home-inspiration bg-sand-50 py-16 sm:py-20 lg:py-24">
-        <div className="container">
-          <Reveal className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="eyebrow"><TripIcon name="compass" size={15} />Khám phá theo cảm hứng</p>
-              <h2 className="display-title mt-4 text-4xl text-navy-900 sm:text-5xl">Bạn muốn chuyến đi như thế nào?</h2>
+      <section id="inspiration" className="home-inspiration" aria-labelledby="inspiration-title">
+        <div className="home-inspiration__journey" aria-hidden="true">
+          <svg viewBox="0 0 320 260" fill="none" focusable="false">
+            <path className="home-inspiration__route" d="M68 28C154-5 285 19 255 89S87 111 116 180s108 20 145 60" />
+            <g className="home-inspiration__waypoints">
+              <circle cx="68" cy="28" r="5" /><circle cx="202" cy="122" r="5" /><circle cx="261" cy="240" r="5" />
+              <circle cx="68" cy="28" r="12" /><circle cx="202" cy="122" r="12" /><circle cx="261" cy="240" r="12" />
+            </g>
+          </svg>
+        </div>
+        <div className="container home-inspiration__content">
+          <Reveal>
+            <div className="home-inspiration__masthead">
+              <p className="eyebrow"><TripIcon name="compass" size={16} />Khám phá theo cảm hứng</p>
+              <span className="home-inspiration__signature"><span aria-hidden="true" />Dọc miền Việt Nam</span>
             </div>
-            <p className="max-w-md text-sm leading-7 text-gray-500">Chọn một cảm hứng và bắt đầu hành trình khám phá Việt Nam theo cách của bạn.</p>
+            <div className="home-inspiration__heading">
+              <h2 id="inspiration-title" className="display-title home-inspiration__title">
+                Bạn muốn chuyến đi <span>như thế nào?</span>
+              </h2>
+              <div className="home-inspiration__intro">
+                <span className="home-inspiration__intro-mark" aria-hidden="true"><TripIcon name="route" size={19} /></span>
+                <p>Chọn một cảm hứng và bắt đầu hành trình khám phá Việt Nam theo cách của bạn.</p>
+              </div>
+            </div>
           </Reveal>
 
-          <div className="travel-bento mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-6">
+          <div className="travel-bento grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-6" aria-busy={isLoading}>
             {isLoading
               ? Array.from({ length: 5 }).map((_, index) => (
                   <div key={index} className={`h-full ${categoryGridClass(index)}`}>
