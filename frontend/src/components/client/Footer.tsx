@@ -78,6 +78,7 @@ export default function Footer() {
 
         <div className="flex flex-col gap-3 py-6 text-xs text-white/40 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} TravelGo. Made for journeys across Vietnam.</p>
+          <a href="/images/scenic/credits.html" target="_blank" rel="noopener noreferrer" className="text-white/65 underline underline-offset-4 hover:text-white">Nguồn ảnh phong cảnh</a>
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-secondary-400" />
             Trải nghiệm du lịch Việt Nam hiện đại

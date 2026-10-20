@@ -34,7 +34,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="scenic-page min-h-screen">
       <EditorialPageHero
         eyebrow="Tài khoản cá nhân"
         title={<>Hồ sơ của <span className="text-accent-300">bạn.</span></>}

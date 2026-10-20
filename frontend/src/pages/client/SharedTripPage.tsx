@@ -6,6 +6,8 @@ import { ROUTES } from '@/constants';
 import logoImg from '@/assets/branding/travelgo-logo.png';
 import { tripService } from '@/services/trip.service';
 import type { PublicItinerary, PublicTrip } from '@/types/trip.types';
+import useScenicScene from '@/hooks/useScenicScene';
+import { scenicInputFromDestinations } from '@/utils/scenic-scene';
 import {
   formatCurrency,
   formatDate,
@@ -26,7 +28,7 @@ const primaryImage = (itinerary: PublicItinerary): string | null =>
 
 function SharedSkeleton() {
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="scenic-page min-h-screen pb-20">
       <div className="h-[430px] animate-pulse bg-primary-100" />
       <div className="container -mt-12 space-y-6"><div className="h-24 animate-pulse rounded-2xl bg-white shadow-sm" />{Array.from({ length: 3 }).map((_, index) => <div key={index} className="h-56 animate-pulse rounded-2xl bg-white shadow-sm" />)}</div>
     </div>
@@ -69,6 +71,8 @@ export default function SharedTripPage() {
   const [activeDay, setActiveDay] = useState(1);
   const [copied, setCopied] = useState(false);
 
+  useScenicScene(scenicInputFromDestinations(trip?.tripDays.flatMap((day) => day.itineraries.map((item) => item.destination)) ?? []));
+
   const loadTrip = useCallback(async () => {
     if (!/^[a-f0-9]{64}$/.test(token)) {
       setError('Liên kết chia sẻ không hợp lệ hoặc đã bị cắt ngắn.'); setIsLoading(false); return;
@@ -106,7 +110,7 @@ export default function SharedTripPage() {
   if (isLoading) return <SharedSkeleton />;
   if (!trip || error) {
     return (
-      <div className="trip-page-bg flex min-h-[72vh] items-center justify-center px-4 py-16">
+      <div className="scenic-page trip-page-bg flex min-h-[72vh] items-center justify-center px-4 py-16">
         <div className="max-w-lg rounded-3xl border border-gray-100 bg-white p-8 text-center shadow-xl shadow-gray-200/60 sm:p-10"><div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-50 text-primary-600"><TripIcon name="unlink" size={28} /></div><h1 className="mt-5 text-2xl font-extrabold text-gray-900">Liên kết không còn khả dụng</h1><p className="mt-3 text-sm leading-6 text-gray-500">{error || 'Không tìm thấy chuyến đi được chia sẻ.'}</p><div className="mt-6 flex justify-center gap-3"><Link to={ROUTES.HOME} className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 px-4 text-sm font-bold text-gray-700 hover:bg-gray-50"><TripIcon name="arrow-left" size={16} />Về trang chủ</Link><button type="button" onClick={() => void loadTrip()} className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary-600 px-4 text-sm font-bold text-white hover:bg-primary-700"><TripIcon name="refresh" size={16} />Thử lại</button></div></div>
       </div>
     );
@@ -116,7 +120,7 @@ export default function SharedTripPage() {
   const spent = Number(trip.totalEstimatedCost ?? 0);
 
   return (
-    <div className="trip-page-bg min-h-screen pb-20">
+    <div className="scenic-page trip-page-bg min-h-screen pb-20">
       <section className="shared-trip-hero relative min-h-[420px] overflow-hidden bg-gradient-to-br from-primary-900 via-primary-800 to-primary-600 text-white">
         <img src={coverImage ?? '/images/vietnam-dalat-roadtrip.jpg'} alt="" className="shared-trip-hero__media absolute inset-0 h-full w-full object-cover opacity-55" />
         <div className="absolute inset-0 bg-gradient-to-t from-primary-900 via-primary-900/65 to-primary-800/30" />

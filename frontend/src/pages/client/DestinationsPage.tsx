@@ -13,6 +13,7 @@ import type {
   Pagination,
 } from '@/types/destination.types';
 import { getApiErrorMessage } from '@/utils/trip.utils';
+import useScenicScene from '@/hooks/useScenicScene';
 
 interface FilterDraft {
   categoryIds: number[];
@@ -90,6 +91,8 @@ export default function DestinationsPage() {
       sortOrder: sortOrder === 'asc' ? 'asc' : 'desc',
     };
   }, [searchParams]);
+
+  useScenicScene({ categoryNames: categories.filter((category) => query.categoryIds?.includes(category.id)).map((category) => category.name) });
 
   useEffect(() => {
     setKeyword(searchParams.get('search') ?? '');
@@ -346,7 +349,7 @@ export default function DestinationsPage() {
   );
 
   return (
-    <div className="destinations-page min-h-screen bg-gray-50 pb-20">
+    <div className="scenic-page destinations-page min-h-screen pb-20">
       <EditorialPageHero
         eyebrow="Khám phá Việt Nam"
         title={<>Tìm một nơi khiến bạn <span className="text-primary-100">muốn lên đường.</span></>}

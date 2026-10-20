@@ -13,6 +13,8 @@ import { ROUTES } from '@/constants';
 import { tripService } from '@/services/trip.service';
 import type { Itinerary, TripDetail } from '@/types/trip.types';
 import { formatCurrency, formatDateRange, getApiErrorMessage } from '@/utils/trip.utils';
+import useScenicScene from '@/hooks/useScenicScene';
+import { scenicInputFromDestinations } from '@/utils/scenic-scene';
 
 type Toast = { tone: 'success' | 'error'; message: string };
 
@@ -38,7 +40,7 @@ const inclusiveDates = (startDate: string, endDate: string): string[] => {
 
 function PlannerSkeleton() {
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="scenic-page min-h-screen pb-20">
       <div className="h-72 animate-pulse bg-gradient-to-br from-primary-100 to-primary-50" />
       <div className="container -mt-16 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-4">
@@ -67,6 +69,8 @@ export default function TripDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isInitializingDays, setIsInitializingDays] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
+
+  useScenicScene(scenicInputFromDestinations(trip?.tripDays.flatMap((day) => day.itineraries.map((item) => item.destination)) ?? []));
 
   const loadTrip = useCallback(async (showSkeleton = false) => {
     if (!Number.isInteger(tripId) || tripId <= 0) {
@@ -153,7 +157,7 @@ export default function TripDetailPage() {
   if (isLoading) return <PlannerSkeleton />;
   if (!trip || pageError) {
     return (
-      <div className="trip-page-bg min-h-[72vh] px-4 py-20">
+      <div className="scenic-page trip-page-bg min-h-[72vh] px-4 py-20">
         <div className="mx-auto max-w-lg rounded-3xl border border-gray-100 bg-white p-8 text-center shadow-xl shadow-gray-200/60">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-red-500">
             <TripIcon name="alert-circle" size={29} />
@@ -184,7 +188,7 @@ export default function TripDetailPage() {
     ?? '/images/vietnam-dalat-roadtrip.jpg';
 
   return (
-    <div className="trip-page-bg min-h-screen pb-20">
+    <div className="scenic-page trip-page-bg min-h-screen pb-20">
       <EditorialPageHero
         eyebrow={trip.destinationCity}
         title={trip.name}

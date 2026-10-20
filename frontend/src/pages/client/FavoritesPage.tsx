@@ -9,6 +9,8 @@ import { favoriteService } from '@/services/favorite.service';
 import type { Pagination } from '@/types/destination.types';
 import type { SavedDestination } from '@/types/review.types';
 import { getApiErrorMessage } from '@/utils/trip.utils';
+import useScenicScene from '@/hooks/useScenicScene';
+import { scenicInputFromDestinations } from '@/utils/scenic-scene';
 
 const emptyPagination: Pagination = { page: 1, limit: 12, total: 0, totalPages: 0 };
 
@@ -26,6 +28,8 @@ export default function FavoritesPage() {
   const [error, setError] = useState('');
   const [feedback, setFeedback] = useState('');
   const [retryKey, setRetryKey] = useState(0);
+
+  useScenicScene(scenicInputFromDestinations(favorites.map(({ destination }) => destination)));
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -79,7 +83,7 @@ export default function FavoritesPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gray-50 pb-20">
+    <div className="scenic-page min-h-[calc(100vh-4rem)] pb-20">
       <EditorialPageHero
         eyebrow="Bộ sưu tập của bạn"
         title={<>Những nơi từng làm bạn <span className="text-coral-400">rung động.</span></>}

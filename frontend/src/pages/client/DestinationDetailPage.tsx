@@ -16,6 +16,8 @@ import {
 } from '@/utils/destination.utils';
 import { getApiErrorMessage } from '@/utils/trip.utils';
 import { getDestinationPhotoCredit } from '@/data/destination-photo-credits';
+import useScenicScene from '@/hooks/useScenicScene';
+import { scenicInputFromDestinations } from '@/utils/scenic-scene';
 
 const InteractiveItineraryMap = lazy(() => import('@/components/map/InteractiveItineraryMap'));
 
@@ -61,6 +63,8 @@ export default function DestinationDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [retryKey, setRetryKey] = useState(0);
+
+  useScenicScene(scenicInputFromDestinations(destination ? [destination] : []));
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -142,7 +146,7 @@ export default function DestinationDetailPage() {
   const photoCredit = getDestinationPhotoCredit(coverImage);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-white pb-20">
+    <div className="scenic-page min-h-screen overflow-x-hidden pb-20">
       <EditorialPageHero
         eyebrow={destination.categories[0]?.name ?? 'Điểm đến Việt Nam'}
         title={destination.name}

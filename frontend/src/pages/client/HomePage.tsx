@@ -100,7 +100,7 @@ export default function HomePage() {
   };
 
   return (
-    <div ref={pageRef} className="travel-home min-h-screen overflow-x-hidden bg-sand-50">
+    <div ref={pageRef} className="scenic-page travel-home min-h-screen overflow-x-hidden">
       <div ref={progressRef} className="home-scroll-progress" aria-hidden="true" />
 
       {/* Hero Section */}
@@ -202,7 +202,7 @@ export default function HomePage() {
       </section>
 
       {/* Top Destinations */}
-      <section className="section relative overflow-hidden bg-white">
+      <section className="home-destinations section relative overflow-hidden">
         <div className="absolute -left-52 top-28 h-96 w-96 rounded-full bg-primary-50 blur-3xl" />
         <div className="container relative">
           <Reveal className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
@@ -260,7 +260,7 @@ export default function HomePage() {
       </section>
 
       {/* Explore Vietnam by region */}
-      <section id="regions" className="home-regions section bg-sand-50">
+      <section id="regions" className="home-regions section">
         <div className="container">
           <Reveal className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -292,7 +292,7 @@ export default function HomePage() {
       </section>
 
       {/* Smart itinerary CTA */}
-      <section id="smart-itinerary" className="home-planner bg-sand-50 pb-20 sm:pb-28">
+      <section id="smart-itinerary" className="home-planner pb-20 sm:pb-28">
         <div className="container">
           <Reveal>
             <div className="home-planner__panel">

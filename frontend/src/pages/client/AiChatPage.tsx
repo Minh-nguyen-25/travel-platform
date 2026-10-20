@@ -188,7 +188,7 @@ export default function AiChatPage() {
   };
 
   return (
-    <div className="trip-page-bg min-h-screen pb-20">
+    <div className="scenic-page trip-page-bg min-h-screen pb-20">
       <EditorialPageHero
         eyebrow="TravelGo AI Chat"
         title={<>Hỏi nhanh. <span className="text-primary-200">Đi tự tin hơn.</span></>}

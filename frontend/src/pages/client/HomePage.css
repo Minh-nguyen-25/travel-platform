@@ -1,12 +1,12 @@
 .travel-home {
-  --home-teal-deep: #0b5554;
-  --home-teal: #07877e;
-  --home-ivory: #f7f4ec;
-  --home-mint: #ddf0e8;
-  --home-orange: #f28b45;
-  --home-gold: #f5c76a;
+  --home-teal-deep: #16483e;
+  --home-teal: #087f8c;
+  --home-canvas: #c3e1dc;
+  --home-mint: #b4ddd4;
+  --home-orange: #ed8955;
+  --home-gold: #f4c65d;
   --home-navy: #142e40;
-  background: var(--home-ivory);
+  background: var(--home-canvas);
 }
 
 .travel-home .home-scroll-progress {
@@ -245,7 +245,7 @@
     radial-gradient(ellipse at 3% 12%, rgb(221 240 232 / 82%), transparent 44%),
     radial-gradient(ellipse at 97% 85%, rgb(221 240 232 / 90%), transparent 46%),
     radial-gradient(ellipse at 15% 100%, rgb(245 199 106 / 12%), transparent 38%),
-    linear-gradient(135deg, var(--home-ivory), #fdfcf7 52%, var(--home-ivory));
+    linear-gradient(135deg, var(--home-canvas), #d1e8e1 52%, var(--home-canvas));
 }
 
 .travel-home .home-inspiration::before,

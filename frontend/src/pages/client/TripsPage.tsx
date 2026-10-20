@@ -110,7 +110,7 @@ export default function TripsPage() {
   const publicCount = trips.filter((trip) => trip.isPublic).length;
 
   return (
-    <div className="trip-page-bg min-h-screen pb-20">
+    <div className="scenic-page trip-page-bg min-h-screen pb-20">
       <EditorialPageHero
         eyebrow="Không gian hành trình của bạn"
         title={<>Chuyến đi của <span className="text-accent-300">tôi.</span></>}

@@ -250,7 +250,7 @@ export default function PreferencesPage() {
   };
 
   return (
-    <div className="trip-page-bg min-h-screen pb-24">
+    <div className="scenic-page trip-page-bg min-h-screen pb-24">
       <EditorialPageHero
         eyebrow="AI Travel Planner"
         title={<>Một hành trình <span className="text-primary-200">vừa vặn với bạn.</span></>}
