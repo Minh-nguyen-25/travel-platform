@@ -40,18 +40,18 @@ export default function Header() {
     const active = transparent
       ? 'bg-white/14 text-white shadow-sm'
       : 'bg-primary-50 text-primary-800';
-    return `relative rounded-full px-3.5 py-2 text-[0.82rem] font-bold transition-all duration-300 ${isActive ? active : idle}`;
+    return `relative shrink-0 whitespace-nowrap rounded-full px-3 py-2 text-[0.82rem] font-bold transition-all duration-300 ${isActive ? active : idle}`;
   };
-
-  const exploreLinkClass = `relative rounded-full px-3.5 py-2 text-[0.82rem] font-bold transition-all duration-300 ${
-    transparent
-      ? 'text-white/82 hover:bg-white/10 hover:text-white'
-      : 'text-gray-600 hover:bg-primary-50 hover:text-primary-800'
-  }`;
 
   const links = [
     { to: ROUTES.HOME, label: 'Trang chủ', end: true },
     { to: ROUTES.DESTINATIONS, label: 'Điểm đến' },
+    { to: ROUTES.PREFERENCES, label: 'Lịch trình' },
+    ...(isAuthenticated ? [
+      { to: ROUTES.TRIPS, label: 'Chuyến đi của tôi' },
+      { to: ROUTES.AI_CHAT, label: 'Trò chuyện cùng AI' },
+      { to: ROUTES.FAVORITES, label: 'Yêu thích của tôi' },
+    ] : []),
   ];
 
   return (
@@ -66,6 +66,7 @@ export default function Header() {
         <Link
           to={ROUTES.HOME}
           aria-label="TravelGo - Trang chủ"
+          className="shrink-0"
         >
           <TravelGoLogo
             variant={transparent ? 'light' : 'dark'}
@@ -74,18 +75,13 @@ export default function Header() {
           />
         </Link>
 
-        <nav className="hidden items-center gap-1 rounded-full lg:flex" aria-label="Điều hướng chính">
+        <nav className="hidden items-center gap-1 rounded-full xl:flex" aria-label="Điều hướng chính">
           {links.map(({ to, label, end }) => (
             <NavLink key={to} to={to} end={end} className={navLinkClass}>{label}</NavLink>
           ))}
-          <Link to={ROUTES.DESTINATIONS} className={exploreLinkClass}>Khám phá</Link>
-          <NavLink to={ROUTES.PREFERENCES} className={navLinkClass}>Lịch trình</NavLink>
-          {isAuthenticated && (
-            <NavLink to={ROUTES.FAVORITES} className={navLinkClass}>Yêu thích của tôi</NavLink>
-          )}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Link
             to={ROUTES.DESTINATIONS}
             aria-label="Tìm kiếm điểm đến"
@@ -129,8 +125,6 @@ export default function Header() {
                       <p className="mt-0.5 truncate text-xs text-gray-500">{user.email}</p>
                     </div>
                     <Link to={ROUTES.PROFILE} className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-800" role="menuitem"><TripIcon name="users" size={15} />Tài khoản của tôi</Link>
-                    <Link to={ROUTES.TRIPS} className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-800" role="menuitem"><TripIcon name="suitcase" size={15} />Chuyến đi của tôi</Link>
-                    <Link to={ROUTES.AI_CHAT} className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-800" role="menuitem"><TripIcon name="sparkles" size={15} />Trò chuyện cùng AI</Link>
                     <Link to={ROUTES.FAVORITES} className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-primary-50 hover:text-primary-800" role="menuitem"><TripIcon name="heart" size={15} />Điểm đến yêu thích</Link>
                     {user.role === 'ADMIN' && (
                       <Link to={ROUTES.ADMIN_DASHBOARD} className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-primary-800 hover:bg-primary-50" role="menuitem"><TripIcon name="compass" size={15} />Quản trị hệ thống</Link>
@@ -149,10 +143,11 @@ export default function Header() {
 
           <button
             type="button"
-            className={`flex h-10 w-10 items-center justify-center rounded-xl transition lg:hidden ${transparent ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-primary-50'}`}
+            className={`flex h-10 w-10 items-center justify-center rounded-xl transition xl:hidden ${transparent ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-primary-50'}`}
             onClick={() => setMenuOpen((open) => !open)}
             aria-label={menuOpen ? 'Đóng menu' : 'Mở menu'}
             aria-expanded={menuOpen}
+            aria-controls="client-mobile-navigation"
           >
             <TripIcon name={menuOpen ? 'x' : 'menu'} size={22} />
           </button>
@@ -160,16 +155,11 @@ export default function Header() {
       </div>
 
       {menuOpen && (
-        <nav className="trip-fade-in border-t border-white/70 bg-sand-50/95 px-4 py-3 shadow-float backdrop-blur-xl lg:hidden" aria-label="Điều hướng di động">
+        <nav id="client-mobile-navigation" className="trip-fade-in max-h-[calc(100dvh-72px)] overflow-y-auto border-t border-white/70 bg-sand-50 px-4 py-3 shadow-float xl:hidden" aria-label="Điều hướng di động">
           <div className="mx-auto flex max-w-container flex-col gap-1">
             {links.map(({ to, label, end }) => (
-              <NavLink key={to} to={to} end={end} className={({ isActive }) => `rounded-xl px-3.5 py-3 text-sm font-bold ${isActive ? 'bg-primary-100 text-primary-900' : 'text-gray-700 hover:bg-primary-50'}`}>{label}</NavLink>
+              <NavLink key={to} to={to} end={end} onClick={() => setMenuOpen(false)} className={({ isActive }) => `rounded-xl px-3.5 py-3 text-sm font-bold ${isActive ? 'bg-primary-100 text-primary-900' : 'text-gray-700 hover:bg-primary-50'}`}>{label}</NavLink>
             ))}
-            <Link to={ROUTES.DESTINATIONS} onClick={() => setMenuOpen(false)} className="rounded-xl px-3.5 py-3 text-sm font-bold text-gray-700 hover:bg-primary-50">Khám phá</Link>
-            <NavLink to={ROUTES.PREFERENCES} className={({ isActive }) => `rounded-xl px-3.5 py-3 text-sm font-bold ${isActive ? 'bg-primary-100 text-primary-900' : 'text-gray-700 hover:bg-primary-50'}`}>Lịch trình</NavLink>
-            {isAuthenticated && (
-              <NavLink to={ROUTES.FAVORITES} className={({ isActive }) => `rounded-xl px-3.5 py-3 text-sm font-bold ${isActive ? 'bg-primary-100 text-primary-900' : 'text-gray-700 hover:bg-primary-50'}`}>Yêu thích của tôi</NavLink>
-            )}
             {!isAuthenticated && (
               <div className="mt-2 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
                 <Link to={ROUTES.LOGIN} className="rounded-xl border border-gray-200 px-3 py-2.5 text-center text-sm font-bold text-gray-700">Đăng nhập</Link>
