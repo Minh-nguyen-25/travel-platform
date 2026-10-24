@@ -3,7 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { validate } from '../middlewares/validate.middleware';
 import { authenticate } from '../middlewares/auth.middleware';
 import { requestOriginGuard } from '../middlewares/origin.middleware';
-import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, validateResetTokenSchema } from '../validators/auth.validator';
+import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, validateResetTokenSchema, verifyResetCodeSchema, resetPasswordWithCodeSchema } from '../validators/auth.validator';
 import * as authController from '../controllers/auth.controller';
 import oauthRouter from './oauth.routes';
 import { loginLimiter } from '../middlewares/login-rate-limit.middleware';
@@ -81,6 +81,11 @@ router.post(
   validate(loginSchema),
   authController.login
 );
+
+// Separate endpoints preserve the existing recovery-link contract.
+router.post('/forgot-password/code', forgotPasswordLimiter, validate(forgotPasswordSchema), authController.requestResetCode);
+router.post('/reset-password/code/verify', resetPasswordLimiter, validate(verifyResetCodeSchema), authController.verifyResetCode);
+router.post('/reset-password/code', resetPasswordLimiter, validate(resetPasswordWithCodeSchema), authController.resetPasswordWithCode);
 
 // POST /api/v1/auth/forgot-password
 router.post(

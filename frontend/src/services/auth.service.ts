@@ -32,6 +32,15 @@ export const authApi = {
   forgotPassword: (data: { email: string }): Promise<AxiosResponse<ApiResponse<null>>> =>
     axiosClient.post<ApiResponse<null>>('/auth/forgot-password', data),
 
+  requestResetCode: (email: string) =>
+    axiosClient.post<ApiResponse<{ expiresInSeconds: number; resendAfterSeconds: number }>>('/auth/forgot-password/code', { email }),
+
+  verifyResetCode: (email: string, code: string) =>
+    axiosClient.post<ApiResponse<{ resetToken: string }>>('/auth/reset-password/code/verify', { email, code }),
+
+  resetPasswordWithCode: (data: { email: string; code: string; resetToken: string; password: string; confirmPassword: string }) =>
+    axiosClient.post<ApiResponse<null>>('/auth/reset-password/code', data),
+
   validateResetToken: (
     data: { token: string },
     signal?: AbortSignal
@@ -112,6 +121,19 @@ export const authService = {
   async forgotPassword(email: string): Promise<string> {
     const response = await authApi.forgotPassword({ email });
     return response.data.message || 'Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu.';
+  },
+
+  async requestResetCode(email: string) {
+    const response = await authApi.requestResetCode(email);
+    return { ...response.data.data, message: response.data.message };
+  },
+
+  async verifyResetCode(email: string, code: string): Promise<string> {
+    return (await authApi.verifyResetCode(email, code)).data.data.resetToken;
+  },
+
+  async resetPasswordWithCode(data: { email: string; code: string; resetToken: string; password: string; confirmPassword: string }): Promise<string> {
+    return (await authApi.resetPasswordWithCode(data)).data.message;
   },
 
   async validateResetToken(token: string, signal?: AbortSignal): Promise<boolean> {

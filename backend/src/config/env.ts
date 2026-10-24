@@ -111,6 +111,27 @@ function validateEnv() {
   const PASSWORD_RESET_EXPIRES_SECONDS = PASSWORD_RESET_EXPIRES_MINUTES * 60;
   const RESEND_CONFIGURED = configuredValue(process.env['RESEND_API_KEY']);
 
+  const boundedInteger = (name: string, fallback: number, min: number, max: number): number => {
+    const value = process.env[name] ?? String(fallback);
+    if (!/^\d+$/.test(value) || Number(value) < min || Number(value) > max) {
+      throw new Error(`${name} must be an integer between ${min} and ${max}`);
+    }
+    return Number(value);
+  };
+  const PASSWORD_RESET_CODE_TTL_SECONDS = boundedInteger('PASSWORD_RESET_CODE_TTL_SECONDS', 300, 60, 900);
+  const PASSWORD_RESET_CODE_RESEND_SECONDS = boundedInteger('PASSWORD_RESET_CODE_RESEND_SECONDS', 60, 30, 3600);
+  const PASSWORD_RESET_CODE_MAX_ATTEMPTS = boundedInteger('PASSWORD_RESET_CODE_MAX_ATTEMPTS', 5, 1, 10);
+  const PASSWORD_RESET_CODE_SECRET = process.env['PASSWORD_RESET_CODE_SECRET']?.trim() || raw['JWT_REFRESH_SECRET']!;
+  const PASSWORD_RESET_MAIL_PROVIDER = process.env['PASSWORD_RESET_MAIL_PROVIDER'] || 'gmail-smtp';
+  if (!['gmail-smtp', 'gmail-api'].includes(PASSWORD_RESET_MAIL_PROVIDER)) {
+    throw new Error('PASSWORD_RESET_MAIL_PROVIDER must be gmail-smtp or gmail-api');
+  }
+  const GMAIL_USER = process.env['GMAIL_USER']?.trim() || '';
+  const GMAIL_APP_PASSWORD = process.env['GMAIL_APP_PASSWORD']?.replace(/\s/g, '') || '';
+  const GMAIL_OAUTH_CLIENT_ID = process.env['GMAIL_OAUTH_CLIENT_ID']?.trim() || '';
+  const GMAIL_OAUTH_CLIENT_SECRET = process.env['GMAIL_OAUTH_CLIENT_SECRET']?.trim() || '';
+  const GMAIL_OAUTH_REFRESH_TOKEN = process.env['GMAIL_OAUTH_REFRESH_TOKEN']?.trim() || '';
+
   // Derived — computed once, consistent across all consumers
   let REFRESH_TTL_SECONDS: number;
   try {
@@ -163,6 +184,16 @@ function validateEnv() {
     PASSWORD_RESET_EXPIRES_MINUTES,
     PASSWORD_RESET_EXPIRES_SECONDS,
     RESEND_CONFIGURED,
+    PASSWORD_RESET_CODE_TTL_SECONDS,
+    PASSWORD_RESET_CODE_RESEND_SECONDS,
+    PASSWORD_RESET_CODE_MAX_ATTEMPTS,
+    PASSWORD_RESET_CODE_SECRET,
+    PASSWORD_RESET_MAIL_PROVIDER,
+    GMAIL_USER,
+    GMAIL_APP_PASSWORD,
+    GMAIL_OAUTH_CLIENT_ID,
+    GMAIL_OAUTH_CLIENT_SECRET,
+    GMAIL_OAUTH_REFRESH_TOKEN,
   };
 }
 

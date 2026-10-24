@@ -88,3 +88,18 @@ export const validateResetTokenSchema = z
   .strict();
 
 export type ValidateResetTokenDto = z.infer<typeof validateResetTokenSchema>;
+
+// Gmail recovery flow. Existing token/link DTOs above remain compatible.
+export const verifyResetCodeSchema = forgotPasswordSchema.extend({
+  code: z.string().trim().regex(/^\d{6}$/, 'Mã xác nhận phải gồm đúng 6 chữ số'),
+}).strict();
+export type VerifyResetCodeDto = z.infer<typeof verifyResetCodeSchema>;
+
+export const resetPasswordWithCodeSchema = verifyResetCodeSchema.extend({
+  resetToken: z.string().regex(/^[a-f0-9]{64}$/, 'Phiên đặt lại mật khẩu không hợp lệ'),
+  password: passwordSchema,
+  confirmPassword: z.string().min(1, 'Vui lòng nhập lại mật khẩu'),
+}).strict().refine((data) => data.password === data.confirmPassword, {
+  message: 'Mật khẩu xác nhận không khớp', path: ['confirmPassword'],
+});
+export type ResetPasswordWithCodeDto = z.infer<typeof resetPasswordWithCodeSchema>;

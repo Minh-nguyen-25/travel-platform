@@ -27,6 +27,7 @@ model User {
   travelPreference TravelPreference? // Quan hệ 1-1
   refreshTokens     RefreshToken[]
   passwordResetTokens PasswordResetToken[]
+  passwordResetCode PasswordResetCode?
   aiConversations AiConversation[]
 
   @@unique([authProvider, providerId])
@@ -45,6 +46,23 @@ model RefreshToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("refresh_tokens")
+}
+
+model PasswordResetCode {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         Int       @unique @map("user_id")
+  codeHash       String    @map("code_hash") @db.Char(64)
+  expiresAt      DateTime  @map("expires_at") @db.Timestamp()
+  attempts       Int       @default(0)
+  verifiedAt     DateTime? @map("verified_at") @db.Timestamp()
+  resetTokenHash String?   @map("reset_token_hash") @db.Char(64)
+  usedAt         DateTime? @map("used_at") @db.Timestamp()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamp()
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("password_reset_codes")
 }
 
 model PasswordResetToken {

@@ -7,6 +7,7 @@ import * as authService from '../services/auth.service';
 import * as userRepo from '../repositories/user.repository';
 import { serializeUser } from '../utils/user.utils';
 import { passwordResetService } from '../services/password-reset.service';
+import { passwordResetCodeService } from '../services/password-reset-code.service';
 
 // ─── Cookie name ──────────────────────────────────────────────────────────────
 const REFRESH_COOKIE = 'refreshToken';
@@ -144,5 +145,19 @@ export const validateResetToken = async (req: Request, res: Response): Promise<v
  */
 export const resetPassword = async (req: Request, res: Response): Promise<void> => {
   const result = await passwordResetService.resetPassword(req.body);
+  sendSuccess(res, null, result.message);
+};
+
+export const requestResetCode = async (req: Request, res: Response): Promise<void> => {
+  const { message, ...data } = await passwordResetCodeService.requestCode(req.body.email);
+  sendSuccess(res, data, message);
+};
+
+export const verifyResetCode = async (req: Request, res: Response): Promise<void> => {
+  sendSuccess(res, await passwordResetCodeService.verifyCode(req.body), 'Mã xác nhận hợp lệ.');
+};
+
+export const resetPasswordWithCode = async (req: Request, res: Response): Promise<void> => {
+  const result = await passwordResetCodeService.resetPassword(req.body);
   sendSuccess(res, null, result.message);
 };
