@@ -43,7 +43,7 @@ export default function Header() {
     return `relative rounded-full px-3.5 py-2 text-[0.82rem] font-bold transition-all duration-300 ${isActive ? active : idle}`;
   };
 
-  const sectionLinkClass = `relative rounded-full px-3.5 py-2 text-[0.82rem] font-bold transition-all duration-300 ${
+  const exploreLinkClass = `relative rounded-full px-3.5 py-2 text-[0.82rem] font-bold transition-all duration-300 ${
     transparent
       ? 'text-white/82 hover:bg-white/10 hover:text-white'
       : 'text-gray-600 hover:bg-primary-50 hover:text-primary-800'
@@ -78,12 +78,11 @@ export default function Header() {
           {links.map(({ to, label, end }) => (
             <NavLink key={to} to={to} end={end} className={navLinkClass}>{label}</NavLink>
           ))}
-          <a href={isHome ? '#inspiration' : `${ROUTES.HOME}#inspiration`} className={sectionLinkClass}>Khám phá</a>
+          <Link to={ROUTES.DESTINATIONS} className={exploreLinkClass}>Khám phá</Link>
           <NavLink to={ROUTES.PREFERENCES} className={navLinkClass}>Lịch trình</NavLink>
           {isAuthenticated && (
             <NavLink to={ROUTES.FAVORITES} className={navLinkClass}>Yêu thích của tôi</NavLink>
           )}
-          <a href={isHome ? '#about' : `${ROUTES.HOME}#about`} className={sectionLinkClass}>Về TravelGo</a>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -166,12 +165,11 @@ export default function Header() {
             {links.map(({ to, label, end }) => (
               <NavLink key={to} to={to} end={end} className={({ isActive }) => `rounded-xl px-3.5 py-3 text-sm font-bold ${isActive ? 'bg-primary-100 text-primary-900' : 'text-gray-700 hover:bg-primary-50'}`}>{label}</NavLink>
             ))}
-            <a href={isHome ? '#inspiration' : `${ROUTES.HOME}#inspiration`} onClick={() => setMenuOpen(false)} className="rounded-xl px-3.5 py-3 text-sm font-bold text-gray-700 hover:bg-primary-50">Khám phá</a>
+            <Link to={ROUTES.DESTINATIONS} onClick={() => setMenuOpen(false)} className="rounded-xl px-3.5 py-3 text-sm font-bold text-gray-700 hover:bg-primary-50">Khám phá</Link>
             <NavLink to={ROUTES.PREFERENCES} className={({ isActive }) => `rounded-xl px-3.5 py-3 text-sm font-bold ${isActive ? 'bg-primary-100 text-primary-900' : 'text-gray-700 hover:bg-primary-50'}`}>Lịch trình</NavLink>
             {isAuthenticated && (
               <NavLink to={ROUTES.FAVORITES} className={({ isActive }) => `rounded-xl px-3.5 py-3 text-sm font-bold ${isActive ? 'bg-primary-100 text-primary-900' : 'text-gray-700 hover:bg-primary-50'}`}>Yêu thích của tôi</NavLink>
             )}
-            <a href={isHome ? '#about' : `${ROUTES.HOME}#about`} onClick={() => setMenuOpen(false)} className="rounded-xl px-3.5 py-3 text-sm font-bold text-gray-700 hover:bg-primary-50">Về TravelGo</a>
             {!isAuthenticated && (
               <div className="mt-2 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
                 <Link to={ROUTES.LOGIN} className="rounded-xl border border-gray-200 px-3 py-2.5 text-center text-sm font-bold text-gray-700">Đăng nhập</Link>
